@@ -18,6 +18,7 @@ pnpm-debug.log*
 .oss-fuzz/
 junit/
 *.html
+!public/index.html
 
 # Dependency directories
 node_modules/
