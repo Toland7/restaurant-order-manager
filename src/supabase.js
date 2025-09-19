@@ -75,10 +75,9 @@ export const supabaseHelpers = {
     const { data, error } = await supabase
       .from('products')
       .insert(productsData)
-    if (error) {
-      console.error('Error creating products:', error);
-      throw error;
-    }
+      .select();
+    
+    if (error) throw error;
     return data;
   },
 
