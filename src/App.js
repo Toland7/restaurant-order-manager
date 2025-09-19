@@ -207,12 +207,10 @@ const App = () => {
 
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
                 </label>
                 <input
-                  id="email"
-                  name="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -223,12 +221,10 @@ const App = () => {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <input
-                  id="password"
-                  name="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -389,15 +385,8 @@ const App = () => {
 
       try {
         const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
-        if (!supplier) {
-          toast.error('Fornitore non selezionato o non trovato.');
-          return; // Exit if no supplier
-        }
         const orderMessage = generateOrderMessage();
         
-        console.log('Sending order for supplier:', supplier);
-        console.log('Order message:', orderMessage);
-
         // Create order in database
         const orderData = {
           user_id: user.id,
@@ -418,8 +407,6 @@ const App = () => {
 
         // Implement actual sending logic based on contact_method
         const encodedMessage = encodeURIComponent(orderMessage);
-
-        console.log('Encoded message:', encodedMessage);
 
         switch (supplier.contact_method) {
           case 'whatsapp':
@@ -468,12 +455,14 @@ const App = () => {
 
     return (
       <div className="min-h-screen bg-gray-50">
-            <label htmlFor="supplierSelect" className="block text-sm font-medium text-gray-700 mb-2">
+        <Header title="Crea Ordine" onBack={() => setCurrentPage('home')} />
+        
+        <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Seleziona Fornitore
             </label>
             <select
-              id="supplierSelect"
-              name="supplierSelect"
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -510,10 +499,8 @@ const App = () => {
                 <div className="space-y-3">
                   {selectedSupplierData.products.map(product => (
                     <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                      <label htmlFor={`${product}Checkbox`} className="flex items-center space-x-3 flex-1">
+                      <label className="flex items-center space-x-3 flex-1">
                         <input
-                          id={`${product}Checkbox`}
-                          name={`${product}Checkbox`}
                           type="checkbox"
                           checked={orderItems[product] && orderItems[product] !== '0'}
                           onChange={(e) => {
@@ -526,8 +513,6 @@ const App = () => {
                         <span className="text-sm text-gray-700">{product}</span>
                       </label>
                       <input
-                        id={`${product}Quantity`}
-                        name={`${product}Quantity`}
                         type="text"
                         placeholder="Qt."
                         value={orderItems[product] || ''}
@@ -543,12 +528,10 @@ const App = () => {
 
           {selectedSupplierData && (
             <div className="bg-white rounded-xl p-4 shadow-sm">
-              <label htmlFor="additionalItems" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Prodotti Aggiuntivi
               </label>
               <textarea
-                id="additionalItems"
-                name="additionalItems"
                 value={additionalItems}
                 onChange={(e) => setAdditionalItems(e.target.value)}
                 placeholder="Inserisci prodotti non in lista..."
@@ -808,12 +791,10 @@ const App = () => {
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="supplierName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nome Fornitore *
                 </label>
                 <input
-                  id="supplierName"
-                  name="supplierName"
                   type="text"
                   value={newSupplier.name}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))}
@@ -823,12 +804,10 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="contactMethod" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Metodo di Invio
                 </label>
                 <select
-                  id="contactMethod"
-                  name="contactMethod"
                   value={newSupplier.contact_method}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -840,12 +819,10 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="supplierContact" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Contatto *
                 </label>
                 <input
-                  id="supplierContact"
-                  name="supplierContact"
                   type="text"
                   value={newSupplier.contact}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))}
@@ -859,13 +836,11 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="newProductInput" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Prodotti
                 </label>
                 <div className="flex space-x-2 mb-3">
                   <input
-                    id="newProductInput"
-                    name="newProductInput"
                     type="text"
                     value={newProduct}
                     onChange={(e) => setNewProduct(e.target.value)}
@@ -896,12 +871,10 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="messageTemplate" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Messaggio Predefinito
                 </label>
                 <textarea
-                  id="messageTemplate"
-                  name="messageTemplate"
                   value={newSupplier.message_template}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1028,12 +1001,10 @@ const App = () => {
         
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Data Programmazione
             </label>
             <input
-              id="scheduledDate"
-              name="scheduledDate"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -1043,12 +1014,10 @@ const App = () => {
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="timeToSend" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Ora Invio
             </label>
             <input
-              id="timeToSend"
-              name="timeToSend"
               type="time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
@@ -1057,12 +1026,10 @@ const App = () => {
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="scheduleSupplierSelect" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Seleziona Fornitore
             </label>
             <select
-              id="scheduleSupplierSelect"
-              name="scheduleSupplierSelect"
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1082,10 +1049,8 @@ const App = () => {
               <div className="space-y-3">
                 {selectedSupplierData.products.map(product => (
                   <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                    <label htmlFor={`${product}ScheduleCheckbox`} className="flex items-center space-x-3 flex-1">
+                    <label className="flex items-center space-x-3 flex-1">
                       <input
-                        id={`${product}ScheduleCheckbox`}
-                        name={`${product}ScheduleCheckbox`}
                         type="checkbox"
                         checked={orderItems[product] && orderItems[product] !== '0'}
                         onChange={(e) => {
@@ -1098,8 +1063,6 @@ const App = () => {
                       <span className="text-sm text-gray-700">{product}</span>
                     </label>
                     <input
-                      id={`${product}ScheduleQuantity`}
-                      name={`${product}ScheduleQuantity`}
                       type="text"
                       placeholder="Qt."
                       value={orderItems[product] || ''}
@@ -1114,12 +1077,11 @@ const App = () => {
 
           {selectedSupplierData && (
             <div className="bg-white rounded-xl p-4 shadow-sm">
-                          <label htmlFor="scheduleAdditionalItems" className="block text-sm font-medium text-gray-700 mb-2">
-                            Prodotti Aggiuntivi
-                          </label>
-                          <textarea
-                            id="scheduleAdditionalItems"
-                            name="scheduleAdditionalItems"                value={additionalItems}
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Prodotti Aggiuntivi
+              </label>
+              <textarea
+                value={additionalItems}
                 onChange={(e) => setAdditionalItems(e.target.value)}
                 placeholder="Inserisci prodotti non in lista..."
                 className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1292,12 +1254,10 @@ const App = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="dateFrom" className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Da Data
                   </label>
                   <input
-                    id="dateFrom"
-                    name="dateFrom"
                     type="date"
                     value={filters.dateFrom}
                     onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
@@ -1306,12 +1266,10 @@ const App = () => {
                 </div>
                 
                 <div>
-                  <label htmlFor="dateTo" className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     A Data
                   </label>
                   <input
-                    id="dateTo"
-                    name="dateTo"
                     type="date"
                     value={filters.dateTo}
                     onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
@@ -1321,12 +1279,10 @@ const App = () => {
               </div>
               
               <div>
-                <label htmlFor="historySupplierSelect" className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Fornitore
                 </label>
                 <select
-                  id="historySupplierSelect"
-                  name="historySupplierSelect"
                   value={filters.supplier}
                   onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))}
                   className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
@@ -1341,12 +1297,10 @@ const App = () => {
               </div>
               
               <div>
-                <label htmlFor="statusSelect" className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Stato
                 </label>
                 <select
-                  id="statusSelect"
-                  name="statusSelect"
                   value={filters.status}
                   onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                   className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
