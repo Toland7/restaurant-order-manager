@@ -622,6 +622,12 @@ const App = () => {
         return;
       }
 
+      if (!user) {
+        toast.error('Sessione utente non valida. Effettua nuovamente il login.');
+        setCurrentPage('auth');
+        return;
+      }
+
       setIsSubmitting(true);
 
       try {
@@ -689,6 +695,9 @@ const App = () => {
       } catch (error) {
         console.error('Error saving supplier:', error);
         toast.error('Errore durante il salvataggio');
+        if (error.message && error.message.includes('Auth session missing')) {
+          setCurrentPage('auth');
+        }
       } finally {
         setIsSubmitting(false);
       }
