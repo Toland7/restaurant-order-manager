@@ -54,7 +54,7 @@ build/
 dist/
 out/
 es/
-lib/
+
 tmp/
 temp/
 .next/    # Next.js build output
