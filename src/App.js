@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
+import { useAuth } from './AuthContext';
 
 const App = () => {
+  const { user, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Analytics state
@@ -85,47 +85,26 @@ const App = () => {
     }
   }, [calculateAnalytics]);
 
-  const initializeApp = useCallback(async () => {
-    try {
-      const currentUser = await supabaseHelpers.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        await loadData(currentUser.id);
-        setCurrentPage('home');
-      } else {
-        setCurrentPage('auth');
-      }
-    } catch (error) {
-      console.error('initializeApp: CATCH block error:', error);
-      setCurrentPage('auth');
-    } finally {
-      setLoading(false);
-    }
-  }, [loadData]);
-
-  // Initialize app and auth listener
   useEffect(() => {
-    initializeApp();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        await loadData(session.user.id);
-        setCurrentPage('home');
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setSuppliers([]);
-        setOrders([]);
-        setScheduledOrders([]);
-        setCurrentPage('auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [initializeApp, loadData]);
+    if (user) {
+      loadData(user.id);
+      setCurrentPage('home');
+    } else {
+      // Reset state when user logs out
+      setSuppliers([]);
+      setOrders([]);
+      setScheduledOrders([]);
+    }
+  }, [user, loadData]);
 
 
   // --- Reusable Components ---
+
+  const openLinkInNewTab = (url) => {
+    setTimeout(() => {
+      window.open(url, '_blank');
+    }, 100);
+  };
 
   const MenuButton = ({ icon, title, subtitle, onClick, color }) => (
     <button
@@ -410,13 +389,13 @@ const App = () => {
 
         switch (supplier.contact_method) {
           case 'whatsapp':
-            window.open(`https://wa.me/${supplier.contact}?text=${encodedMessage}`, '_blank');
+            openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`);
             break;
           case 'email':
-            window.open(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`, '_blank');
+            openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`);
             break;
           case 'sms':
-            window.open(`sms:${supplier.contact}?body=${encodedMessage}`, '_blank');
+            openLinkInNewTab(`sms:${supplier.contact}?body=${encodedMessage}`);
             break;
           default:
             toast.error('Metodo di contatto non supportato');
@@ -447,6 +426,7 @@ const App = () => {
         console.error('Error sending order:', error);
         toast.error("Errore durante l'invio dell'ordine");
       } finally {
+        console.log('finally block called');
         setIsSubmitting(false);
       }
     };
@@ -1484,9 +1464,9 @@ const App = () => {
 
   const SettingsPage = () => {
     const handleLogout = async () => {
-      await supabase.auth.signOut();
+      await signOut();
       toast.success('Logout effettuato');
-      setCurrentPage('auth');
+      setCurrentPage('home'); // Will be redirected to auth page by the main render logic
     };
 
     return (
@@ -1519,18 +1499,17 @@ const App = () => {
 
   // --- Main Render Logic ---
 
-  const renderPage = () => {
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="spinner w-8 h-8" />
-        </div>
-      );
-    }
+  if (!user) {
+    return (
+      <>
+        <Toaster position="top-center" reverseOrder={false} />
+        <AuthPage />
+      </>
+    );
+  }
 
+  const renderPage = () => {
     switch (currentPage) {
-      case 'auth':
-        return <AuthPage />;
       case 'home':
         return <HomePage />;
       case 'createOrder':
