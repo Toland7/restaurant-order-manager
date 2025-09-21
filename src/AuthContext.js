@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       calculateAnalytics(ordersData, formattedSuppliers);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Errore durante il caricamento dei dati');
     }
   }, [calculateAnalytics]);
 
