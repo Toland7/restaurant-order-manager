@@ -26,6 +26,24 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // DIAGNOSTIC: Test direct fetch to Supabase
+    console.log('DIAGNOSTIC: Attempting direct fetch to Supabase URL...');
+    try {
+      const testUrl = process.env.SUPABASE_URL + '/rest/v1/suppliers?limit=1'; // Use a public endpoint if possible, or any endpoint
+      const testResponse = await fetch(testUrl, {
+        headers: {
+          'apikey': process.env.SUPABASE_ANON_KEY, // Use anon key for this test
+          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
+        }
+      });
+      console.log('DIAGNOSTIC: Fetch response status:', testResponse.status);
+      const testData = await testResponse.json();
+      console.log('DIAGNOSTIC: Fetch response data:', testData);
+    } catch (fetchError) {
+      console.error('DIAGNOSTIC: Direct fetch failed:', fetchError);
+    }
+    console.log('DIAGNOSTIC: Direct fetch test complete.');
+
     const now = new Date();
 
     // 1. Fetch due and unsent reminders
