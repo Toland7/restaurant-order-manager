@@ -1,33 +1,102 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 
 const App = () => {
-  const { 
-    user, 
-    signOut, 
-    suppliers, 
-    orders, 
-    scheduledOrders, 
-    analytics, 
-    loading, 
-    setOrders, 
-    setSuppliers, 
-    setScheduledOrders 
-  } = useAuth();
-  
+  const { user, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
+  const [suppliers, setSuppliers] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // Filters state remains local to the HistoryPage
+  // Analytics state
+  const [analytics, setAnalytics] = useState({
+    totalOrders: 0,
+    totalSuppliers: 0,
+    ordersThisWeek: 0,
+    mostOrderedProduct: ''
+  });
+
+  // Filters state
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
     supplier: '',
     status: ''
   });
+
+  const calculateAnalytics = useCallback((ordersData, suppliersData) => {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const ordersThisWeek = ordersData.filter(order => 
+      new Date(order.sent_at || order.created_at) > weekAgo
+    ).length;
+
+    // Calculate most ordered product (simplified)
+    const productCounts = {};
+    ordersData.forEach(order => {
+      if (order.order_items) {
+        order.order_items.forEach(item => {
+          productCounts[item.product_name] = (productCounts[item.product_name] || 0) + 1;
+        });
+      }
+    });
+
+    const mostOrderedProduct = Object.keys(productCounts).length > 0 
+      ? Object.keys(productCounts).reduce((a, b) => productCounts[a] > productCounts[b] ? a : b)
+      : 'Nessuno';
+
+    setAnalytics({
+      totalOrders: ordersData.length,
+      totalSuppliers: suppliersData.length,
+      ordersThisWeek,
+      mostOrderedProduct
+    });
+  }, []);
+
+  const loadData = useCallback(async (userId) => {
+    try {
+      // Load suppliers with products
+      const suppliersData = await supabaseHelpers.getSuppliers(userId);
+      const formattedSuppliers = suppliersData.map(supplier => ({
+        ...supplier,
+        products: supplier.products ? supplier.products.map(p => p.name) : []
+      }));
+      setSuppliers(formattedSuppliers);
+
+      // Load orders
+      const ordersData = await supabaseHelpers.getOrders(userId);
+      setOrders(ordersData);
+
+      // Load scheduled orders
+      const scheduledData = await supabaseHelpers.getScheduledOrders(userId);
+      setScheduledOrders(scheduledData);
+
+      // Calculate analytics
+      calculateAnalytics(ordersData, formattedSuppliers);
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Errore durante il caricamento dei dati');
+    }
+  }, [calculateAnalytics]);
+
+  useEffect(() => {
+    if (user) {
+      loadData(user.id);
+      setCurrentPage('home');
+    } else {
+      // Reset state when user logs out
+      setSuppliers([]);
+      setOrders([]);
+      setScheduledOrders([]);
+    }
+  }, [user, loadData]);
+
 
   // --- Reusable Components ---
 
@@ -117,35 +186,31 @@ const App = () => {
 
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
                 </label>
                 <input
                   type="email"
-                  id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="tua@email.com"
-                  autocomplete="username"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <input
                   type="password"
-                  id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Password (min 6 caratteri)"
-                  autocomplete="current-password"
                 />
               </div>
 
@@ -293,7 +358,7 @@ const App = () => {
       return message;
     };
 
-  const sendOrder = async () => {
+    const sendOrder = async () => {
       if (isSubmitting) return;
       setIsSubmitting(true);
 
@@ -301,30 +366,58 @@ const App = () => {
         const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
         const orderMessage = generateOrderMessage();
         
-        const orderData = { user_id: user.id, supplier_id: selectedSupplier, order_message: orderMessage, additional_items: additionalItems || null, status: 'sent' };
-        const orderItemsToInsert = Object.entries(orderItems).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
+        // Create order in database
+        const orderData = {
+          user_id: user.id,
+          supplier_id: selectedSupplier,
+          order_message: orderMessage,
+          additional_items: additionalItems || null,
+          status: 'sent'
+        };
+
+        const orderItemsToInsert = Object.entries(orderItems)
+          .filter(([_, quantity]) => quantity && quantity !== '0')
+          .map(([productName, quantity]) => ({
+            product_name: productName,
+            quantity: parseInt(quantity, 10) || 0
+          }));
 
         const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
 
+        // Implement actual sending logic based on contact_method
         const encodedMessage = encodeURIComponent(orderMessage);
+
         switch (supplier.contact_method) {
-          case 'whatsapp': openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`); break;
-          case 'email': openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`); break;
-          case 'sms': openLinkInNewTab(`sms:${supplier.contact}?body=${encodedMessage}`); break;
-          default: toast.error('Metodo di contatto non supportato'); break;
+          case 'whatsapp':
+            openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`);
+            break;
+          case 'email':
+            openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`);
+            break;
+          case 'sms':
+            openLinkInNewTab(`sms:${supplier.contact}?body=${encodedMessage}`);
+            break;
+          default:
+            toast.error('Metodo di contatto non supportato');
+            break;
         }
         
         toast.success(`Ordine inviato via ${supplier.contact_method} a ${supplier.name}!`);
         
+        // Update local state
         setOrders(prev => [{ ...newOrder, suppliers: supplier, order_items: orderItemsToInsert }, ...prev]);
         
+        // Reset form
         setSelectedSupplier('');
         setOrderItems({});
         setAdditionalItems('');
         setShowConfirm(false);
 
+        // Ask if user wants to create another order
         setTimeout(() => {
-          if (!window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) {
+          if (window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) {
+            // Stay on the same page
+          } else {
             setCurrentPage('home');
           }
         }, 1000);
@@ -333,6 +426,7 @@ const App = () => {
         console.error('Error sending order:', error);
         toast.error("Errore durante l'invio dell'ordine");
       } finally {
+        console.log('finally block called');
         setIsSubmitting(false);
       }
     };
@@ -345,11 +439,10 @@ const App = () => {
         
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="supplier-select" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Seleziona Fornitore
             </label>
             <select
-              id="supplier-select"
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -386,10 +479,9 @@ const App = () => {
                 <div className="space-y-3">
                   {selectedSupplierData.products.map(product => (
                     <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                      <label htmlFor={`product-${product}`} className="flex items-center space-x-3 flex-1">
+                      <label className="flex items-center space-x-3 flex-1">
                         <input
                           type="checkbox"
-                          id={`product-${product}`}
                           checked={orderItems[product] && orderItems[product] !== '0'}
                           onChange={(e) => {
                             if (!e.target.checked) {
@@ -402,8 +494,6 @@ const App = () => {
                       </label>
                       <input
                         type="text"
-                        id={`quantity-${product}`}
-                        name={`quantity-${product}`}
                         placeholder="Qt."
                         value={orderItems[product] || ''}
                         onChange={(e) => handleQuantityChange(product, e.target.value)}
@@ -512,29 +602,68 @@ const App = () => {
         return;
       }
 
+      if (!user) {
+        toast.error('Sessione utente non valida. Effettua nuovamente il login.');
+        setCurrentPage('auth');
+        return;
+      }
+
       setIsSubmitting(true);
 
       try {
-        const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template };
+        const supplierData = {
+          user_id: user.id,
+          name: newSupplier.name,
+          contact_method: newSupplier.contact_method,
+          contact: newSupplier.contact,
+          message_template: newSupplier.message_template
+        };
+
         let savedSupplier;
 
         if (editingSupplier) {
+          // Update existing supplier
           savedSupplier = await supabaseHelpers.updateSupplier(editingSupplier.id, supplierData);
+          
+          // Update products (delete old ones and create new ones)
           await supabaseHelpers.deleteProductsBySupplier(editingSupplier.id);
-          if (newSupplier.products.length > 0) { await supabaseHelpers.createProducts(editingSupplier.id, newSupplier.products); }
-          setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? { ...savedSupplier, products: newSupplier.products } : s));
+          if (newSupplier.products.length > 0) {
+            await supabaseHelpers.createProducts(editingSupplier.id, newSupplier.products);
+          }
+          
+          // Update local state
+          setSuppliers(prev => prev.map(s => 
+            s.id === editingSupplier.id ? { ...savedSupplier, products: newSupplier.products } : s
+          ));
+          
           toast.success('Fornitore aggiornato con successo');
         } else {
+          // Create new supplier
           savedSupplier = await supabaseHelpers.createSupplier(supplierData);
-          if (newSupplier.products.length > 0) { await supabaseHelpers.createProducts(savedSupplier.id, newSupplier.products); }
+          
+          // Save products
+          if (newSupplier.products.length > 0) {
+            await supabaseHelpers.createProducts(savedSupplier.id, newSupplier.products);
+          }
+          
+          // Update local state
           setSuppliers(prev => [...prev, { ...savedSupplier, products: newSupplier.products }]);
+          
           toast.success('Fornitore aggiunto con successo');
         }
 
-        setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' });
+        // Reset form
+        setNewSupplier({
+          name: '',
+          contact_method: 'whatsapp',
+          contact: '',
+          products: [],
+          message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:'
+        });
         setIsAdding(false);
         setEditingSupplier(null);
 
+        // Ask if user wants to add another supplier
         if (!editingSupplier) {
           setTimeout(() => {
             if (window.confirm('Fornitore aggiunto! Vuoi aggiungerne un altro?')) {
@@ -546,6 +675,9 @@ const App = () => {
       } catch (error) {
         console.error('Error saving supplier:', error);
         toast.error('Errore durante il salvataggio');
+        if (error.message && error.message.includes('Auth session missing')) {
+          setCurrentPage('auth');
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -639,12 +771,11 @@ const App = () => {
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nome Fornitore *
                 </label>
                 <input
                   type="text"
-                  id="supplier-name"
                   value={newSupplier.name}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -653,11 +784,10 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Metodo di Invio
                 </label>
                 <select
-                  id="contact-method"
                   value={newSupplier.contact_method}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -669,12 +799,11 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Contatto *
                 </label>
                 <input
                   type="text"
-                  id="contact"
                   value={newSupplier.contact}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -687,13 +816,12 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Prodotti
                 </label>
                 <div className="flex space-x-2 mb-3">
                   <input
                     type="text"
-                    id="new-product"
                     value={newProduct}
                     onChange={(e) => setNewProduct(e.target.value)}
                     className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -723,11 +851,10 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Messaggio Predefinito
                 </label>
                 <textarea
-                  id="message-template"
                   value={newSupplier.message_template}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -775,18 +902,16 @@ const App = () => {
   };
 
   const SchedulePage = () => {
-    const [reminderType, setReminderType] = useState('simple'); // 'simple' or 'prefilled'
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('09:00');
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
-    const [simpleMessage, setSimpleMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const createReminder = async () => {
-      if (!selectedDate || !selectedSupplier || !selectedTime) {
-        toast.error('Seleziona data, ora e fornitore');
+    const scheduleOrder = async () => {
+      if (!selectedDate || !selectedSupplier) {
+        toast.error('Seleziona data e fornitore');
         return;
       }
 
@@ -795,23 +920,21 @@ const App = () => {
       try {
         const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
         
-        // Combine date and time into a single ISO string
-        const scheduledAt = new Date(`${selectedDate}T${selectedTime}`);
-
-        const reminderData = {
+        const scheduledOrderData = {
           user_id: user.id,
           supplier_id: selectedSupplier,
-          scheduled_at: scheduledAt.toISOString(),
-          reminder_type: reminderType,
-          order_data: reminderType === 'prefilled' 
-            ? { items: orderItems, additional_items: additionalItems } 
-            : { message: simpleMessage }
+          scheduled_date: selectedDate,
+          time_to_send: selectedTime,
+          order_data: JSON.stringify({
+            items: orderItems,
+            additional_items: additionalItems
+          })
         };
 
-        const newScheduledOrder = await supabaseHelpers.createScheduledOrder(reminderData);
+        const newScheduledOrder = await supabaseHelpers.createScheduledOrder(scheduledOrderData);
         
         setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: supplier }]);
-        toast.success(`Promemoria creato per ${selectedDate} alle ${selectedTime}`);
+        toast.success(`Ordine programmato per ${selectedDate} alle ${selectedTime} a ${supplier.name}`);
         
         // Reset form
         setSelectedDate('');
@@ -819,23 +942,31 @@ const App = () => {
         setSelectedSupplier('');
         setOrderItems({});
         setAdditionalItems('');
-        setSimpleMessage('');
+
+        // Ask if user wants to schedule another order
+        setTimeout(() => {
+          if (window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) {
+            // Stay on the same page
+          } else {
+            setCurrentPage('home');
+          }
+        }, 1000);
 
       } catch (error) {
-        console.error('Error creating reminder:', error);
-        toast.error('Errore durante la creazione del promemoria');
+        console.error('Error scheduling order:', error);
+        toast.error('Errore durante la programmazione');
       } finally {
         setIsSubmitting(false);
       }
     };
 
     const deleteScheduledOrder = async (id) => {
-      if (!window.confirm('Sei sicuro di voler eliminare questo promemoria?')) return;
+      if (!window.confirm('Sei sicuro di voler eliminare questo ordine programmato?')) return;
 
       try {
         await supabaseHelpers.deleteScheduledOrder(id);
         setScheduledOrders(prev => prev.filter(order => order.id !== id));
-        toast.success('Promemoria eliminato');
+        toast.success('Ordine programmato eliminato');
       } catch (error) {
         console.error('Error deleting scheduled order:', error);
         toast.error("Errore durante l'eliminazione");
@@ -850,12 +981,11 @@ const App = () => {
         
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="scheduled-date" className="block text-sm font-medium text-gray-700 mb-2">
-              Data
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Data Programmazione
             </label>
             <input
               type="date"
-              id="scheduled-date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
@@ -864,12 +994,11 @@ const App = () => {
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="scheduled-time" className="block text-sm font-medium text-gray-700 mb-2">
-              Ora
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ora Invio
             </label>
             <input
               type="time"
-              id="scheduled-time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -877,11 +1006,10 @@ const App = () => {
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label htmlFor="reminder-supplier-select" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Seleziona Fornitore
             </label>
             <select
-              id="reminder-supplier-select"
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -899,33 +1027,31 @@ const App = () => {
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-medium text-gray-900 mb-4">Prodotti</h3>
               <div className="space-y-3">
-                                  {selectedSupplierData.products.map(product => (
-                                    <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                                      <label htmlFor={`reminder-product-${product}`} className="flex items-center space-x-3 flex-1">
-                                        <input
-                                          type="checkbox"
-                                          id={`reminder-product-${product}`}
-                                          checked={orderItems[product] && orderItems[product] !== '0'}
-                                          onChange={(e) => {
-                                            if (!e.target.checked) {
-                                              setOrderItems(prev => ({ ...prev, [product]: '0' }));
-                                            }
-                                          }}
-                                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span className="text-sm text-gray-700">{product}</span>
-                                      </label>
-                                      <input
-                                        type="text"
-                                        id={`reminder-quantity-${product}`}
-                                        name={`reminder-quantity-${product}`}
-                                        placeholder="Qt."
-                                        value={orderItems[product] || ''}
-                                        onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))}
-                                        className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
-                                      />
-                                    </div>
-                                  ))}              </div>
+                {selectedSupplierData.products.map(product => (
+                  <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
+                    <label className="flex items-center space-x-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={orderItems[product] && orderItems[product] !== '0'}
+                        onChange={(e) => {
+                          if (!e.target.checked) {
+                            setOrderItems(prev => ({ ...prev, [product]: '0' }));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{product}</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Qt."
+                      value={orderItems[product] || ''}
+                      onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))}
+                      className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -956,7 +1082,7 @@ const App = () => {
                         <div>
                           <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
                           <p className="text-xs text-purple-700">
-                            {new Date(order.scheduled_at).toLocaleDateString('it-IT')} alle {new Date(order.scheduled_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(order.scheduled_date).toLocaleDateString('it-IT')} alle {order.time_to_send}
                           </p>
                           {order.is_sent && (
                             <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
@@ -985,7 +1111,7 @@ const App = () => {
 
           {selectedDate && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && (
             <button
-              onClick={createReminder}
+              onClick={scheduleOrder}
               disabled={isSubmitting}
               className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300"
             >

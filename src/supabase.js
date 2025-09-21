@@ -174,7 +174,7 @@ export const supabaseHelpers = {
       `)
       .eq('user_id', userId)
       .eq('is_sent', false)
-      .order('scheduled_at', { ascending: true });
+      .order('scheduled_date', { ascending: true });
     
     if (error) throw error;
     return data;
