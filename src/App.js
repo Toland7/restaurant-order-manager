@@ -1,102 +1,33 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 
 const App = () => {
-  const { user, signOut } = useAuth();
+  const { 
+    user, 
+    signOut, 
+    suppliers, 
+    orders, 
+    scheduledOrders, 
+    analytics, 
+    loading, 
+    setOrders, 
+    setSuppliers, 
+    setScheduledOrders 
+  } = useAuth();
+  
   const [currentPage, setCurrentPage] = useState('home');
-  const [suppliers, setSuppliers] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  // Analytics state
-  const [analytics, setAnalytics] = useState({
-    totalOrders: 0,
-    totalSuppliers: 0,
-    ordersThisWeek: 0,
-    mostOrderedProduct: ''
-  });
-
-  // Filters state
+  // Filters state remains local to the HistoryPage
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
     supplier: '',
     status: ''
   });
-
-  const calculateAnalytics = useCallback((ordersData, suppliersData) => {
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    const ordersThisWeek = ordersData.filter(order => 
-      new Date(order.sent_at || order.created_at) > weekAgo
-    ).length;
-
-    // Calculate most ordered product (simplified)
-    const productCounts = {};
-    ordersData.forEach(order => {
-      if (order.order_items) {
-        order.order_items.forEach(item => {
-          productCounts[item.product_name] = (productCounts[item.product_name] || 0) + 1;
-        });
-      }
-    });
-
-    const mostOrderedProduct = Object.keys(productCounts).length > 0 
-      ? Object.keys(productCounts).reduce((a, b) => productCounts[a] > productCounts[b] ? a : b)
-      : 'Nessuno';
-
-    setAnalytics({
-      totalOrders: ordersData.length,
-      totalSuppliers: suppliersData.length,
-      ordersThisWeek,
-      mostOrderedProduct
-    });
-  }, []);
-
-  const loadData = useCallback(async (userId) => {
-    try {
-      // Load suppliers with products
-      const suppliersData = await supabaseHelpers.getSuppliers(userId);
-      const formattedSuppliers = suppliersData.map(supplier => ({
-        ...supplier,
-        products: supplier.products ? supplier.products.map(p => p.name) : []
-      }));
-      setSuppliers(formattedSuppliers);
-
-      // Load orders
-      const ordersData = await supabaseHelpers.getOrders(userId);
-      setOrders(ordersData);
-
-      // Load scheduled orders
-      const scheduledData = await supabaseHelpers.getScheduledOrders(userId);
-      setScheduledOrders(scheduledData);
-
-      // Calculate analytics
-      calculateAnalytics(ordersData, formattedSuppliers);
-
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Errore durante il caricamento dei dati');
-    }
-  }, [calculateAnalytics]);
-
-  useEffect(() => {
-    if (user) {
-      loadData(user.id);
-      setCurrentPage('home');
-    } else {
-      // Reset state when user logs out
-      setSuppliers([]);
-      setOrders([]);
-      setScheduledOrders([]);
-    }
-  }, [user, loadData]);
-
 
   // --- Reusable Components ---
 
@@ -358,7 +289,7 @@ const App = () => {
       return message;
     };
 
-    const sendOrder = async () => {
+  const sendOrder = async () => {
       if (isSubmitting) return;
       setIsSubmitting(true);
 
@@ -366,58 +297,30 @@ const App = () => {
         const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
         const orderMessage = generateOrderMessage();
         
-        // Create order in database
-        const orderData = {
-          user_id: user.id,
-          supplier_id: selectedSupplier,
-          order_message: orderMessage,
-          additional_items: additionalItems || null,
-          status: 'sent'
-        };
-
-        const orderItemsToInsert = Object.entries(orderItems)
-          .filter(([_, quantity]) => quantity && quantity !== '0')
-          .map(([productName, quantity]) => ({
-            product_name: productName,
-            quantity: parseInt(quantity, 10) || 0
-          }));
+        const orderData = { user_id: user.id, supplier_id: selectedSupplier, order_message: orderMessage, additional_items: additionalItems || null, status: 'sent' };
+        const orderItemsToInsert = Object.entries(orderItems).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
 
         const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
 
-        // Implement actual sending logic based on contact_method
         const encodedMessage = encodeURIComponent(orderMessage);
-
         switch (supplier.contact_method) {
-          case 'whatsapp':
-            openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`);
-            break;
-          case 'email':
-            openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`);
-            break;
-          case 'sms':
-            openLinkInNewTab(`sms:${supplier.contact}?body=${encodedMessage}`);
-            break;
-          default:
-            toast.error('Metodo di contatto non supportato');
-            break;
+          case 'whatsapp': openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`); break;
+          case 'email': openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`); break;
+          case 'sms': openLinkInNewTab(`sms:${supplier.contact}?body=${encodedMessage}`); break;
+          default: toast.error('Metodo di contatto non supportato'); break;
         }
         
         toast.success(`Ordine inviato via ${supplier.contact_method} a ${supplier.name}!`);
         
-        // Update local state
         setOrders(prev => [{ ...newOrder, suppliers: supplier, order_items: orderItemsToInsert }, ...prev]);
         
-        // Reset form
         setSelectedSupplier('');
         setOrderItems({});
         setAdditionalItems('');
         setShowConfirm(false);
 
-        // Ask if user wants to create another order
         setTimeout(() => {
-          if (window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) {
-            // Stay on the same page
-          } else {
+          if (!window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) {
             setCurrentPage('home');
           }
         }, 1000);
@@ -426,7 +329,6 @@ const App = () => {
         console.error('Error sending order:', error);
         toast.error("Errore durante l'invio dell'ordine");
       } finally {
-        console.log('finally block called');
         setIsSubmitting(false);
       }
     };
@@ -602,68 +504,29 @@ const App = () => {
         return;
       }
 
-      if (!user) {
-        toast.error('Sessione utente non valida. Effettua nuovamente il login.');
-        setCurrentPage('auth');
-        return;
-      }
-
       setIsSubmitting(true);
 
       try {
-        const supplierData = {
-          user_id: user.id,
-          name: newSupplier.name,
-          contact_method: newSupplier.contact_method,
-          contact: newSupplier.contact,
-          message_template: newSupplier.message_template
-        };
-
+        const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template };
         let savedSupplier;
 
         if (editingSupplier) {
-          // Update existing supplier
           savedSupplier = await supabaseHelpers.updateSupplier(editingSupplier.id, supplierData);
-          
-          // Update products (delete old ones and create new ones)
           await supabaseHelpers.deleteProductsBySupplier(editingSupplier.id);
-          if (newSupplier.products.length > 0) {
-            await supabaseHelpers.createProducts(editingSupplier.id, newSupplier.products);
-          }
-          
-          // Update local state
-          setSuppliers(prev => prev.map(s => 
-            s.id === editingSupplier.id ? { ...savedSupplier, products: newSupplier.products } : s
-          ));
-          
+          if (newSupplier.products.length > 0) { await supabaseHelpers.createProducts(editingSupplier.id, newSupplier.products); }
+          setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? { ...savedSupplier, products: newSupplier.products } : s));
           toast.success('Fornitore aggiornato con successo');
         } else {
-          // Create new supplier
           savedSupplier = await supabaseHelpers.createSupplier(supplierData);
-          
-          // Save products
-          if (newSupplier.products.length > 0) {
-            await supabaseHelpers.createProducts(savedSupplier.id, newSupplier.products);
-          }
-          
-          // Update local state
+          if (newSupplier.products.length > 0) { await supabaseHelpers.createProducts(savedSupplier.id, newSupplier.products); }
           setSuppliers(prev => [...prev, { ...savedSupplier, products: newSupplier.products }]);
-          
           toast.success('Fornitore aggiunto con successo');
         }
 
-        // Reset form
-        setNewSupplier({
-          name: '',
-          contact_method: 'whatsapp',
-          contact: '',
-          products: [],
-          message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:'
-        });
+        setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' });
         setIsAdding(false);
         setEditingSupplier(null);
 
-        // Ask if user wants to add another supplier
         if (!editingSupplier) {
           setTimeout(() => {
             if (window.confirm('Fornitore aggiunto! Vuoi aggiungerne un altro?')) {
@@ -675,9 +538,6 @@ const App = () => {
       } catch (error) {
         console.error('Error saving supplier:', error);
         toast.error('Errore durante il salvataggio');
-        if (error.message && error.message.includes('Auth session missing')) {
-          setCurrentPage('auth');
-        }
       } finally {
         setIsSubmitting(false);
       }
@@ -957,12 +817,12 @@ const App = () => {
     };
 
     const deleteScheduledOrder = async (id) => {
-      if (!window.confirm('Sei sicuro di voler eliminare questo ordine programmato?')) return;
+      if (!window.confirm('Sei sicuro di voler eliminare questo promemoria?')) return;
 
       try {
         await supabaseHelpers.deleteScheduledOrder(id);
         setScheduledOrders(prev => prev.filter(order => order.id !== id));
-        toast.success('Ordine programmato eliminato');
+        toast.success('Promemoria eliminato');
       } catch (error) {
         console.error('Error deleting scheduled order:', error);
         toast.error("Errore durante l'eliminazione");
