@@ -902,11 +902,13 @@ const App = () => {
   };
 
   const SchedulePage = () => {
+    const [reminderType, setReminderType] = useState('simple'); // 'simple' or 'prefilled'
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('09:00');
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
+    const [simpleMessage, setSimpleMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const createReminder = async () => {
@@ -1105,7 +1107,7 @@ const App = () => {
 
           {selectedDate && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && (
             <button
-              onClick={scheduleOrder}
+              onClick={createReminder}
               disabled={isSubmitting}
               className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300"
             >
