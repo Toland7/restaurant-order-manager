@@ -128,6 +128,7 @@ const App = () => {
                   required
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="tua@email.com"
+                  autocomplete="username"
                 />
               </div>
 
