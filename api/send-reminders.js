@@ -20,6 +20,11 @@ module.exports = async (req, res) => {
     return res.status(405).end('Method Not Allowed');
   }
 
+  const { authorization } = req.headers;
+  if (authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   try {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
