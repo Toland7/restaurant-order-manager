@@ -117,11 +117,12 @@ const App = () => {
 
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email
                 </label>
                 <input
                   type="email"
+                  id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -131,11 +132,12 @@ const App = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <input
                   type="password"
+                  id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -342,10 +344,11 @@ const App = () => {
         
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="supplier-select" className="block text-sm font-medium text-gray-700 mb-2">
               Seleziona Fornitore
             </label>
             <select
+              id="supplier-select"
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -382,9 +385,10 @@ const App = () => {
                 <div className="space-y-3">
                   {selectedSupplierData.products.map(product => (
                     <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                      <label className="flex items-center space-x-3 flex-1">
+                      <label htmlFor={`product-${product}`} className="flex items-center space-x-3 flex-1">
                         <input
                           type="checkbox"
+                          id={`product-${product}`}
                           checked={orderItems[product] && orderItems[product] !== '0'}
                           onChange={(e) => {
                             if (!e.target.checked) {
@@ -397,6 +401,8 @@ const App = () => {
                       </label>
                       <input
                         type="text"
+                        id={`quantity-${product}`}
+                        name={`quantity-${product}`}
                         placeholder="Qt."
                         value={orderItems[product] || ''}
                         onChange={(e) => handleQuantityChange(product, e.target.value)}
@@ -632,11 +638,12 @@ const App = () => {
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">
                   Nome Fornitore *
                 </label>
                 <input
                   type="text"
+                  id="supplier-name"
                   value={newSupplier.name}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -645,10 +652,11 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">
                   Metodo di Invio
                 </label>
                 <select
+                  id="contact-method"
                   value={newSupplier.contact_method}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -660,11 +668,12 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">
                   Contatto *
                 </label>
                 <input
                   type="text"
+                  id="contact"
                   value={newSupplier.contact}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -677,12 +686,13 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">
                   Prodotti
                 </label>
                 <div className="flex space-x-2 mb-3">
                   <input
                     type="text"
+                    id="new-product"
                     value={newProduct}
                     onChange={(e) => setNewProduct(e.target.value)}
                     className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -712,10 +722,11 @@ const App = () => {
               </div>
 
               <div className="bg-white rounded-xl p-4 shadow-sm">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">
                   Messaggio Predefinito
                 </label>
                 <textarea
+                  id="message-template"
                   value={newSupplier.message_template}
                   onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -838,11 +849,12 @@ const App = () => {
         
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Data Programmazione
+            <label htmlFor="scheduled-date" className="block text-sm font-medium text-gray-700 mb-2">
+              Data
             </label>
             <input
               type="date"
+              id="scheduled-date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
@@ -851,22 +863,24 @@ const App = () => {
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ora Invio
+            <label htmlFor="scheduled-time" className="block text-sm font-medium text-gray-700 mb-2">
+              Ora
             </label>
             <input
               type="time"
+              id="scheduled-time"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus="ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="reminder-supplier-select" className="block text-sm font-medium text-gray-700 mb-2">
               Seleziona Fornitore
             </label>
             <select
+              id="reminder-supplier-select"
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -884,31 +898,33 @@ const App = () => {
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-medium text-gray-900 mb-4">Prodotti</h3>
               <div className="space-y-3">
-                {selectedSupplierData.products.map(product => (
-                  <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                    <label className="flex items-center space-x-3 flex-1">
-                      <input
-                        type="checkbox"
-                        checked={orderItems[product] && orderItems[product] !== '0'}
-                        onChange={(e) => {
-                          if (!e.target.checked) {
-                            setOrderItems(prev => ({ ...prev, [product]: '0' }));
-                          }
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">{product}</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Qt."
-                      value={orderItems[product] || ''}
-                      onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))}
-                      className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
+                                  {selectedSupplierData.products.map(product => (
+                                    <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
+                                      <label htmlFor={`reminder-product-${product}`} className="flex items-center space-x-3 flex-1">
+                                        <input
+                                          type="checkbox"
+                                          id={`reminder-product-${product}`}
+                                          checked={orderItems[product] && orderItems[product] !== '0'}
+                                          onChange={(e) => {
+                                            if (!e.target.checked) {
+                                              setOrderItems(prev => ({ ...prev, [product]: '0' }));
+                                            }
+                                          }}
+                                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm text-gray-700">{product}</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        id={`reminder-quantity-${product}`}
+                                        name={`reminder-quantity-${product}`}
+                                        placeholder="Qt."
+                                        value={orderItems[product] || ''}
+                                        onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))}
+                                        className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
+                                      />
+                                    </div>
+                                  ))}              </div>
             </div>
           )}
 
