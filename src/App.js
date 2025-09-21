@@ -956,7 +956,7 @@ const App = () => {
                         <div>
                           <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
                           <p className="text-xs text-purple-700">
-                            {new Date(order.scheduled_date).toLocaleDateString('it-IT')} alle {order.time_to_send}
+                            {new Date(order.scheduled_at).toLocaleDateString('it-IT')} alle {new Date(order.scheduled_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                           {order.is_sent && (
                             <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
