@@ -142,6 +142,7 @@ const App = () => {
                   minLength={6}
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Password (min 6 caratteri)"
+                  autocomplete="current-password"
                 />
               </div>
 
