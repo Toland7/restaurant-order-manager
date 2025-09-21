@@ -30,12 +30,11 @@ module.exports = async (req, res) => {
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
 
-    // 1. Fetch due and unsent reminders with user profiles
+    // 1. Fetch due and unsent reminders
     const { data: reminders, error: remindersError } = await supabase
       .from('scheduled_orders')
       .select(`
         *,
-        profiles ( push_subscription ),
         suppliers ( name )
       `)
       .eq('scheduled_date', today)
@@ -50,14 +49,20 @@ module.exports = async (req, res) => {
       return res.status(200).json({ message: 'No reminders to send.' });
     }
 
-    const notificationsToSend = reminders.map(reminder => {
-      // The profiles table returns an array, get the first one.
-      const subscription = reminder.profiles[0]?.push_subscription;
-      
-      if (!subscription) {
-        return Promise.resolve({ status: 'no-subscription', reminderId: reminder.id });
+    const notificationsToSend = reminders.map(async reminder => {
+      // 2. Fetch the user's profile separately
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('push_subscription')
+        .eq('id', reminder.user_id)
+        .single();
+
+      if (profileError || !profile || !profile.push_subscription) {
+        return { status: 'no-subscription', reminderId: reminder.id };
       }
 
+      const subscription = profile.push_subscription;
+      
       const payload = JSON.stringify({
         title: `Promemoria Ordine: ${reminder.suppliers.name}`,
         body: reminder.reminder_type === 'prefilled' 
