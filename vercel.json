@@ -1,17 +1,8 @@
 {
-  "version": 2,
-  "name": "restaurant-order-manager",
-  "builds": [
+  "crons": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
+      "path": "/api/send-reminders",
+      "schedule": "* * * * *"
     }
-  ],
-  "env": {
-    "REACT_APP_SUPABASE_URL": "react_app_supabase_url",
-    "REACT_APP_SUPABASE_ANON_KEY": "react_app_supabase_anon_key"
-  }
+  ]
 }
