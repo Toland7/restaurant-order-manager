@@ -39,15 +39,19 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const loadData = useCallback(async (userId) => {
+    console.log('loadData: Loading data for userId:', userId);
     try {
-      const suppliersData = await supabaseHelpers.getSuppliers(userId);
+      const { data: suppliersData, error: suppliersError } = await supabaseHelpers.getSuppliers(userId);
+      console.log('loadData: getSuppliers result:', suppliersData, suppliersError);
       const formattedSuppliers = suppliersData.map(supplier => ({ ...supplier, products: supplier.products ? supplier.products.map(p => p.name) : [] }));
       setSuppliers(formattedSuppliers);
 
-      const ordersData = await supabaseHelpers.getOrders(userId);
+      const { data: ordersData, error: ordersError } = await supabaseHelpers.getOrders(userId);
+      console.log('loadData: getOrders result:', ordersData, ordersError);
       setOrders(ordersData);
 
-      const scheduledData = await supabaseHelpers.getScheduledOrders(userId);
+      const { data: scheduledData, error: scheduledError } = await supabaseHelpers.getScheduledOrders(userId);
+      console.log('loadData: getScheduledOrders result:', scheduledData, scheduledError);
       setScheduledOrders(scheduledData);
 
       calculateAnalytics(ordersData, formattedSuppliers);
