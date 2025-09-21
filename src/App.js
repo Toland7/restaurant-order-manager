@@ -909,9 +909,9 @@ const App = () => {
     const [additionalItems, setAdditionalItems] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const scheduleOrder = async () => {
-      if (!selectedDate || !selectedSupplier) {
-        toast.error('Seleziona data e fornitore');
+    const createReminder = async () => {
+      if (!selectedDate || !selectedSupplier || !selectedTime) {
+        toast.error('Seleziona data, ora e fornitore');
         return;
       }
 
@@ -920,21 +920,23 @@ const App = () => {
       try {
         const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
         
-        const scheduledOrderData = {
+        // Combine date and time into a single ISO string
+        const scheduledAt = new Date(`${selectedDate}T${selectedTime}`);
+
+        const reminderData = {
           user_id: user.id,
           supplier_id: selectedSupplier,
-          scheduled_date: selectedDate,
-          time_to_send: selectedTime,
-          order_data: JSON.stringify({
-            items: orderItems,
-            additional_items: additionalItems
-          })
+          scheduled_at: scheduledAt.toISOString(),
+          reminder_type: reminderType,
+          order_data: reminderType === 'prefilled' 
+            ? { items: orderItems, additional_items: additionalItems } 
+            : { message: simpleMessage }
         };
 
-        const newScheduledOrder = await supabaseHelpers.createScheduledOrder(scheduledOrderData);
+        const newScheduledOrder = await supabaseHelpers.createScheduledOrder(reminderData);
         
         setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: supplier }]);
-        toast.success(`Ordine programmato per ${selectedDate} alle ${selectedTime} a ${supplier.name}`);
+        toast.success(`Promemoria creato per ${selectedDate} alle ${selectedTime}`);
         
         // Reset form
         setSelectedDate('');
@@ -942,19 +944,11 @@ const App = () => {
         setSelectedSupplier('');
         setOrderItems({});
         setAdditionalItems('');
-
-        // Ask if user wants to schedule another order
-        setTimeout(() => {
-          if (window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) {
-            // Stay on the same page
-          } else {
-            setCurrentPage('home');
-          }
-        }, 1000);
+        setSimpleMessage('');
 
       } catch (error) {
-        console.error('Error scheduling order:', error);
-        toast.error('Errore durante la programmazione');
+        console.error('Error creating reminder:', error);
+        toast.error('Errore durante la creazione del promemoria');
       } finally {
         setIsSubmitting(false);
       }

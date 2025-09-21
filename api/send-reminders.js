@@ -27,8 +27,6 @@ module.exports = async (req, res) => {
 
   try {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
 
     // 1. Fetch due and unsent reminders
     const { data: reminders, error: remindersError } = await supabase
@@ -37,9 +35,8 @@ module.exports = async (req, res) => {
         *,
         suppliers ( name )
       `)
-      .eq('scheduled_date', today)
       .eq('is_sent', false)
-      .lte('time_to_send', currentTime);
+      .lte('scheduled_at', now.toISOString());
 
     if (remindersError) {
       throw remindersError;
