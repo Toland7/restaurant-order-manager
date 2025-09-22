@@ -923,7 +923,7 @@ const App = () => {
         const scheduledOrderData = {
           user_id: user.id,
           supplier_id: selectedSupplier,
-          scheduled_date: selectedDate,
+          scheduled_at: new Date(selectedDate + 'T' + selectedTime).toISOString(),
           time_to_send: selectedTime,
           order_data: JSON.stringify({
             items: orderItems,
@@ -1082,7 +1082,7 @@ const App = () => {
                         <div>
                           <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
                           <p className="text-xs text-purple-700">
-                            {new Date(order.scheduled_date).toLocaleDateString('it-IT')} alle {order.time_to_send}
+                            {new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}
                           </p>
                           {order.is_sent && (
                             <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
