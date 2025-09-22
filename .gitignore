@@ -72,3 +72,4 @@ temp/
 
 # Windows
 Thumbs.db
+supabase_schema_to_apply.sql
