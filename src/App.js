@@ -391,6 +391,9 @@ const App = () => {
           case 'whatsapp':
             openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`);
             break;
+          case 'whatsapp_group':
+            openLinkInNewTab(`whatsapp://send?text=${encodedMessage}`);
+            break;
           case 'email':
             openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`);
             break;
@@ -793,6 +796,7 @@ const App = () => {
                   className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="whatsapp">WhatsApp</option>
+                  <option value="whatsapp_group">Gruppo WhatsApp</option>
                   <option value="email">Email</option>
                   <option value="sms">Messaggio</option>
                 </select>
