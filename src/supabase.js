@@ -200,6 +200,29 @@ export const supabaseHelpers = {
     if (error) throw error;
   },
 
+  async getNotifications(userId) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updateUserProfile(userId, profileData) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   // Auth helpers
   async getCurrentUser() {
     const { data: { user }, error } = await supabase.auth.getUser();

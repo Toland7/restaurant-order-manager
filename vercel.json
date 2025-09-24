@@ -3,6 +3,10 @@
   "name": "restaurant-order-manager",
   "builds": [
     {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -10,8 +14,14 @@
       }
     }
   ],
-  "env": {
-    "REACT_APP_SUPABASE_URL": "react_app_supabase_url",
-    "REACT_APP_SUPABASE_ANON_KEY": "react_app_supabase_anon_key"
-  }
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
 }

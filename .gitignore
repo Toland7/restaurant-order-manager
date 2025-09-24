@@ -73,3 +73,4 @@ temp/
 # Windows
 Thumbs.db
 supabase_schema_to_apply.sql
+\n# Backup files\nsrc/App.js.bak
