@@ -3,7 +3,7 @@
   "name": "restaurant-order-manager",
   "builds": [
     {
-      "src": "api/**/*.js",
+      "src": "api/send-reminders.js",
       "use": "@vercel/node"
     },
     {
