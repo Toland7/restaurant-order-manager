@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
+const fetch = require('node-fetch'); // Explicitly import fetch
 
 // Initialize Supabase client
 const supabase = createClient(
