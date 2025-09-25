@@ -6,7 +6,7 @@ const fetch = require('node-fetch'); // Explicitly import fetch
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { global: { fetch: { timeout: 10000 } } } // Add a 10-second timeout
+  { global: { fetch: fetch, timeout: 10000 } } // Pass the imported fetch
 );
 
 // Initialize web-push
