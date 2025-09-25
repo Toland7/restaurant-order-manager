@@ -13,5 +13,5 @@ jobs:
       - name: Call Vercel API to send reminders
         run: |
           curl --request POST \
-            --url 'https://restaurant-order-manager-p9vw7p2r7-toland7s-projects.vercel.app/api/send-reminders' \
+            --url 'https://restaurant-order-manager.vercel.app/api/send-reminders?x-vercel-set-bypass-cookie=true&x-vercel-protection-bypass=${{ secrets.VERCEL_BYPASS_TOKEN }}' \
             --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}'
