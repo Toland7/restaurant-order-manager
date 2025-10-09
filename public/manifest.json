@@ -2,7 +2,18 @@
   "short_name": "Gestione Ordini",
   "name": "Gestione Ordini Ristorante",
   "description": "Sistema di gestione ordini per ristoranti",
-  "icons": [],
+  "icons": [
+    {
+      "src": "logo192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#3b82f6",

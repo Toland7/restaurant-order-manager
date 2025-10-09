@@ -912,16 +912,38 @@ const App = () => {
   };
 
   const SchedulePage = () => {
-    const [selectedDate, setSelectedDate] = useState('');
-    const [selectedTime, setSelectedTime] = useState('09:00');
+    const getRoundedTime = (date = new Date()) => {
+      const minutes = date.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 15) * 15;
+      date.setMinutes(roundedMinutes);
+      return date.toTimeString().slice(0, 5);
+    };
+
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedTime, setSelectedTime] = useState(getRoundedTime());
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const timeSlots = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        const hour = h.toString().padStart(2, '0');
+        const minute = m.toString().padStart(2, '0');
+        timeSlots.push(`${hour}:${minute}`);
+      }
+    }
+
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) {
         toast.error('Seleziona data e fornitore');
+        return;
+      }
+
+      const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
+      if (scheduledDateTime < new Date()) {
+        toast.error('Non puoi programmare un ordine nel passato.');
         return;
       }
 
@@ -933,7 +955,7 @@ const App = () => {
         const scheduledOrderData = {
           user_id: user.id,
           supplier_id: selectedSupplier,
-          scheduled_at: new Date(selectedDate + 'T' + selectedTime).toISOString(),
+          scheduled_at: scheduledDateTime.toISOString(),
           order_data: JSON.stringify({
             items: orderItems,
             additional_items: additionalItems
@@ -946,17 +968,14 @@ const App = () => {
         toast.success(`Ordine programmato per ${selectedDate} alle ${selectedTime} a ${supplier.name}`);
         
         // Reset form
-        setSelectedDate('');
-        setSelectedTime('09:00');
+        setSelectedDate(new Date().toISOString().split('T')[0]);
+        setSelectedTime(getRoundedTime());
         setSelectedSupplier('');
         setOrderItems({});
         setAdditionalItems('');
 
-        // Ask if user wants to schedule another order
         setTimeout(() => {
-          if (window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) {
-            // Stay on the same page
-          } else {
+          if (!window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) {
             setCurrentPage('home');
           }
         }, 1000);
@@ -1006,12 +1025,15 @@ const App = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Ora Invio
             </label>
-            <input
-              type="time"
+            <select
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            >
+              {timeSlots.map(time => (
+                <option key={time} value={time}>{time}</option>
+              ))}
+            </select>
           </div>
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -1472,6 +1494,37 @@ const App = () => {
   );
 
   const SettingsPage = () => {
+    useEffect(() => {
+      const isIos = () => {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+      };
+
+      const isInStandaloneMode = () =>
+        ('standalone' in window.navigator) && (window.navigator.standalone);
+
+      if (isIos() && !isInStandaloneMode()) {
+        toast(
+          (t) => (
+            <div className="flex flex-col items-center">
+              <span className="text-center">
+                Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l'icona di condivisione e poi "Aggiungi a Home".
+              </span>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
+              >
+                Ok
+              </button>
+            </div>
+          ),
+          {
+            duration: 6000,
+          }
+        );
+      }
+    }, []);
+
     const handleLogout = async () => {
       await signOut();
       toast.success('Logout effettuato');

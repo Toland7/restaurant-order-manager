@@ -7,8 +7,8 @@ self.addEventListener('push', event => {
     const title = data.title || 'Nuova Notifica';
     const options = {
       body: data.body || 'Hai ricevuto una nuova notifica.',
-      icon: '/logo192.png', // Assumes an icon in the public folder
-      badge: '/logo192.png'
+      icon: '/logo192.svg',
+      badge: '/logo192.svg'
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
