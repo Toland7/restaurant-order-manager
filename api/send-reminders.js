@@ -93,6 +93,7 @@ module.exports = async (req, res) => {
         title: `Promemoria Ordine: ${reminder.suppliers.name}`,
         message: `È ora di fare l'ordine per ${reminder.suppliers.name}!`,
         type: 'info',
+        reminder_id: reminder.id
       };
 
       return webpush.sendNotification(subscription, payload)
