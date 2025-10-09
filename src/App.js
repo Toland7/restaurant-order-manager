@@ -553,6 +553,7 @@ const App = () => {
       if (filters.supplier) filtered = filtered.filter(order => order.supplier_id.toString() === filters.supplier);
       if (filters.status) filtered = filtered.filter(order => order.status === filters.status);
       return filtered;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orders, filters]);
 
     const clearFilters = () => { setFilters({ dateFrom: '', dateTo: '', supplier: '', status: '' }); };
