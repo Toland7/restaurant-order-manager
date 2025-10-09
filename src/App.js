@@ -339,7 +339,32 @@ const App = () => {
           {selectedSupplierData && (
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="font-medium text-gray-900 mb-4">Prodotti Disponibili</h3>
-              {selectedSupplierData.products.length === 0 ? <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div> : <div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={orderItems[product] && orderItems[product] !== '0'} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => handleQuantityChange(product, e.target.value)} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}
+              {selectedSupplierData.products.length === 0 ? (
+                <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedSupplierData.products.map(product => (
+                    <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
+                      <label className="flex items-center space-x-3 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={orderItems[product] && orderItems[product] !== '0'}
+                          onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{product}</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Qt."
+                        value={orderItems[product] || ''}
+                        onChange={(e) => handleQuantityChange(product, e.target.value)}
+                        className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
