@@ -98,10 +98,17 @@ module.exports = async (req, res) => {
 
       return webpush.sendNotification(subscription, payload)
         .then(async () => {
-          await supabase.from('notifications').insert([notificationData]);
+          console.log('Push notification sent. Inserting into DB:', notificationData);
+          const { error } = await supabase.from('notifications').insert([notificationData]);
+          if (error) {
+            console.error('Error inserting notification:', error);
+          }
           return { status: 'success', reminderId: reminder.id };
         })
-        .catch(err => ({ status: 'error', reminderId: reminder.id, error: err.body }));
+        .catch(err => {
+          console.error('Error sending push notification:', err);
+          return { status: 'error', reminderId: reminder.id, error: err.body };
+        });
     });
 
     const results = await Promise.all(notificationsToSend);
