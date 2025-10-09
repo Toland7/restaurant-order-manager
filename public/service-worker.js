@@ -24,19 +24,25 @@ self.addEventListener('push', event => {
 });
 
 self.addEventListener('notificationclick', event => {
-  console.log('[Service Worker] Notification click Received.');
+  console.log('[Service Worker] Notification click Received.', event.notification.data);
+
+  const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
 
   event.notification.close();
 
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then(clientList => {
-      for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
-          return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      if (clientList.length > 0) {
+        let client = clientList[0];
+        for (const c of clientList) {
+          if (c.focused) {
+            client = c;
+          }
         }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('/');
+        client.navigate(urlToOpen);
+        return client.focus();
+      } else {
+        return clients.openWindow(urlToOpen);
       }
     })
   );

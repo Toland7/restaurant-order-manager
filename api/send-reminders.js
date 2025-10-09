@@ -88,8 +88,18 @@ module.exports = async (req, res) => {
         data: { url: `/reminders/${reminder.id}` }
       });
 
+      const notificationData = {
+        user_id: reminder.user_id,
+        title: `Promemoria Ordine: ${reminder.suppliers.name}`,
+        message: `È ora di fare l'ordine per ${reminder.suppliers.name}!`,
+        type: 'info',
+      };
+
       return webpush.sendNotification(subscription, payload)
-        .then(() => ({ status: 'success', reminderId: reminder.id }))
+        .then(async () => {
+          await supabase.from('notifications').insert([notificationData]);
+          return { status: 'success', reminderId: reminder.id };
+        })
         .catch(err => ({ status: 'error', reminderId: reminder.id, error: err.body }));
     });
 

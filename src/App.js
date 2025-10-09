@@ -11,6 +11,7 @@ const App = () => {
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [prefilledOrder, setPrefilledOrder] = useState(null);
 
   // Analytics state
   const [analytics, setAnalytics] = useState({
@@ -88,7 +89,28 @@ const App = () => {
   useEffect(() => {
     if (user) {
       loadData(user.id);
-      setCurrentPage('home');
+      const handleUrl = async () => {
+        const path = window.location.pathname;
+        const match = path.match(/^\/reminders\/(\d+)$/);
+        if (match) {
+          const reminderId = match[1];
+          try {
+            const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
+            if (scheduledOrder) {
+              setPrefilledOrder(scheduledOrder);
+              setCurrentPage('createOrder');
+              // Clean the URL
+              window.history.replaceState({}, document.title, "/");
+            }
+          } catch (error) {
+            console.error("Error loading reminder:", error);
+            toast.error("Impossibile caricare il promemoria dell'ordine.");
+          }
+        } else {
+          setCurrentPage('home');
+        }
+      };
+      handleUrl();
     } else {
       // Reset state when user logs out
       setSuppliers([]);
@@ -330,12 +352,23 @@ const App = () => {
     </div>
   );
 
-  const CreateOrderPage = () => {
+  const CreateOrderPage = ({ prefilledOrder, onOrderSent }) => {
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+      if (prefilledOrder) {
+        setSelectedSupplier(prefilledOrder.supplier_id);
+        if (prefilledOrder.order_data) {
+          const data = JSON.parse(prefilledOrder.order_data);
+          setOrderItems(data.items || {});
+          setAdditionalItems(data.additional_items || '');
+        }
+      }
+    }, [prefilledOrder]);
 
     const handleQuantityChange = (product, quantity) => {
       setOrderItems(prev => ({
@@ -422,14 +455,18 @@ const App = () => {
         setAdditionalItems('');
         setShowConfirm(false);
 
-        // Ask if user wants to create another order
-        setTimeout(() => {
-          if (window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) {
-            // Stay on the same page
-          } else {
-            setCurrentPage('home');
-          }
-        }, 1000);
+        if (onOrderSent) {
+          onOrderSent();
+        } else {
+          // Ask if user wants to create another order
+          setTimeout(() => {
+            if (window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) {
+              // Stay on the same page
+            } else {
+              setCurrentPage('home');
+            }
+          }, 1000);
+        }
 
       } catch (error) {
         console.error('Error sending order:', error);
@@ -455,6 +492,7 @@ const App = () => {
               value={selectedSupplier}
               onChange={(e) => setSelectedSupplier(e.target.value)}
               className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={!!prefilledOrder}
             >
               <option value="">Scegli un fornitore...</option>
               {suppliers.map(supplier => (
@@ -1508,7 +1546,7 @@ const App = () => {
           (t) => (
             <div className="flex flex-col items-center">
               <span className="text-center">
-                Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l'icona di condivisione e poi "Aggiungi a Home".
+                Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca licona di condivisione e poi "Aggiungi a Home".
               </span>
               <button
                 onClick={() => toast.dismiss(t.id)}
@@ -1649,7 +1687,7 @@ const App = () => {
             </div>
           ) : (
             notifications.map(notification => (
-              <div key={notification.id} className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${
+              <div key={notification.id} className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${ 
                 notification.type === 'success' ? 'border-green-500' :
                 notification.type === 'error' ? 'border-red-500' :
                 notification.type === 'warning' ? 'border-yellow-500' :
@@ -1684,7 +1722,7 @@ const App = () => {
       case 'home':
         return <HomePage />;
       case 'createOrder':
-        return <CreateOrderPage />;
+        return <CreateOrderPage prefilledOrder={prefilledOrder} onOrderSent={() => setPrefilledOrder(null)} />;
       case 'suppliers':
         return <SuppliersPage />;
       case 'schedule':
