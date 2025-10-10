@@ -101,10 +101,8 @@ const App = () => {
       loadData(user.id);
       const handleUrl = async () => {
         const path = window.location.pathname;
-        toast(`Checking URL: ${path}`); // Debug toast
         const match = path.match(/^\/reminders\/(\d+)$/);
         if (match) {
-          toast('Reminder URL matched!'); // Debug toast
           const reminderId = match[1];
           try {
             const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
