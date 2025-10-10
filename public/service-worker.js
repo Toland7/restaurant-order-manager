@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-let pendingNavigation = null;
+
 
 self.addEventListener('push', event => {
   console.log('[Service Worker] Push Received.');
@@ -28,31 +28,17 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   console.log('[Service Worker] Notification click Received.');
-  if (event.notification.data && event.notification.data.url) {
-    pendingNavigation = event.notification.data.url;
-  }
+  const urlToOpen = event.notification.data && event.notification.data.url ? new URL(event.notification.data.url, self.location.origin).href : '/';
   event.notification.close();
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      const client = clientList.find(c => c.visibilityState === 'visible');
-      if (client) {
-        return client.focus();
-      } else {
-        return clients.openWindow('/');
+      if (clientList.length > 0) {
+        let client = clientList.find(c => c.focused);
+        if (!client) client = clientList[0];
+        return client.navigate(urlToOpen).then(c => c.focus());
       }
+      return clients.openWindow(urlToOpen);
     })
   );
-});
-
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'get_pending_navigation') {
-    if (pendingNavigation) {
-      const client = event.source;
-      if (client) {
-        client.postMessage({ type: 'navigate', url: pendingNavigation });
-      }
-      pendingNavigation = null; // Clear after sending
-    }
-  }
 });

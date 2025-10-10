@@ -42,22 +42,7 @@ const App = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const handleServiceWorkerMessages = (event) => {
-      if (event.data && event.data.type === 'navigate') {
-        handleUrlNavigation(event.data.url);
-      }
-    };
-    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessages);
 
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'get_pending_navigation' });
-    }
-
-    return () => {
-      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessages);
-    };
-  }, [handleUrlNavigation]);
 
   const handleNotificationClick = async (notification) => {
     if (notification.reminder_id) {
