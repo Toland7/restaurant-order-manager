@@ -4,6 +4,11 @@ import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 
+const openLinkInNewTab = (url) => {
+  const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+  if (newWindow) newWindow.opener = null;
+};
+
 const App = () => {
   const { user, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
