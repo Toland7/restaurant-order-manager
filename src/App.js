@@ -254,16 +254,39 @@ const App = () => {
         const orderData = { user_id: user.id, supplier_id: selectedSupplier, order_message: orderMessage, additional_items: additionalItems || null, status: 'sent' };
         const orderItemsToInsert = Object.entries(orderItems).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
         const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
-        const encodedMessage = encodeURIComponent(orderMessage);
-        const sanitizedContact = supplier.contact.replace(/\D/g, '');
-
-        switch (supplier.contact_method) {
-          case 'whatsapp': openLinkInNewTab(`https://wa.me/${sanitizedContact}?text=${encodedMessage}`); break;
-          case 'whatsapp_group': openLinkInNewTab(`whatsapp://send?text=${encodedMessage}`); break;
-          case 'email': openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`); break;
-          case 'sms': openLinkInNewTab(`sms:${sanitizedContact}?body=${encodedMessage}`); break;
-          default: toast.error('Metodo di contatto non supportato'); break;
-        }
+                const encodedMessage = encodeURIComponent(orderMessage);
+        
+                let contactLink = '';
+                switch (supplier.contact_method) {
+                  case 'whatsapp': {
+                    if (!supplier.contact) return toast.error('Numero di telefono del fornitore non impostato.');
+                    const sanitizedContact = supplier.contact.replace(/\D/g, '');
+                    if (!sanitizedContact) return toast.error('Numero di telefono del fornitore non valido.');
+                    contactLink = `https://wa.me/${sanitizedContact}?text=${encodedMessage}`;
+                    break;
+                  }
+                  case 'whatsapp_group': {
+                    contactLink = `whatsapp://send?text=${encodedMessage}`;
+                    break;
+                  }
+                  case 'email': {
+                    if (!supplier.contact) return toast.error('Indirizzo email del fornitore non impostato.');
+                    contactLink = `mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`;
+                    break;
+                  }
+                  case 'sms': {
+                    if (!supplier.contact) return toast.error('Numero di telefono del fornitore non impostato.');
+                    const sanitizedContact = supplier.contact.replace(/\D/g, '');
+                    if (!sanitizedContact) return toast.error('Numero di telefono del fornitore non valido.');
+                    contactLink = `sms:${sanitizedContact}?body=${encodedMessage}`;
+                    break;
+                  }
+                  default: {
+                    return toast.error('Metodo di contatto non supportato: ' + supplier.contact_method);
+                  }
+                }
+                
+                openLinkInNewTab(contactLink);
         toast.success(`Ordine inviato via ${supplier.contact_method} a ${supplier.name}!`);
         setOrders(prev => [{ ...newOrder, suppliers: supplier, order_items: orderItemsToInsert }, ...prev]);
         setSelectedSupplier('');
