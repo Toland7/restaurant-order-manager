@@ -255,11 +255,13 @@ const App = () => {
         const orderItemsToInsert = Object.entries(orderItems).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
         const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
         const encodedMessage = encodeURIComponent(orderMessage);
+        const sanitizedContact = supplier.contact.replace(/\D/g, '');
+
         switch (supplier.contact_method) {
-          case 'whatsapp': openLinkInNewTab(`https://wa.me/${supplier.contact}?text=${encodedMessage}`); break;
+          case 'whatsapp': openLinkInNewTab(`https://wa.me/${sanitizedContact}?text=${encodedMessage}`); break;
           case 'whatsapp_group': openLinkInNewTab(`whatsapp://send?text=${encodedMessage}`); break;
           case 'email': openLinkInNewTab(`mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`); break;
-          case 'sms': openLinkInNewTab(`sms:${supplier.contact}?body=${encodedMessage}`); break;
+          case 'sms': openLinkInNewTab(`sms:${sanitizedContact}?body=${encodedMessage}`); break;
           default: toast.error('Metodo di contatto non supportato'); break;
         }
         toast.success(`Ordine inviato via ${supplier.contact_method} a ${supplier.name}!`);
