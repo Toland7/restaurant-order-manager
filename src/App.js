@@ -13,21 +13,46 @@ const App = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [prefilledOrder, setPrefilledOrder] = useState(null);
 
-  // Analytics state
-  const [analytics, setAnalytics] = useState({
-    totalOrders: 0,
-    totalSuppliers: 0,
-    ordersThisWeek: 0,
-    mostOrderedProduct: ''
-  });
+  const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
+  const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
 
-  // Filters state
-  const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
-    supplier: '',
-    status: ''
-  });
+  const handleUrlNavigation = useCallback(async (path) => {
+    const match = path.match(/^\/reminders\/(\d+)$/);
+    if (match) {
+      const reminderId = match[1];
+      try {
+        const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
+        if (scheduledOrder) {
+          setPrefilledOrder(scheduledOrder);
+          setCurrentPage('createOrder');
+          // Clean the URL only if it's a reminder path
+          if (window.location.pathname.startsWith('/reminders/')) {
+            window.history.replaceState({}, document.title, "/");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading reminder:", error);
+        toast.error("Impossibile caricare il promemoria dell'ordine.");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleServiceWorkerMessages = (event) => {
+      if (event.data && event.data.type === 'navigate') {
+        handleUrlNavigation(event.data.url);
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessages);
+
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'get_pending_navigation' });
+    }
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessages);
+    };
+  }, [handleUrlNavigation]);
 
   const handleNotificationClick = async (notification) => {
     if (notification.reminder_id) {
@@ -47,49 +72,27 @@ const App = () => {
   const calculateAnalytics = useCallback((ordersData, suppliersData) => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    const ordersThisWeek = ordersData.filter(order => 
-      new Date(order.sent_at || order.created_at) > weekAgo
-    ).length;
-
+    const ordersThisWeek = ordersData.filter(order => new Date(order.sent_at || order.created_at) > weekAgo).length;
     const productCounts = {};
     ordersData.forEach(order => {
       if (order.order_items) {
-        order.order_items.forEach(item => {
-          productCounts[item.product_name] = (productCounts[item.product_name] || 0) + 1;
-        });
+        order.order_items.forEach(item => { productCounts[item.product_name] = (productCounts[item.product_name] || 0) + 1; });
       }
     });
-
-    const mostOrderedProduct = Object.keys(productCounts).length > 0 
-      ? Object.keys(productCounts).reduce((a, b) => productCounts[a] > productCounts[b] ? a : b)
-      : 'Nessuno';
-
-    setAnalytics({
-      totalOrders: ordersData.length,
-      totalSuppliers: suppliersData.length,
-      ordersThisWeek,
-      mostOrderedProduct
-    });
+    const mostOrderedProduct = Object.keys(productCounts).length > 0 ? Object.keys(productCounts).reduce((a, b) => productCounts[a] > productCounts[b] ? a : b) : 'Nessuno';
+    setAnalytics({ totalOrders: ordersData.length, totalSuppliers: suppliersData.length, ordersThisWeek, mostOrderedProduct });
   }, []);
 
   const loadData = useCallback(async (userId) => {
     try {
       const suppliersData = await supabaseHelpers.getSuppliers(userId);
-      const formattedSuppliers = suppliersData.map(supplier => ({
-        ...supplier,
-        products: supplier.products ? supplier.products.map(p => p.name) : []
-      }));
+      const formattedSuppliers = suppliersData.map(supplier => ({ ...supplier, products: supplier.products ? supplier.products.map(p => p.name) : [] }));
       setSuppliers(formattedSuppliers);
-
       const ordersData = await supabaseHelpers.getOrders(userId);
       setOrders(ordersData);
-
       const scheduledData = await supabaseHelpers.getScheduledOrders(userId);
       setScheduledOrders(scheduledData);
-
       calculateAnalytics(ordersData, formattedSuppliers);
-
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Errore durante il caricamento dei dati');
@@ -99,49 +102,21 @@ const App = () => {
   useEffect(() => {
     if (user) {
       loadData(user.id);
-      const handleUrl = async () => {
-        const path = window.location.pathname;
-        const match = path.match(/^\/reminders\/(\d+)$/);
-        if (match) {
-          const reminderId = match[1];
-          try {
-            const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
-            if (scheduledOrder) {
-              setPrefilledOrder(scheduledOrder);
-              setCurrentPage('createOrder');
-              window.history.replaceState({}, document.title, "/");
-            }
-          } catch (error) {
-            console.error("Error loading reminder:", error);
-            toast.error("Impossibile caricare il promemoria dell'ordine.");
-          }
-        } else {
-          setCurrentPage('home');
-        }
-      };
-      handleUrl();
+      // Initial URL check when user is loaded
+      if (window.location.pathname !== '/') {
+        handleUrlNavigation(window.location.pathname);
+      }
     } else {
       setSuppliers([]);
       setOrders([]);
       setScheduledOrders([]);
     }
-  }, [user, loadData]);
-
-  const openLinkInNewTab = (url) => {
-    setTimeout(() => {
-      window.open(url, '_blank');
-    }, 100);
-  };
+  }, [user, loadData, handleUrlNavigation]);
 
   const MenuButton = ({ icon, title, subtitle, onClick, color }) => (
-    <button
-      onClick={onClick}
-      className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-md transition-all duration-200"
-    >
+    <button onClick={onClick} className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-md transition-all duration-200">
       <div className="flex items-center space-x-4">
-        <div className={`${color} rounded-full p-3 text-white`}>
-          {icon}
-        </div>
+        <div className={`${color} rounded-full p-3 text-white`}>{icon}</div>
         <div className="flex-1">
           <h3 className="font-medium text-gray-900 text-sm">{title}</h3>
           <p className="text-gray-500 text-xs mt-1">{subtitle}</p>
@@ -154,12 +129,8 @@ const App = () => {
   const Header = ({ title, onBack }) => (
     <div className="bg-white shadow-sm sticky top-0 z-10">
       <div className="max-w-sm mx-auto px-6 py-4 flex items-center">
-        <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full">
-          <ChevronLeft size={24} />
-        </button>
-        <h2 className="text-lg font-medium text-gray-900 mx-auto pr-10">
-          {title}
-        </h2>
+        <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button>
+        <h2 className="text-lg font-medium text-gray-900 mx-auto pr-10">{title}</h2>
       </div>
     </div>
   );
@@ -168,11 +139,9 @@ const App = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);
-
     const handleAuth = async (e) => {
       e.preventDefault();
       setIsAuthenticating(true);
-
       try {
         if (isLogin) {
           const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -189,31 +158,17 @@ const App = () => {
         setIsAuthenticating(false);
       }
     };
-
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
         <div className="max-w-sm w-full">
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-light text-gray-900 mb-2">Gestione Ordini</h1>
-              <p className="text-gray-500 text-sm">{isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}</p>
-            </div>
+            <div className="text-center mb-6"><h1 className="text-2xl font-light text-gray-900 mb-2">Gestione Ordini</h1><p className="text-gray-500 text-sm">{isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}</p></div>
             <form onSubmit={handleAuth} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Password (min 6 caratteri)" />
-              </div>
-              <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">
-                {isAuthenticating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isLogin ? 'Accedi' : 'Registrati'}</span>}
-              </button>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Password (min 6 caratteri)" /></div>
+              <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">{isAuthenticating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isLogin ? 'Accedi' : 'Registrati'}</span>}</button>
             </form>
-            <div className="mt-6 text-center">
-              <button onClick={() => setIsLogin(!isLogin)} className="text-blue-500 hover:text-blue-600 text-sm">{isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}</button>
-            </div>
+            <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-blue-500 hover:text-blue-600 text-sm">{isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}</button></div>
           </div>
         </div>
       </div>
@@ -224,11 +179,7 @@ const App = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm">
         <div className="max-w-sm mx-auto px-6 py-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1>
-              <p className="text-gray-500 text-sm">Benvenuto, {user?.email?.split('@')[0]}</p>
-            </div>
+          <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {user?.email?.split('@')[0]}</p></div>
             <div className="flex space-x-2">
               <button onClick={() => setCurrentPage('analytics')} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full"><BarChart3 size={20} /></button>
               <button onClick={() => setCurrentPage('notifications')} className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full"><Bell size={20} /></button>
@@ -348,7 +299,7 @@ const App = () => {
                       <label className="flex items-center space-x-3 flex-1">
                         <input
                           type="checkbox"
-                          checked={orderItems[product] && orderItems[product] !== '0'}
+                          checked={!!(orderItems[product] && orderItems[product] !== '0')}
                           onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
@@ -535,7 +486,7 @@ const App = () => {
           <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
           <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
           <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
-          {selectedSupplierData && selectedSupplierData.products && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={orderItems[product] && orderItems[product] !== '0'} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
+          {selectedSupplierData && selectedSupplierData.products && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
           {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           {scheduledOrders.length > 0 && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Ordini Programmati</h3><div className="space-y-3">{scheduledOrders.map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="p-3 bg-purple-50 rounded-lg"><div className="flex justify-between items-center"><div><p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>{order.is_sent && <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span>}</div><div className="flex items-center space-x-2"><Bell size={16} className="text-purple-600" />{!order.is_sent && <button onClick={() => deleteScheduledOrder(order.id)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>}</div></div></div>; })}</div></div>}
           {selectedDate && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? 'Programmando...' : 'Programma Ordine'}</span></button>}
@@ -578,7 +529,7 @@ const App = () => {
             <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50"><Filter size={16} /><span>Filtri</span>{Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}</button>
             <button onClick={exportFilteredData} className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"><Download size={16} /><span>Esporta</span></button>
           </div>
-          {showFilters && <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
+          {showFilters && <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>}
           <div className="flex justify-between items-center mb-4"><p className="text-sm text-gray-600">{filteredOrders.length} {filteredOrders.length === 1 ? 'ordine trovato' : 'ordini trovati'}</p></div>
           {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : <div className="space-y-4">{filteredOrders.map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm"><div className="flex justify-between items-start mb-3"><div><h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3><p className="text-sm text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')} - {new Date(order.sent_at || order.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p></div><span className={`px-2 py-1 text-xs rounded-full flex items-center space-x-1 ${order.status === 'sent' ? 'bg-green-100 text-green-800' : order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' : order.status === 'delivered' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}><Check size={12} /><span>{order.status === 'sent' ? 'Inviato' : order.status === 'confirmed' ? 'Confermato' : order.status === 'delivered' ? 'Consegnato' : 'Sconosciuto'}</span></span></div><div className="border-t pt-3"><div className="bg-gray-50 p-3 rounded-lg mb-3"><pre className="text-xs text-gray-700 whitespace-pre-wrap">{order.order_message}</pre></div></div><div className="pt-3 border-t"><p className="text-xs text-gray-500">Inviato via {supplier?.contact_method || 'N/A'} a {supplier?.contact || 'N/A'}</p></div></div>; })}</div>}
         </div>
@@ -607,7 +558,7 @@ const App = () => {
       const isIos = () => { const userAgent = window.navigator.userAgent.toLowerCase(); return /iphone|ipad|ipod/.test(userAgent); };
       const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
       if (isIos() && !isInStandaloneMode()) {
-        toast((t) => <div className="flex flex-col items-center"><span className="text-center">Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l\'icona di condivisione e poi "Aggiungi a Home".</span><button onClick={() => toast.dismiss(t.id)} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg">Ok</button></div>, { duration: 6000 });
+        toast((t) => <div className="flex flex-col items-center"><span className="text-center">Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l\\'icona di condivisione e poi "Aggiungi a Home".</span><button onClick={() => toast.dismiss(t.id)} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg">Ok</button></div>, { duration: 6000 });
       }
     }, []);
 
@@ -623,10 +574,7 @@ const App = () => {
         if (permission !== 'granted') { toast.error('Permesso per le notifiche non concesso.'); return; }
         const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
         if (!vapidPublicKey) { console.error('VAPID public key not found.'); toast.error('Errore di configurazione: chiave pubblica non trovata.'); return; }
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: vapidPublicKey
-        });
+        const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidPublicKey });
         await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscription });
         toast.success('Notifiche push abilitate con successo!');
       } catch (error) {
