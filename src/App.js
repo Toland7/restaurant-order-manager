@@ -379,7 +379,7 @@ const App = () => {
   const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule }) => {
     const { setPrefilledData } = usePrefill();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === Number(supplierId));
+    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === supplierId);
 
     const linkToScheduledOrder = async (scheduledOrderId) => {
       if (isSubmitting) return;
@@ -556,6 +556,7 @@ const App = () => {
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingOrder, setEditingOrder] = useState(null);
     const timeSlots = [];
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
 
@@ -574,30 +575,71 @@ const App = () => {
       }
     }, [prefilledData]);
 
+    useEffect(() => {
+      if (editingOrder) {
+        const scheduledAt = new Date(editingOrder.scheduled_at);
+        setSelectedDate(scheduledAt.toISOString().split('T')[0]);
+        setSelectedTime(scheduledAt.toTimeString().slice(0, 5));
+        setSelectedSupplier(editingOrder.supplier_id);
+        if (editingOrder.order_data) {
+          try {
+            const data = JSON.parse(editingOrder.order_data);
+            setOrderItems(data.items || {});
+            setAdditionalItems(data.additional_items || '');
+          } catch (e) {
+            console.error("Failed to parse order_data", e);
+          }
+        }
+      }
+    }, [editingOrder]);
+
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
-      if (scheduledDateTime < new Date()) { toast.error('Non puoi programmare un ordine nel passato.'); return; }
+      if (scheduledDateTime < new Date() && !editingOrder) { toast.error('Non puoi programmare un ordine nel passato.'); return; }
       setIsSubmitting(true);
       try {
-        const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
-        const scheduledOrderData = { user_id: user.id, supplier_id: selectedSupplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems }) };
-        const newScheduledOrder = await supabaseHelpers.createScheduledOrder(scheduledOrderData);
-        setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: supplier }]);
-        setPrefilledData(null);
-        toast.success(`Ordine programmato per ${selectedDate} alle ${selectedTime} a ${supplier.name}`);
+        const orderData = { 
+          user_id: user.id, 
+          supplier_id: selectedSupplier, 
+          scheduled_at: scheduledDateTime.toISOString(), 
+          order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
+        };
+
+        if (editingOrder) {
+          const updatedOrder = await supabaseHelpers.updateScheduledOrder(editingOrder.id, orderData);
+          setScheduledOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updatedOrder, suppliers: suppliers.find(s => s.id.toString() === selectedSupplier) } : o));
+          toast.success('Ordine programmato aggiornato con successo');
+        } else {
+          const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+          setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === selectedSupplier) }]);
+          toast.success(`Ordine programmato creato con successo`);
+        }
+
+        setEditingOrder(null);
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedTime(getRoundedTime());
         setSelectedSupplier('');
         setOrderItems({});
         setAdditionalItems('');
-        setTimeout(() => { if (!window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) setCurrentPage('home'); }, 1000);
+        if (!editingOrder) {
+          setTimeout(() => { if (!window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) setCurrentPage('home'); }, 1000);
+        }
       } catch (error) {
-        console.error('Error scheduling order:', error);
-        toast.error('Errore durante la programmazione');
+        console.error('Error saving scheduled order:', error);
+        toast.error('Errore durante il salvataggio dell\'ordine programmato');
       } finally {
         setIsSubmitting(false);
       }
+    };
+
+    const handleCancelEdit = () => {
+      setEditingOrder(null);
+      setSelectedDate(new Date().toISOString().split('T')[0]);
+      setSelectedTime(getRoundedTime());
+      setSelectedSupplier('');
+      setOrderItems({});
+      setAdditionalItems('');
     };
 
     const deleteScheduledOrder = async (id) => {
@@ -623,8 +665,11 @@ const App = () => {
           <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
           {selectedSupplierData && selectedSupplierData.products && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
           {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
-          {scheduledOrders.length > 0 && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Ordini Programmati</h3><div className="space-y-3">{scheduledOrders.map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="p-3 bg-purple-50 rounded-lg"><div className="flex justify-between items-center"><div><p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>{order.is_sent && <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span>}</div><div className="flex items-center space-x-2"><Bell size={16} className="text-purple-600" />{!order.is_sent && <button onClick={() => deleteScheduledOrder(order.id)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>}</div></div></div>; })}</div></div>}
-          {selectedDate && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? 'Programmando...' : 'Programma Ordine'}</span></button>}
+          {scheduledOrders.length > 0 && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Ordini Programmati</h3><div className="space-y-3">{scheduledOrders.map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <button key={order.id} onClick={() => setEditingOrder(order)} className={`w-full text-left p-3 rounded-lg hover:bg-purple-100 ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-purple-50'}`}><div className="flex justify-between items-center"><div><p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>{order.is_sent && <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span>}</div><div className="flex items-center space-x-2"><Bell size={16} className="text-purple-600" />{!order.is_sent && <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>}</div></div></button>; })}</div></div>}
+          <div className="flex space-x-3">
+            {editingOrder && <button onClick={handleCancelEdit} className="w-full py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Annulla</button>}
+            {selectedDate && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : 'Programmando...') : (editingOrder ? 'Aggiorna Ordine' : 'Programma Ordine')}</span></button>}
+          </div>
         </div>
       </div>
     );
