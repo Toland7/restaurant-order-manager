@@ -17,6 +17,7 @@ const App = () => {
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [prefilledOrder, setPrefilledOrder] = useState(null);
+  const [prefilledScheduledOrder, setPrefilledScheduledOrder] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
@@ -414,7 +415,13 @@ const App = () => {
               <div className="text-center py-8">
                 <p className="text-gray-500 mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
                 <button 
-                  onClick={() => setCurrentPage('schedule')} 
+                  onClick={() => {
+                    setPrefilledScheduledOrder({
+                      supplier_id: supplierId,
+                      order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
+                    });
+                    setCurrentPage('schedule');
+                  }}
                   className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors"
                 >
                   Crea un nuovo ordine programmato
@@ -544,6 +551,22 @@ const App = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const timeSlots = [];
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
+
+    useEffect(() => {
+      if (prefilledScheduledOrder) {
+        setSelectedSupplier(prefilledScheduledOrder.supplier_id);
+        if (prefilledScheduledOrder.order_data) {
+          try {
+            const data = JSON.parse(prefilledScheduledOrder.order_data);
+            setOrderItems(data.items || {});
+            setAdditionalItems(data.additional_items || '');
+          } catch (e) {
+            console.error("Failed to parse order_data", e);
+          }
+        }
+        setPrefilledScheduledOrder(null);
+      }
+    }, [prefilledScheduledOrder]);
 
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
