@@ -411,7 +411,15 @@ const App = () => {
                 </button>
               ))
             ) : (
-              <p className="text-center text-gray-500 py-8">Nessun ordine futuro programmato per questo fornitore.</p>
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
+                <button 
+                  onClick={() => setCurrentPage('schedule')} 
+                  className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors"
+                >
+                  Crea un nuovo ordine programmato
+                </button>
+              </div>
             )}
           </div>
           <div className="mt-4 flex justify-end">
