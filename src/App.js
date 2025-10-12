@@ -215,6 +215,12 @@ const App = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
 
+    const handleSupplierChange = (supplierId) => {
+      setSelectedSupplier(supplierId);
+      setOrderItems({});
+      setAdditionalItems('');
+    };
+
     useEffect(() => {
       if (prefilledData && prefilledData.type === 'order') {
         setSelectedSupplier(prefilledData.data.supplier_id);
@@ -313,7 +319,7 @@ const App = () => {
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-            <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}>
+            <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}>
               <option value="">Scegli un fornitore...</option>
               {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
