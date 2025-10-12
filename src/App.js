@@ -211,6 +211,7 @@ const App = () => {
     const [additionalItems, setAdditionalItems] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
 
     useEffect(() => {
       if (prefilledOrder) {
@@ -347,12 +348,80 @@ const App = () => {
             </div>
           )}
           {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
-          {selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && <button onClick={() => setShowConfirm(true)} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>}
+          {selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && (
+            <div className="flex space-x-3">
+              <button onClick={() => setShowConfirm(true)} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
+              <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
+            </div>
+          )}
         </div>
         {showConfirm && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="bg-white rounded-xl p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 mb-4">Conferma Ordine</h3><div className="bg-gray-50 p-3 rounded-lg mb-4"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div><div className="flex space-x-3"><button onClick={() => setShowConfirm(false)} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : 'Invia'}</span></button></div></div></div>}
+        {showScheduleModal && <ScheduleOrderModal 
+            onClose={() => setShowScheduleModal(false)} 
+            supplierId={selectedSupplier}
+            orderItems={orderItems}
+            additionalItems={additionalItems}
+            onSchedule={() => {
+              setSelectedSupplier('');
+              setOrderItems({});
+              setAdditionalItems('');
+              setShowScheduleModal(false);
+              setCurrentPage('home');
+            }}
+          />}
       </div>
     );
   };
+
+  const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule }) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id.toString() === supplierId);
+
+    const linkToScheduledOrder = async (scheduledOrderId) => {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+      try {
+        const order_data = JSON.stringify({ items: orderItems, additional_items: additionalItems });
+        await supabaseHelpers.updateScheduledOrder(scheduledOrderId, { order_data });
+        toast.success('Ordine programmato aggiornato con successo!');
+        onSchedule();
+      } catch (error) {
+        console.error('Error linking to scheduled order:', error);
+        toast.error("Errore durante l'aggiornamento dell'ordine programmato");
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl p-6 max-w-sm w-full max-h-[80vh] flex flex-col">
+          <h3 className="font-medium text-gray-900 mb-4">Associa a un ordine programmato</h3>
+          <div className="overflow-y-auto space-y-3">
+            {futureScheduledOrders.length > 0 ? (
+              futureScheduledOrders.map(order => (
+                <button 
+                  key={order.id} 
+                  onClick={() => linkToScheduledOrder(order.id)}
+                  disabled={isSubmitting}
+                  className="w-full text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:bg-gray-200"
+                >
+                  <p className="font-medium text-sm text-purple-900">{suppliers.find(s => s.id === order.supplier_id)?.name || 'Fornitore eliminato'}</p>
+                  <p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                </button>
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-8">Nessun ordine futuro programmato per questo fornitore.</p>
+            )}
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button onClick={onClose} className="py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Chiudi</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
 
   const SuppliersPage = () => {
     const [isAdding, setIsAdding] = useState(false);

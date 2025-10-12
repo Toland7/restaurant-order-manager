@@ -200,6 +200,18 @@ export const supabaseHelpers = {
     if (error) throw error;
   },
 
+  async updateScheduledOrder(id, scheduledOrderData) {
+    const { data, error } = await supabase
+      .from('scheduled_orders')
+      .update(scheduledOrderData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   async getScheduledOrderById(id) {
     const { data, error } = await supabase
       .from('scheduled_orders')
