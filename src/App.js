@@ -12,7 +12,7 @@ const openLinkInNewTab = (url) => {
 
 const App = () => {
   const { user, signOut } = useAuth();
-  const { prefilledData, setPrefilledData } = usePrefill();
+  const { setPrefilledData } = usePrefill();
   const [currentPage, setCurrentPage] = useState('home');
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -42,7 +42,7 @@ const App = () => {
         toast.error("Impossibile caricare il promemoria dell'ordine.");
       }
     }
-  }, []);
+  }, [setPrefilledData]);
 
 
 
