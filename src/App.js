@@ -16,8 +16,7 @@ const App = () => {
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [prefilledOrder, setPrefilledOrder] = useState(null);
-  const [prefilledScheduledOrder, setPrefilledScheduledOrder] = useState(null);
+  const [prefilledData, setPrefilledData] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
@@ -30,7 +29,7 @@ const App = () => {
       try {
         const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
         if (scheduledOrder) {
-          setPrefilledOrder(scheduledOrder);
+          setPrefilledData({ type: 'order', data: scheduledOrder });
           setCurrentPage('createOrder');
           // Clean the URL only if it's a reminder path
           if (window.location.pathname.startsWith('/reminders/')) {
@@ -51,7 +50,7 @@ const App = () => {
       try {
         const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
         if (scheduledOrder) {
-          setPrefilledOrder(scheduledOrder);
+          setPrefilledData({ type: 'order', data: scheduledOrder });
           setCurrentPage('createOrder');
         }
       } catch (error) {
@@ -206,7 +205,7 @@ const App = () => {
     </div>
   );
 
-  const CreateOrderPage = ({ prefilledOrder, onOrderSent }) => {
+  const CreateOrderPage = ({ prefilledData, onOrderSent }) => {
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
@@ -215,11 +214,11 @@ const App = () => {
     const [showScheduleModal, setShowScheduleModal] = useState(false);
 
     useEffect(() => {
-      if (prefilledOrder) {
-        setSelectedSupplier(prefilledOrder.supplier_id);
-        if (prefilledOrder.order_data) {
+      if (prefilledData && prefilledData.type === 'order') {
+        setSelectedSupplier(prefilledData.data.supplier_id);
+        if (prefilledData.data.order_data) {
           try {
-            const data = JSON.parse(prefilledOrder.order_data);
+            const data = JSON.parse(prefilledData.data.order_data);
             setOrderItems(data.items || {});
             setAdditionalItems(data.additional_items || '');
           } catch (e) {
@@ -227,7 +226,7 @@ const App = () => {
           }
         }
       }
-    }, [prefilledOrder]);
+    }, [prefilledData]);
 
     const handleQuantityChange = (product, quantity) => {
       setOrderItems(prev => ({ ...prev, [product]: quantity }));
@@ -311,7 +310,7 @@ const App = () => {
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-            <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!prefilledOrder}>
+            <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}>
               <option value="">Scegli un fornitore...</option>
               {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
@@ -416,9 +415,12 @@ const App = () => {
                 <p className="text-gray-500 mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
                 <button 
                   onClick={() => {
-                    setPrefilledScheduledOrder({
-                      supplier_id: supplierId,
-                      order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
+                    setPrefilledData({ 
+                      type: 'schedule', 
+                      data: { 
+                        supplier_id: supplierId, 
+                        order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems }) 
+                      }
                     });
                     setCurrentPage('schedule');
                   }}
@@ -553,21 +555,21 @@ const App = () => {
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
 
     useEffect(() => {
-      if (prefilledScheduledOrder) {
-        setSelectedSupplier(prefilledScheduledOrder.supplier_id);
-        if (prefilledScheduledOrder.order_data) {
+      if (prefilledData && prefilledData.type === 'schedule') {
+        setSelectedSupplier(prefilledData.data.supplier_id);
+        if (prefilledData.data.order_data) {
           try {
-            const data = JSON.parse(prefilledScheduledOrder.order_data);
+            const data = JSON.parse(prefilledData.data.order_data);
             setOrderItems(data.items || {});
             setAdditionalItems(data.additional_items || '');
           } catch (e) {
             console.error("Failed to parse order_data", e);
           }
         }
-        setPrefilledScheduledOrder(null);
+        setPrefilledData(null);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [prefilledScheduledOrder]);
+    }, [prefilledData]);
 
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
@@ -850,7 +852,7 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
-      case 'createOrder': return <CreateOrderPage prefilledOrder={prefilledOrder} onOrderSent={() => { setPrefilledOrder(null); setCurrentPage('home'); }} />;
+      case 'createOrder': return <CreateOrderPage prefilledData={prefilledData} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} />;
       case 'suppliers': return <SuppliersPage />;
       case 'schedule': return <SchedulePage />;
       case 'history': return <HistoryPage />;
