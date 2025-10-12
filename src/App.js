@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User } from 'lucide-react';
 import { supabase, supabaseHelpers } from './supabase.js';
-import { Toaster, toast } from 'react-hot-toast';
-import { useAuth } from './AuthContext';
+import { usePrefill } from './PrefillContext';
 
 const openLinkInNewTab = (url) => {
   const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
@@ -11,12 +10,12 @@ const openLinkInNewTab = (url) => {
 
 const App = () => {
   const { user, signOut } = useAuth();
+  const { prefilledData, setPrefilledData } = usePrefill();
   const [currentPage, setCurrentPage] = useState('home');
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [prefilledData, setPrefilledData] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
@@ -205,7 +204,8 @@ const App = () => {
     </div>
   );
 
-  const CreateOrderPage = ({ prefilledData, onOrderSent }) => {
+  const CreateOrderPage = ({ onOrderSent }) => {
+    const { prefilledData, setPrefilledData } = usePrefill();
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
@@ -225,8 +225,9 @@ const App = () => {
             console.error("Failed to parse order_data", e);
           }
         }
+        setPrefilledData(null);
       }
-    }, [prefilledData]);
+    }, [prefilledData, setPrefilledData]);
 
     const handleQuantityChange = (product, quantity) => {
       setOrderItems(prev => ({ ...prev, [product]: quantity }));
@@ -374,6 +375,7 @@ const App = () => {
   };
 
   const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule }) => {
+    const { setPrefilledData } = usePrefill();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id.toString() === supplierId);
 
@@ -544,6 +546,7 @@ const App = () => {
   };
 
   const SchedulePage = () => {
+    const { prefilledData, setPrefilledData } = usePrefill();
     const getRoundedTime = (date = new Date()) => { const minutes = date.getMinutes(); const roundedMinutes = Math.ceil(minutes / 15) * 15; date.setMinutes(roundedMinutes); return date.toTimeString().slice(0, 5); };
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedTime, setSelectedTime] = useState(getRoundedTime());
@@ -568,8 +571,7 @@ const App = () => {
         }
         setPrefilledData(null);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [prefilledData, setPrefilledData]);
 
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
@@ -852,7 +854,7 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
-      case 'createOrder': return <CreateOrderPage prefilledData={prefilledData} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} />;
+      case 'createOrder': return <CreateOrderPage onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} />;
       case 'suppliers': return <SuppliersPage />;
       case 'schedule': return <SchedulePage />;
       case 'history': return <HistoryPage />;
