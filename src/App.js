@@ -571,7 +571,7 @@ const App = () => {
             console.error("Failed to parse order_data", e);
           }
         }
-        setPrefilledData(null);
+        // setPrefilledData(null);
       }
     }, [prefilledData, setPrefilledData]);
 
