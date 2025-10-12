@@ -571,9 +571,8 @@ const App = () => {
             console.error("Failed to parse order_data", e);
           }
         }
-        // setPrefilledData(null);
       }
-    }, [prefilledData, setPrefilledData]);
+    }, [prefilledData]);
 
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
@@ -585,6 +584,7 @@ const App = () => {
         const scheduledOrderData = { user_id: user.id, supplier_id: selectedSupplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems }) };
         const newScheduledOrder = await supabaseHelpers.createScheduledOrder(scheduledOrderData);
         setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: supplier }]);
+        setPrefilledData(null);
         toast.success(`Ordine programmato per ${selectedDate} alle ${selectedTime} a ${supplier.name}`);
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedTime(getRoundedTime());
