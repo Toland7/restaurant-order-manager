@@ -379,7 +379,7 @@ const App = () => {
   const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule }) => {
     const { setPrefilledData } = usePrefill();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id == supplierId);
+    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === Number(supplierId));
 
     const linkToScheduledOrder = async (scheduledOrderId) => {
       if (isSubmitting) return;
