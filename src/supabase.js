@@ -222,6 +222,32 @@ export const supabaseHelpers = {
     return data;
   },
 
+  async getUnreadNotificationsCount(userId) {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error getting unread notifications count:', error);
+      return 0;
+    }
+    return count;
+  },
+
+  async markNotificationAsRead(notificationId) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   async updateUserProfile(userId, profileData) {
     const { data, error } = await supabase
       .from('profiles')

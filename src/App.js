@@ -17,6 +17,7 @@ const App = () => {
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [prefilledOrder, setPrefilledOrder] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
@@ -82,6 +83,11 @@ const App = () => {
       setOrders(ordersData);
       const scheduledData = await supabaseHelpers.getScheduledOrders(userId);
       setScheduledOrders(scheduledData);
+      const unreadCountData = await supabaseHelpers.getUnreadNotificationsCount(userId);
+      setUnreadCount(unreadCountData);
+      if ('setAppBadge' in navigator) {
+        navigator.setAppBadge(unreadCountData);
+      }
       calculateAnalytics(ordersData, formattedSuppliers);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -172,7 +178,14 @@ const App = () => {
           <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {user?.email?.split('@')[0]}</p></div>
             <div className="flex space-x-2">
               <button onClick={() => setCurrentPage('analytics')} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full"><BarChart3 size={20} /></button>
-              <button onClick={() => setCurrentPage('notifications')} className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full"><Bell size={20} /></button>
+              <button onClick={() => setCurrentPage('notifications')} className="relative p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full">
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
               <button onClick={() => setCurrentPage('settings')} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"><Settings size={20} /></button>
             </div>
           </div>
@@ -610,7 +623,7 @@ const App = () => {
     );
   };
 
-  const NotificationsPage = ({ onNotificationClick }) => {
+  const NotificationsPage = ({ onNotificationClick, unreadCount, setUnreadCount }) => {
     const [notifications, setNotifications] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -632,19 +645,100 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
+    const handleArchive = async (notificationId) => {
+      const notification = notifications.find(n => n.id === notificationId);
+      if (!notification || notification.is_read) return;
+
+      try {
+        await supabaseHelpers.markNotificationAsRead(notificationId);
+        setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+        const newCount = Math.max(0, unreadCount - 1);
+        setUnreadCount(newCount);
+        if ('setAppBadge' in navigator) {
+          navigator.setAppBadge(newCount);
+        }
+        toast.success('Notifica archiviata.');
+      } catch (error) {
+        console.error('Error archiving notification:', error);
+        toast.error('Errore durante l\'archiviazione della notifica.');
+      }
+    };
+    
+    const handleMarkAllAsRead = async () => {
+      const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+      if (unreadIds.length === 0) return;
+
+      try {
+        await Promise.all(unreadIds.map(id => supabaseHelpers.markNotificationAsRead(id)));
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setUnreadCount(0);
+        if ('clearAppBadge' in navigator) {
+          navigator.clearAppBadge();
+        }
+        toast.success('Tutte le notifiche sono state segnate come lette.');
+      } catch (error) {
+        console.error('Error marking all as read:', error);
+        toast.error('Errore durante l\'archiviazione delle notifiche.');
+      }
+    };
+
+    const unreadNotifications = notifications.filter(n => !n.is_read);
+    const readNotifications = notifications.filter(n => n.is_read);
+
     return (
       <div className="min-h-screen bg-gray-50">
         <Header title="Notifiche" onBack={() => setCurrentPage('home')} />
-        <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
-          {isLoading ? <p className="text-center text-gray-500">Caricamento notifiche...</p> : notifications.length === 0 ? <div className="text-center py-12"><Bell size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500">Nessuna notifica presente.</p></div> : notifications.map(notification => (
-            <button key={notification.id} onClick={() => onNotificationClick(notification)} disabled={!notification.reminder_id} className={`w-full text-left bg-white rounded-xl p-4 shadow-sm border-l-4 ${notification.type === 'success' ? 'border-green-500' : notification.type === 'error' ? 'border-red-500' : notification.type === 'warning' ? 'border-yellow-500' : 'border-blue-500'} ${notification.reminder_id ? 'cursor-pointer hover:shadow-md' : 'cursor-default'}`}>
-              <div className="flex justify-between items-start">
-                <h3 className="font-medium text-gray-900">{notification.title}</h3>
-                <p className="text-xs text-gray-500">{new Date(notification.created_at).toLocaleDateString('it-IT')}</p>
-              </div>
-              <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-            </button>
-          ))}
+        <div className="max-w-sm mx-auto px-6 py-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-medium text-gray-900">Centro Notifiche</h2>
+            {unreadCount > 0 && (
+              <button onClick={handleMarkAllAsRead} className="text-sm text-blue-500 hover:text-blue-600">
+                Segna tutte come lette
+              </button>
+            )}
+          </div>
+
+          {isLoading ? <p className="text-center text-gray-500">Caricamento notifiche...</p> : notifications.length === 0 ? <div className="text-center py-12"><Bell size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500">Nessuna notifica presente.</p></div> : (
+            <div className="space-y-4">
+              {unreadNotifications.length > 0 && (
+                <div className="space-y-3">
+                  {unreadNotifications.map(notification => (
+                    <div key={notification.id} className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500 transition-all hover:shadow-md">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-800">{notification.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">{new Date(notification.created_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                          <p className="text-sm text-gray-600 mt-2">{notification.message}</p>
+                          {notification.reminder_id && (
+                            <button onClick={() => onNotificationClick(notification)} className="mt-2 text-sm font-medium text-blue-600 hover:underline">
+                              Visualizza ordine
+                            </button>
+                          )}
+                        </div>
+                        <button onClick={() => handleArchive(notification.id)} className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full">
+                          <Check size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {readNotifications.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-sm font-medium text-gray-500 mb-3">Già lette</h3>
+                  <div className="space-y-3">
+                    {readNotifications.map(notification => (
+                      <div key={notification.id} className="bg-white rounded-xl p-4 shadow-sm opacity-60">
+                        <h3 className="font-medium text-gray-700">{notification.title}</h3>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(notification.created_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                        <p className="text-sm text-gray-600 mt-2">{notification.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -661,7 +755,7 @@ const App = () => {
       case 'history': return <HistoryPage />;
       case 'analytics': return <AnalyticsDashboard />;
       case 'settings': return <SettingsPage />;
-      case 'notifications': return <NotificationsPage onNotificationClick={handleNotificationClick} />;
+      case 'notifications': return <NotificationsPage onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       default: return <HomePage />;
     }
   };
