@@ -22,7 +22,7 @@ const App = () => {
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
 
   const handleUrlNavigation = useCallback(async (path) => {
-    const match = path.match(/^\/reminders\/(\d+)$/);
+    const match = path.match(/^\/reminders\/([0-9a-fA-F-]+)$/);
     if (match) {
       const reminderId = match[1];
       try {
