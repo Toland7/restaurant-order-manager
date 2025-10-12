@@ -28,8 +28,18 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   console.log('[Service Worker] Notification click Received.');
-  const urlToOpen = event.notification.data && event.notification.data.url ? new URL(event.notification.data.url, self.location.origin).href : '/';
   event.notification.close();
+
+  let urlToOpen = '/'; // Default URL
+
+  if (event.notification.data) {
+    if (event.notification.data.url) {
+      urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
+    } else if (event.notification.data.reminder_id) {
+      // Construct the URL for the reminder
+      urlToOpen = new URL(`/reminders/${event.notification.data.reminder_id}`, self.location.origin).href;
+    }
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {

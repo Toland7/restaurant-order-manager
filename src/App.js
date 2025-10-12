@@ -47,17 +47,25 @@ const App = () => {
 
 
   const handleNotificationClick = async (notification) => {
+    console.log('handleNotificationClick called with notification:', notification);
     if (notification.reminder_id) {
+      console.log('Notification has reminder_id:', notification.reminder_id);
       try {
         const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
+        console.log('Fetched scheduledOrder:', scheduledOrder);
         if (scheduledOrder) {
           setPrefilledData({ type: 'order', data: scheduledOrder });
+          console.log('setPrefilledData called. CurrentPage will be createOrder.');
           setCurrentPage('createOrder');
+        } else {
+          console.log('No scheduledOrder found for reminder_id:', notification.reminder_id);
         }
       } catch (error) {
         console.error("Error loading reminder from notification:", error);
         toast.error("Impossibile caricare il promemoria.");
       }
+    } else {
+      console.log('Notification has no reminder_id.');
     }
   };
 
