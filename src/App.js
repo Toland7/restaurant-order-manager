@@ -230,7 +230,9 @@ const App = () => {
     };
 
     useEffect(() => {
+      console.log('CreateOrderPage useEffect: prefilledData', prefilledData);
       if (prefilledData && prefilledData.type === 'order') {
+        console.log('CreateOrderPage useEffect: Populating form with', prefilledData.data);
         setSelectedSupplier(prefilledData.data.supplier_id);
         if (prefilledData.data.order_data) {
           try {
@@ -241,7 +243,9 @@ const App = () => {
             console.error("Failed to parse order_data", e);
           }
         }
-        // setPrefilledData(null);
+        // setPrefilledData(null); // This line is commented out
+      } else {
+        console.log('CreateOrderPage useEffect: prefilledData is null or not type order');
       }
     }, [prefilledData, setPrefilledData]);
 
@@ -325,6 +329,7 @@ const App = () => {
       <div className="min-h-screen bg-gray-50">
         <Header title="Crea Ordine" onBack={() => { onOrderSent ? onOrderSent() : setCurrentPage('home'); }} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
+          <pre>Prefilled Data: {JSON.stringify(prefilledData, null, 2)}</pre>
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
             <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}>
