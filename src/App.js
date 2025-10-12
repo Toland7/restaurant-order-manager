@@ -206,7 +206,7 @@ const App = () => {
     </div>
   );
 
-  const CreateOrderPage = ({ onOrderSent }) => {
+  const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent }) => {
     const { prefilledData, setPrefilledData } = usePrefill();
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
@@ -233,7 +233,7 @@ const App = () => {
             console.error("Failed to parse order_data", e);
           }
         }
-        setPrefilledData(null);
+        // setPrefilledData(null);
       }
     }, [prefilledData, setPrefilledData]);
 
@@ -370,6 +370,8 @@ const App = () => {
             supplierId={selectedSupplier}
             orderItems={orderItems}
             additionalItems={additionalItems}
+            scheduledOrders={scheduledOrders}
+            setScheduledOrders={setScheduledOrders}
             onSchedule={() => {
               setSelectedSupplier('');
               setOrderItems({});
@@ -382,7 +384,7 @@ const App = () => {
     );
   };
 
-  const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule }) => {
+  const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule, scheduledOrders, setScheduledOrders }) => {
     const { setPrefilledData } = usePrefill();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === supplierId);
@@ -391,8 +393,39 @@ const App = () => {
       if (isSubmitting) return;
       setIsSubmitting(true);
       try {
-        const order_data = JSON.stringify({ items: orderItems, additional_items: additionalItems });
-        await supabaseHelpers.updateScheduledOrder(scheduledOrderId, { order_data });
+        const existingScheduledOrder = await supabaseHelpers.getScheduledOrderById(scheduledOrderId);
+
+        let existingOrderData = { items: {}, additional_items: '' };
+        if (existingScheduledOrder.order_data) {
+          try {
+            existingOrderData = JSON.parse(existingScheduledOrder.order_data);
+          } catch (e) {
+            console.error("Failed to parse existing order_data from scheduled order", e);
+          }
+        }
+
+        const mergedItems = { ...existingOrderData.items };
+        Object.entries(orderItems).forEach(([product, quantity]) => {
+          const newQuantity = parseInt(quantity, 10) || 0;
+          if (newQuantity > 0) {
+            mergedItems[product] = (parseInt(mergedItems[product], 10) || 0) + newQuantity;
+          } else if (mergedItems[product]) {
+            delete mergedItems[product];
+          }
+        });
+
+        let mergedAdditionalItems = existingOrderData.additional_items;
+        if (additionalItems.trim()) {
+          mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${additionalItems.trim()}` : additionalItems.trim();
+        }
+
+        const updatedOrderData = {
+          order_data: JSON.stringify({ items: mergedItems, additional_items: mergedAdditionalItems })
+        };
+
+        const updatedOrder = await supabaseHelpers.updateScheduledOrder(scheduledOrderId, updatedOrderData);
+        setScheduledOrders(prev => prev.map(o => o.id === scheduledOrderId ? { ...o, ...updatedOrder } : o));
+
         toast.success('Ordine programmato aggiornato con successo!');
         onSchedule();
       } catch (error) {
@@ -613,8 +646,38 @@ const App = () => {
         };
 
         if (editingOrder) {
-          const updatedOrder = await supabaseHelpers.updateScheduledOrder(editingOrder.id, orderData);
-          setScheduledOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updatedOrder, suppliers: suppliers.find(s => s.id.toString() === selectedSupplier) } : o));
+          let existingOrderData = { items: {}, additional_items: '' };
+          if (editingOrder.order_data) {
+            try {
+              existingOrderData = JSON.parse(editingOrder.order_data);
+            } catch (e) {
+              console.error("Failed to parse existing order_data", e);
+            }
+          }
+
+          const mergedItems = { ...existingOrderData.items };
+          Object.entries(orderItems).forEach(([product, quantity]) => {
+            const newQuantity = parseInt(quantity, 10) || 0;
+            if (newQuantity > 0) {
+              mergedItems[product] = (parseInt(mergedItems[product], 10) || 0) + newQuantity;
+            } else if (mergedItems[product]) {
+              delete mergedItems[product]; // Remove if quantity is 0 or empty
+            }
+          });
+
+          let mergedAdditionalItems = existingOrderData.additional_items;
+          if (additionalItems.trim()) {
+            mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${additionalItems.trim()}` : additionalItems.trim();
+          }
+
+          const updatedOrderData = {
+            supplier_id: selectedSupplier,
+            scheduled_at: scheduledDateTime.toISOString(),
+            order_data: JSON.stringify({ items: mergedItems, additional_items: mergedAdditionalItems })
+          };
+
+          const updatedOrder = await supabaseHelpers.updateScheduledOrder(editingOrder.id, updatedOrderData);
+          setScheduledOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updatedOrder } : o));
           toast.success('Ordine programmato aggiornato con successo');
         } else {
           const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
@@ -907,7 +970,7 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
-      case 'createOrder': return <CreateOrderPage onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} />;
+      case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} />;
       case 'suppliers': return <SuppliersPage />;
       case 'schedule': return <SchedulePage />;
       case 'history': return <HistoryPage />;
