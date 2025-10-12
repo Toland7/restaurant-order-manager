@@ -568,7 +568,8 @@ const App = () => {
         }
         setPrefilledData(null);
       }
-    });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const scheduleOrder = async () => {
       if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
