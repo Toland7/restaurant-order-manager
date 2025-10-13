@@ -3,7 +3,7 @@
 
 
 self.addEventListener('push', event => {
-  console.log('[Service Worker] Push Received.');
+
   try {
     const data = event.data.json();
     const title = data.title || 'Nuova Notifica';
@@ -27,7 +27,7 @@ self.addEventListener('push', event => {
 });
 
 self.addEventListener('notificationclick', event => {
-  console.log('[Service Worker] Notification click Received.');
+
   event.notification.close();
 
   let urlToOpen = '/'; // Default URL

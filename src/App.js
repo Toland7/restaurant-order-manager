@@ -47,25 +47,25 @@ const App = () => {
 
 
   const handleNotificationClick = async (notification) => {
-    console.log('handleNotificationClick called with notification:', notification);
+
     if (notification.reminder_id) {
-      console.log('Notification has reminder_id:', notification.reminder_id);
+  
       try {
         const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
-        console.log('Fetched scheduledOrder:', scheduledOrder);
+    
         if (scheduledOrder) {
           setPrefilledData({ type: 'order', data: scheduledOrder });
-          console.log('setPrefilledData called. CurrentPage will be createOrder.');
+      
           setCurrentPage('createOrder');
         } else {
-          console.log('No scheduledOrder found for reminder_id:', notification.reminder_id);
+      
         }
       } catch (error) {
         console.error("Error loading reminder from notification:", error);
         toast.error("Impossibile caricare il promemoria.");
       }
     } else {
-      console.log('Notification has no reminder_id.');
+  
     }
   };
 
@@ -230,9 +230,9 @@ const App = () => {
     };
 
     useEffect(() => {
-      console.log('CreateOrderPage useEffect: prefilledData', prefilledData);
+  
       if (prefilledData && prefilledData.type === 'order') {
-        console.log('CreateOrderPage useEffect: Populating form with', prefilledData.data);
+    
         setSelectedSupplier(prefilledData.data.supplier_id);
         if (prefilledData.data.order_data) {
           try {
@@ -245,7 +245,7 @@ const App = () => {
         }
         // setPrefilledData(null); // This line is commented out
       } else {
-        console.log('CreateOrderPage useEffect: prefilledData is null or not type order');
+    
       }
     }, [prefilledData, setPrefilledData]);
 
