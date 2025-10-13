@@ -260,6 +260,15 @@ export const supabaseHelpers = {
     return data;
   },
 
+  async deleteNotification(notificationId) {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+    
+    if (error) throw error;
+  },
+
   async updateUserProfile(userId, profileData) {
     const { data, error } = await supabase
       .from('profiles')

@@ -328,7 +328,7 @@ const App = () => {
         setAdditionalItems('');
         setShowConfirm(false);
         if (onOrderSent) onOrderSent();
-        else { setTimeout(() => { if (!window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) setCurrentPage('home'); }, 1000); }
+        else { setTimeout(() => { if (!window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) setCurrentPage('home'); }, 1000); } 
       } catch (error) {
         console.error('Error sending order:', error);
         toast.error("Errore durante l'invio dell'ordine");
@@ -346,7 +346,7 @@ const App = () => {
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-            <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}>
+            <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}> 
               <option value="">Scegli un fornitore...</option>
               {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
@@ -406,7 +406,7 @@ const App = () => {
               setShowScheduleModal(false);
               setCurrentPage('home');
             }}
-          />}
+          />} 
       </div>
     );
   };
@@ -485,11 +485,11 @@ const App = () => {
                 <p className="text-gray-500 mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
                 <button 
                   onClick={() => {
-                    setPrefilledData({ 
+                    setPrefilledData({
                       type: 'schedule', 
                       data: { 
                         supplier_id: supplierId, 
-                        order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems }) 
+                        order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
                       }
                     });
                     setCurrentPage('schedule');
@@ -861,6 +861,37 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orders, filters]);
 
+    const getOrderGroup = (orderDate) => {
+        const now = new Date();
+        const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        if (orderDate >= fortyEightHoursAgo) return 'Ultime 48 ore';
+        if (orderDate >= sevenDaysAgo) return 'Ultimi 7 giorni';
+        if (orderDate >= thirtyDaysAgo) return 'Ultimi 30 giorni';
+        return 'Più vecchi';
+    };
+
+    const groupedOrders = useMemo(() => {
+        const groups = {
+            'Ultime 48 ore': [],
+            'Ultimi 7 giorni': [],
+            'Ultimi 30 giorni': [],
+            'Più vecchi': [],
+        };
+
+        filteredOrders.forEach(order => {
+            const orderDate = new Date(order.sent_at || order.created_at);
+            const groupName = getOrderGroup(orderDate);
+            if (groups[groupName]) {
+                groups[groupName].push(order);
+            }
+        });
+
+        return groups;
+    }, [filteredOrders]);
+
     const clearFilters = () => { setFilters({ dateFrom: '', dateTo: '', supplier: '', status: '' }); };
 
     const exportFilteredData = () => {
@@ -883,9 +914,29 @@ const App = () => {
             <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50"><Filter size={16} /><span>Filtri</span>{Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}</button>
             <button onClick={exportFilteredData} className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"><Download size={16} /><span>Esporta</span></button>
           </div>
-          {showFilters && <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>}
+          {showFilters && <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
           <div className="flex justify-between items-center mb-4"><p className="text-sm text-gray-600">{filteredOrders.length} {filteredOrders.length === 1 ? 'ordine trovato' : 'ordini trovati'}</p></div>
-          {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : <div className="space-y-4">{filteredOrders.map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm"><div className="flex justify-between items-start mb-3"><div><h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3><p className="text-sm text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')} - {new Date(order.sent_at || order.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p></div><span className={`px-2 py-1 text-xs rounded-full flex items-center space-x-1 ${order.status === 'sent' ? 'bg-green-100 text-green-800' : order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' : order.status === 'delivered' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}><Check size={12} /><span>{order.status === 'sent' ? 'Inviato' : order.status === 'confirmed' ? 'Confermato' : order.status === 'delivered' ? 'Consegnato' : 'Sconosciuto'}</span></span></div><div className="border-t pt-3"><div className="bg-gray-50 p-3 rounded-lg mb-3"><pre className="text-xs text-gray-700 whitespace-pre-wrap">{order.order_message}</pre></div></div><div className="pt-3 border-t"><p className="text-xs text-gray-500">Inviato via {supplier?.contact_method || 'N/A'} a {supplier?.contact || 'N/A'}</p></div></div>; })}</div>}
+          {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : 
+          <div className="space-y-4">
+            {Object.entries(groupedOrders).map(([groupName, groupOrders]) => (
+                groupOrders.length > 0 && (
+                    <details key={groupName} className="bg-white rounded-xl shadow-sm group" open={groupName === 'Ultime 48 ore'}>
+                        <summary className="font-medium text-gray-800 bg-gray-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                            <span>{groupName} ({groupOrders.length})</span>
+                            <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                        </summary>
+                        <div className="p-4 space-y-4 border-t border-gray-100">
+                            {groupOrders.map(order => {
+                                const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
+                                return (
+                                  <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm"><div className="flex justify-between items-start mb-3"><div><h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3><p className="text-sm text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')} - {new Date(order.sent_at || order.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p></div><span className={`px-2 py-1 text-xs rounded-full flex items-center space-x-1 ${order.status === 'sent' ? 'bg-green-100 text-green-800' : order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' : order.status === 'delivered' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}><Check size={12} /><span>{order.status === 'sent' ? 'Inviato' : order.status === 'confirmed' ? 'Confermato' : order.status === 'delivered' ? 'Consegnato' : 'Sconosciuto'}</span></span></div><div className="border-t pt-3"><div className="bg-gray-50 p-3 rounded-lg mb-3"><pre className="text-xs text-gray-700 whitespace-pre-wrap">{order.order_message}</pre></div></div><div className="pt-3 border-t"><p className="text-xs text-gray-500">Inviato via {supplier?.contact_method || 'N/A'} a {supplier?.contact || 'N/A'}</p></div></div>
+                                );
+                            })}
+                        </div>
+                    </details>
+                )
+            ))}
+          </div>} 
         </div>
       </div>
     );
@@ -902,7 +953,8 @@ const App = () => {
           <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-lg font-bold text-orange-600 truncate">{analytics.mostOrderedProduct}</p><p className="text-xs text-gray-500">Più Ordinato</p></div><BarChart3 className="text-orange-500" size={24} /></div></div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Azioni Rapide</h3><div className="space-y-3"><button onClick={() => setCurrentPage('createOrder')} className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg text-left hover:bg-blue-100 transition-colors"><div className="flex items-center space-x-3"><ShoppingCart size={16} /><span className="text-sm font-medium">Crea Nuovo Ordine</span></div></button><button onClick={() => setCurrentPage('suppliers')} className="w-full p-3 bg-green-50 text-green-700 rounded-lg text-left hover:bg-green-100 transition-colors"><div className="flex items-center space-x-3"><Plus size={16} /><span className="text-sm font-medium">Aggiungi Fornitore</span></div></button></div></div>
-        <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Attività Recente</h3>{orders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span></div>; })}</div>
+        <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Attività Recente</h3>{orders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span></div>; })}
+        </div>
       </div>
     </div>
   );
@@ -912,7 +964,7 @@ const App = () => {
       const isIos = () => { const userAgent = window.navigator.userAgent.toLowerCase(); return /iphone|ipad|ipod/.test(userAgent); };
       const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
       if (isIos() && !isInStandaloneMode()) {
-        toast((t) => <div className="flex flex-col items-center"><span className="text-center">Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l\\'icona di condivisione e poi "Aggiungi a Home".</span><button onClick={() => toast.dismiss(t.id)} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg">Ok</button></div>, { duration: 6000 });
+        toast((t) => <div className="flex flex-col items-center"><span className="text-center">Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l\'icona di condivisione e poi "Aggiungi a Home".</span><button onClick={() => toast.dismiss(t.id)} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg">Ok</button></div>, { duration: 6000 });
       }
     }, []);
 
@@ -954,20 +1006,38 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-      const fetchNotifications = async () => {
+      const fetchAndCleanNotifications = async () => {
         if (!user) return;
         try {
           setIsLoading(true);
           const data = await supabaseHelpers.getNotifications(user.id);
-          setNotifications(data);
+          
+          const now = new Date();
+          const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          
+          const oldReadNotifications = data.filter(n => {
+              const notificationDate = new Date(n.created_at);
+              return n.is_read && notificationDate < twentyFourHoursAgo;
+          });
+
+          if (oldReadNotifications.length > 0) {
+              const idsToDelete = oldReadNotifications.map(n => n.id);
+              await Promise.all(idsToDelete.map(id => supabaseHelpers.deleteNotification(id)));
+              
+              const currentNotifications = data.filter(n => !idsToDelete.includes(n.id));
+              setNotifications(currentNotifications);
+          } else {
+            setNotifications(data);
+          }
+
         } catch (error) {
-          console.error('Error fetching notifications:', error);
+          console.error('Error fetching or cleaning notifications:', error);
           toast.error('Errore nel caricamento delle notifiche.');
         } finally {
           setIsLoading(false);
         }
       };
-      fetchNotifications();
+      fetchAndCleanNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
@@ -1050,9 +1120,12 @@ const App = () => {
                 </div>
               )}
               {readNotifications.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Già lette</h3>
-                  <div className="space-y-3">
+                <details className="mt-8 group">
+                  <summary className="font-medium text-gray-500 cursor-pointer flex justify-between items-center list-none">
+                    <h3 className="text-sm mb-3">Archivio (Ultime 24 ore)</h3>
+                    <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                  </summary>
+                  <div className="space-y-3 mt-3">
                     {readNotifications.map(notification => (
                       <div key={notification.id} className="bg-white rounded-xl p-4 shadow-sm opacity-60">
                         <h3 className="font-medium text-gray-700">{notification.title}</h3>
@@ -1061,7 +1134,7 @@ const App = () => {
                       </div>
                     ))}
                   </div>
-                </div>
+                </details>
               )}
             </div>
           )}
