@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User, ChevronDown } from 'lucide-react';
 import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
@@ -627,10 +627,13 @@ const App = () => {
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
 
     const now = new Date();
-    const readyToSendOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) <= now && !o.is_sent).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
-    const futureOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > now && !o.is_sent).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
-    const sentScheduledOrders = scheduledOrders.filter(o => o.is_sent).sort((a,b) => new Date(b.scheduled_at) - new Date(a.scheduled_at));
+    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    const readyToSendOrders = scheduledOrders.filter(o => {
+        const scheduledAt = new Date(o.scheduled_at);
+        return scheduledAt <= now && scheduledAt >= fortyEightHoursAgo;
+    }).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
+    const futureOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > now).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
     useEffect(() => {
       if (prefilledData && prefilledData.type === 'schedule') {
@@ -768,90 +771,74 @@ const App = () => {
           {selectedSupplierData && selectedSupplierData.products && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
           {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           
-          {scheduledOrders.length > 0 ? (<div className="space-y-6">
-    {readyToSendOrders.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-medium text-green-800 bg-green-50 rounded-md p-2 mb-4">Pronti per l'invio</h3>
-            <div className="space-y-3">
-                {readyToSendOrders.map(order => {
-                    const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
-                    return (
-                        <button key={order.id} onClick={() => {
-                                setPrefilledData({ type: 'order', data: order });
-                                setCurrentPage('createOrder');
-                            }}
-                            className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 border-l-4 border-green-500">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-sm text-green-900">{supplier?.name || 'Fornitore eliminato'}</p>
-                                    <p className="text-xs text-green-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Send size={16} className="text-green-600" />
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
-        </div>
-    )}
+          {scheduledOrders.length > 0 ? (<div className="space-y-4">
+            {readyToSendOrders.length > 0 && (
+                <details className="bg-white rounded-xl shadow-sm group">
+                    <summary className="font-medium text-green-800 bg-green-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                        <span>Pronti per l'invio ({readyToSendOrders.length})</span>
+                        <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                    </summary>
+                    <div className="p-4 space-y-3 border-t border-gray-100">
+                        {readyToSendOrders.map(order => {
+                            const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
+                            return (
+                                <button key={order.id} onClick={() => {
+                                        setPrefilledData({ type: 'order', data: order });
+                                        setCurrentPage('createOrder');
+                                    }}
+                                    className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 border-l-4 border-green-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-medium text-sm text-green-900">{supplier?.name || 'Fornitore eliminato'}</p>
+                                            <p className="text-xs text-green-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Send size={16} className="text-green-600" />
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </details>
+            )}
 
-    {futureOrders.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-medium text-purple-800 bg-purple-50 rounded-md p-2 mb-4">Ordini Programmati</h3>
-            <div className="space-y-3">
-                {futureOrders.map(order => {
-                    const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
-                    return (
-                        <button key={order.id} onClick={() => setEditingOrder(order)} className={`w-full text-left p-3 rounded-lg hover:bg-purple-100 ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-purple-50'}`}>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
-                                    <p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Bell size={16} className="text-purple-600" />
-                                    {!order.is_sent && <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>}
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
+            {futureOrders.length > 0 && (
+                <details className="bg-white rounded-xl shadow-sm group">
+                    <summary className="font-medium text-purple-800 bg-purple-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                        <span>Ordini Programmati ({futureOrders.length})</span>
+                        <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                    </summary>
+                    <div className="p-4 space-y-3 border-t border-gray-100">
+                        {futureOrders.map(order => {
+                            const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
+                            return (
+                                <button key={order.id} onClick={() => setEditingOrder(order)} className={`w-full text-left p-3 rounded-lg hover:bg-purple-100 ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-purple-50'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
+                                            <p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Bell size={16} className="text-purple-600" />
+                                            <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </details>
+            )}
         </div>
-    )}
-
-    {sentScheduledOrders.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm opacity-70">
-            <h3 className="font-medium text-gray-600 bg-gray-100 rounded-md p-2 mb-4">Inviati di Recente</h3>
-            <div className="space-y-3">
-                {sentScheduledOrders.map(order => {
-                    const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
-                    return (
-                        <div key={order.id} className="w-full text-left p-3 rounded-lg bg-gray-50">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium text-sm text-gray-700">{supplier?.name || 'Fornitore eliminato'}</p>
-                                    <p className="text-xs text-gray-500">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                                </div>
-                                <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    )}
-</div>
-) : (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-            <div className="text-center py-12">
-                <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">Nessun ordine programmato.</p>
-            </div>
-        </div>
-    )}
+        ) : (
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="text-center py-12">
+                        <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
+                        <p className="text-gray-500">Nessun ordine programmato.</p>
+                    </div>
+                </div>
+            )}
 
           <div className="flex space-x-3">
             {editingOrder && <button onClick={handleCancelEdit} className="w-full py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Annulla</button>}
