@@ -281,6 +281,17 @@ export const supabaseHelpers = {
     return data;
   },
 
+  async getUserProfile(userId) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // Auth helpers
   async getCurrentUser() {
     const { data: { user }, error } = await supabase.auth.getUser();

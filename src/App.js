@@ -11,7 +11,7 @@ const openLinkInNewTab = (url) => {
 };
 
 const App = () => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { setPrefilledData } = usePrefill();
   const [currentPage, setCurrentPage] = useState('home');
   const [suppliers, setSuppliers] = useState([]);
@@ -19,6 +19,7 @@ const App = () => {
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
@@ -144,6 +145,17 @@ const App = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);
+
+    // New profile fields
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [role, setRole] = useState('');
+    const [companyName, setCompanyName] = useState('');
+    const [companyVatId, setCompanyVatId] = useState('');
+    const [headquartersName, setHeadquartersName] = useState('');
+    const [headquartersAddress, setHeadquartersAddress] = useState('');
+
+
     const handleAuth = async (e) => {
       e.preventDefault();
       setIsAuthenticating(true);
@@ -153,9 +165,21 @@ const App = () => {
           if (error) throw error;
           toast.success('Login effettuato con successo!');
         } else {
-          const { error } = await supabase.auth.signUp({ email, password });
+          const { data: { user }, error } = await supabase.auth.signUp({ email, password });
           if (error) throw error;
-          toast.success('Registrazione completata! Controlla la tua email per confermare.');
+
+          if (user) {
+            await supabaseHelpers.updateUserProfile(user.id, {
+              first_name: firstName,
+              last_name: lastName,
+              role: role,
+              company_name: companyName,
+              company_vat_id: companyVatId,
+              headquarters_name: headquartersName,
+              headquarters_address: headquartersAddress,
+            });
+          }
+          toast.success('Registrazione completata! Il tuo account è in attesa di approvazione.');
         }
       } catch (error) {
         toast.error(error.message);
@@ -171,6 +195,22 @@ const App = () => {
             <form onSubmit={handleAuth} className="space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Password (min 6 caratteri)" /></div>
+              {!isLogin && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Mario" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Rossi" /></div>
+                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Es. Manager" /></div>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                    <h3 className="text-sm font-medium text-gray-800">Dettagli Azienda</h3>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante S.R.L." /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="IT12345678901" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante da Mario" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Via Roma, 1" /></div>
+                  </div>
+                </>
+              )}
               <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">{isAuthenticating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isLogin ? 'Accedi' : 'Registrati'}</span>}</button>
             </form>
             <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-blue-500 hover:text-blue-600 text-sm">{isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}</button></div>
@@ -184,7 +224,7 @@ const App = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm">
         <div className="max-w-sm mx-auto px-6 py-6">
-          <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {user?.email?.split('@')[0]}</p></div>
+          <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {profile?.first_name || user?.email?.split('@')[0]}</p></div>
             <div className="flex space-x-2">
               <button onClick={() => setCurrentPage('analytics')} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full"><BarChart3 size={20} /></button>
               <button onClick={() => setCurrentPage('notifications')} className="relative p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full">
@@ -964,11 +1004,16 @@ const App = () => {
       const isIos = () => { const userAgent = window.navigator.userAgent.toLowerCase(); return /iphone|ipad|ipod/.test(userAgent); };
       const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
       if (isIos() && !isInStandaloneMode()) {
-        toast((t) => <div className="flex flex-col items-center"><span className="text-center">Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l\'icona di condivisione e poi "Aggiungi a Home".</span><button onClick={() => toast.dismiss(t.id)} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg">Ok</button></div>, { duration: 6000 });
+        toast((t) => <div className="flex flex-col items-center"><span className="text-center">Per abilitare le notifiche, aggiungi questa app alla tua schermata principale: tocca l'icona di condivisione e poi "Aggiungi a Home".</span><button onClick={() => toast.dismiss(t.id)} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg">Ok</button></div>, { duration: 6000 });
       }
     }, []);
 
-    const handleLogout = async () => { await signOut(); toast.success('Logout effettuato'); setCurrentPage('home'); };
+    const handleLogout = async () => { 
+      setIsAdminAuthenticated(false); // Clear admin auth on logout
+      await signOut(); 
+      toast.success('Logout effettuato'); 
+      setCurrentPage('home'); 
+    };
 
     const handleEnablePush = async () => {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) { toast.error('Le notifiche push non sono supportate da questo browser.'); return; }
@@ -993,9 +1038,293 @@ const App = () => {
       <div className="min-h-screen bg-gray-50">
         <Header title="Impostazioni" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
-          <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center space-x-4"><div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><User size={24} className="text-gray-500" /></div><div><p className="font-medium text-gray-900">Utente</p><p className="text-sm text-gray-500">{user?.email}</p></div></div></div>
+          <button onClick={() => setCurrentPage('userProfile')} className="w-full bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition-all">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><User size={24} className="text-gray-500" /></div>
+              <div>
+                <p className="font-medium text-gray-900">Profilo Utente</p>
+                <p className="text-sm text-gray-500">Visualizza e modifica i tuoi dati</p>
+              </div>
+              <ChevronRight size={20} className="text-gray-300 ml-auto" />
+            </div>
+          </button>
+
+          {profile?.is_admin && (
+            <button onClick={() => setCurrentPage('adminAuth')} className="w-full bg-yellow-400 rounded-xl p-4 shadow-sm text-left hover:shadow-md transition-all">
+              <div className="flex items-center space-x-4">
+                <div>
+                  <p className="font-medium text-yellow-900">Pannello Admin</p>
+                  <p className="text-sm text-yellow-700">Gestisci utenti e approvazioni</p>
+                </div>
+                <ChevronRight size={20} className="text-yellow-500 ml-auto" />
+              </div>
+            </button>
+          )}
+
           <button onClick={handleEnablePush} className="w-full flex items-center justify-center space-x-2 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"><Bell size={16} /><span>Abilita Notifiche Push</span></button>
           <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"><LogOut size={16} /><span>Esci</span></button>
+        </div>
+      </div>
+    );
+  };
+
+  const AdminAuthPage = () => {
+    const [password, setPassword] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    const handleVerify = async (e) => {
+      e.preventDefault();
+      if (!password) return;
+      setIsVerifying(true);
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email: user.email, password });
+        if (error) throw error;
+        setIsAdminAuthenticated(true);
+        setCurrentPage('admin');
+      } catch (error) {
+        console.error("Admin auth error:", error);
+        toast.error(error.message || 'Password errata.');
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Verifica Admin" onBack={() => setCurrentPage('settings')} />
+        <div className="max-w-sm mx-auto px-6 py-6">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <p className="text-center text-gray-600 mb-4">Per accedere al pannello di amministrazione, per favore inserisci di nuovo la tua password.</p>
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input 
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full p-3 border border-gray-200 rounded-lg"
+                />
+              </div>
+              <button type="submit" disabled={isVerifying} className="w-full bg-yellow-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+                {isVerifying ? 'Verifica...' : 'Accedi'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AdminPage = () => {
+    const [users, setUsers] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [actionUser, setActionUser] = useState(null); // For dropdown
+
+    const fetchUsers = useCallback(async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke('get-users');
+        if (functionError) throw functionError;
+        if (data.error) throw new Error(data.error);
+        setUsers(data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+      } catch (err) {
+        setError(err.message);
+        toast.error("Errore nel caricamento degli utenti: " + err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }, []);
+
+    useEffect(() => {
+      fetchUsers();
+    }, [fetchUsers]);
+
+    const handleAction = async (action, userId, payload) => {
+      setActionUser(null); // Close dropdown
+      try {
+        const { error } = await supabase.functions.invoke(action, { body: payload });
+        if (error) throw error;
+        
+        // Optimistic UI updates
+        switch(action) {
+          case 'approve-user':
+            setUsers(users.map(u => u.id === userId ? { ...u, is_approved: true, email_confirmed_at: new Date().toISOString() } : u));
+            toast.success("Utente approvato!");
+            break;
+          case 'reject-user':
+            if (!window.confirm("Sei sicuro di voler rifiutare e cancellare questo utente? L'azione è irreversibile.")) return;
+            setUsers(users.filter(u => u.id !== userId));
+            toast.success("Utente rifiutato e cancellato.");
+            break;
+          case 'revoke-approval':
+            setUsers(users.map(u => u.id === userId ? { ...u, is_approved: false, email_confirmed_at: null } : u));
+            toast.success("Approvazione revocata.");
+            break;
+          case 'set-admin-status':
+            setUsers(users.map(u => u.id === userId ? { ...u, is_admin: payload.is_admin } : u));
+            toast.success(`Status admin aggiornato.`);
+            break;
+          default: break;
+        }
+      } catch (err) {
+        toast.error(`Errore: ${err.message}`);
+        fetchUsers(); // Refetch to get latest state on error
+      }
+    };
+
+    const UserActions = ({ u }) => {
+      if (u.id === user.id) return null; // Can't edit self
+
+      return (
+        <div className="relative">
+          <button onClick={() => setActionUser(actionUser === u.id ? null : u.id)} className="px-3 py-1 text-sm border rounded-md hover:bg-gray-50">Azioni</button>
+          {actionUser === u.id && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+              {!u.is_approved ? (
+                <>
+                  <button onClick={() => handleAction('approve-user', u.id, { user_id_to_approve: u.id })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Approva</button>
+                  <button onClick={() => handleAction('reject-user', u.id, { user_id_to_reject: u.id })} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Rifiuta</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => handleAction('revoke-approval', u.id, { user_id_to_revoke: u.id })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Revoca Approvazione</button>
+                  {u.is_admin ? (
+                    <button onClick={() => handleAction('set-admin-status', u.id, { target_user_id: u.id, is_admin: false })} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Rimuovi Admin</button>
+                  ) : (
+                    <button onClick={() => handleAction('set-admin-status', u.id, { target_user_id: u.id, is_admin: true })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rendi Admin</button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Pannello Admin" onBack={() => setCurrentPage('settings')} />
+        <div className="max-w-sm mx-auto px-6 py-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Gestione Utenti</h3>
+            <button onClick={fetchUsers} disabled={isLoading} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            </button>
+          </div>
+
+          {isLoading ? (
+            <p>Caricamento utenti...</p>
+          ) : error ? (
+            <p className="text-red-500">{error}</p>
+          ) : (
+            <div className="space-y-4">
+              {users.map(u => (
+                <div key={u.id} className="bg-white rounded-xl shadow-sm p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{u.first_name || 'N/A'} {u.last_name || ''}</p>
+                      <p className="text-sm text-gray-600">{u.email}</p>
+                      <p className="text-xs text-gray-400">Registrato: {new Date(u.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className={`inline-block px-2 py-1 text-xs rounded-full ${u.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {u.is_approved ? 'Approvato' : 'In attesa'}
+                      </div>
+                      {u.is_admin && (
+                        <div className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 mt-1">
+                          Admin
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-4 pt-4 border-t">
+                     <UserActions u={u} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const UserProfilePage = () => {
+    const { user, profile, setProfile } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [formData, setFormData] = useState({
+      first_name: '',
+      last_name: '',
+      role: '',
+      company_name: '',
+      company_vat_id: '',
+      headquarters_name: '',
+      headquarters_address: '',
+    });
+
+    useEffect(() => {
+      if (profile) {
+        setFormData({
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || '',
+          role: profile.role || '',
+          company_name: profile.company_name || '',
+          company_vat_id: profile.company_vat_id || '',
+          headquarters_name: profile.headquarters_name || '',
+          headquarters_address: profile.headquarters_address || '',
+        });
+      }
+    }, [profile]);
+
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!user) return;
+      setIsSubmitting(true);
+      try {
+        const updatedProfile = await supabaseHelpers.updateUserProfile(user.id, formData);
+        setProfile(updatedProfile); // Update context state
+        toast.success('Profilo aggiornato con successo!');
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Errore durante l\'aggiornamento del profilo.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Profilo Utente" onBack={() => setCurrentPage('settings')} />
+        <div className="max-w-sm mx-auto px-6 py-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" name="role" value={formData.role} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+              <h3 className="text-base font-medium text-gray-800">Dettagli Azienda</h3>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" name="company_vat_id" value={formData.company_vat_id} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input type="text" name="headquarters_name" value={formData.headquarters_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input type="text" name="headquarters_address" value={formData.headquarters_address} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+            </div>
+            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">
+              {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}
+              <span>{isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}</span>
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -1154,6 +1483,14 @@ const App = () => {
       case 'history': return <HistoryPage />;
       case 'analytics': return <AnalyticsDashboard />;
       case 'settings': return <SettingsPage />;
+      case 'userProfile': return <UserProfilePage />;
+      case 'adminAuth': return <AdminAuthPage />;
+      case 'admin': 
+        if (profile?.is_admin && isAdminAuthenticated) {
+          return <AdminPage />;
+        }
+        // Redirect to home if not authorized
+        return <HomePage />;
       case 'notifications': return <NotificationsPage onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       default: return <HomePage />;
     }
