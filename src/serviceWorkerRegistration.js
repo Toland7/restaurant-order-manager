@@ -63,17 +63,23 @@ function registerValidSW(swUrl, config) {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              // At this point, the updated precached content has been fetched, 
-              // but the previous service worker will still serve the older
-              // content until all client tabs are closed.
-              console.log(
-                'New content is available and will be used when all ' +
-                  'tabs for this page are closed. See https://cra.link/PWA.'
-              );
+              // New content is available; activate it immediately and prompt user to refresh.
+              console.log('New content is available. Activating new service worker and prompting for refresh.');
 
-              // Execute callback
+              // Send a message to the waiting service worker to activate itself immediately
+              installingWorker.postMessage({ type: 'SKIP_WAITING' });
+
+              // Execute callback, which can be used to prompt the user to refresh
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
+              } else {
+                // If no custom onUpdate is provided, show a default toast
+                // This requires 'toast' to be available in this scope, which it is not.
+                // So, we'll just log for now, or assume the app will handle the refresh.
+                // For a real app, you'd want a UI element here.
+                console.log('Please refresh the page to get the new content.');
+                // A more robust solution would involve a custom UI to prompt the user.
+                // For now, we'll rely on the user refreshing or the app's onUpdate callback.
               }
             } else {
               // At this point, everything has been precached. 
