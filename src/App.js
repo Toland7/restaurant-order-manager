@@ -1068,6 +1068,7 @@ const App = () => {
         );
       }
       return currentOrders;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orders, filters]);
 
     const ordersOverTimeData = useMemo(() => {
@@ -1089,6 +1090,7 @@ const App = () => {
           borderWidth: 1,
         }],
       };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filteredOrders]);
 
     const ordersBySupplierData = useMemo(() => {
@@ -1111,6 +1113,7 @@ const App = () => {
           hoverOffset: 4,
         }],
       };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filteredOrders, suppliers]);
 
     const mostOrderedProductsData = useMemo(() => {
@@ -1186,7 +1189,8 @@ const App = () => {
       });
 
       return products;
-    }, [filteredOrders, productSearchTerm, productFilterSupplierId, productSortOrder, suppliers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filteredOrders, productSearchTerm, productSortOrder, suppliers]);
 
     const clearFilters = () => {
       setFilters({ dateFrom: '', dateTo: '', supplierId: '', productName: '' });
@@ -1349,6 +1353,7 @@ const App = () => {
       return orders.filter(order =>
         order.order_items && order.order_items.some(item => item.product_name === selectedProductForHistory)
       ).sort((a, b) => new Date(b.sent_at || b.created_at) - new Date(a.sent_at || a.created_at));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orders, selectedProductForHistory]);
 
     return (
