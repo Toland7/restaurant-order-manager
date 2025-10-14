@@ -86,13 +86,13 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for suppliers
 CREATE POLICY "Users can view own suppliers" ON suppliers
-  FOR SELECT USING (auth.uid() = user_id);
+  FOR SELECT USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can insert own suppliers" ON suppliers
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can update own suppliers" ON suppliers
-  FOR UPDATE USING (auth.uid() = user_id);
+  FOR UPDATE USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete own suppliers" ON suppliers
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- Create policies for products
 CREATE POLICY "Users can view products of own suppliers" ON products
