@@ -75,3 +75,4 @@ Thumbs.db
 supabase_schema_to_apply.sql
 \n# Backup files\nsrc/App.js.bak
 supabase/migrations/8_fix_reminder_id_type.sql
+Liste Faic + Fruttivendolo.pdf
