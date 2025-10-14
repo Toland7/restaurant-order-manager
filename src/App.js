@@ -1,9 +1,23 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User, ChevronDown } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, LineElement, PointElement } from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
 import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 import { usePrefill } from './PrefillContext';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  LineElement,
+  PointElement
+);
 
 const openLinkInNewTab = (url) => {
   const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
@@ -20,6 +34,7 @@ const App = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
@@ -289,6 +304,20 @@ const App = () => {
       }
     }, [prefilledData, setPrefilledData]);
 
+    const handleProductSelectionChange = (product, isSelected) => {
+        setOrderItems(prev => {
+            const newItems = { ...prev };
+            if (isSelected) {
+                if (!newItems.hasOwnProperty(product)) {
+                    newItems[product] = '';
+                }
+            } else {
+                delete newItems[product];
+            }
+            return newItems;
+        });
+    };
+
     const handleQuantityChange = (product, quantity) => {
       setOrderItems(prev => ({ ...prev, [product]: quantity }));
     };
@@ -305,7 +334,27 @@ const App = () => {
       return message;
     };
 
+    const handlePreviewOrder = () => {
+        const itemsWithMissingQuantity = Object.keys(orderItems)
+            .filter(product => orderItems.hasOwnProperty(product) && orderItems[product] === '');
+
+        if (itemsWithMissingQuantity.length > 0) {
+            toast.error(`Inserire la quantità per i seguenti prodotti: ${itemsWithMissingQuantity.join(', ')}`);
+            return;
+        }
+        setShowConfirm(true);
+    };
+
     const sendOrder = async () => {
+      const itemsWithMissingQuantity = Object.keys(orderItems)
+          .filter(product => orderItems.hasOwnProperty(product) && orderItems[product] === '');
+
+      if (itemsWithMissingQuantity.length > 0) {
+          toast.error(`Inserire la quantità per i seguenti prodotti: ${itemsWithMissingQuantity.join(', ')}`);
+          setShowConfirm(false);
+          return;
+      }
+
       if (isSubmitting) return;
       setIsSubmitting(true);
       try {
@@ -404,8 +453,8 @@ const App = () => {
                       <label className="flex items-center space-x-3 flex-1">
                         <input
                           type="checkbox"
-                          checked={!!(orderItems[product] && orderItems[product] !== '0')}
-                          onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }}
+                          checked={orderItems.hasOwnProperty(product)}
+                          onChange={(e) => handleProductSelectionChange(product, e.target.checked)}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-700">{product}</span>
@@ -424,9 +473,9 @@ const App = () => {
             </div>
           )}
           {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
-          {selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && (
+          {selectedSupplierData && (Object.keys(orderItems).length > 0 || additionalItems.trim()) && (
             <div className="flex space-x-3">
-              <button onClick={() => setShowConfirm(true)} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
+              <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
               <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
             </div>
           )}
@@ -982,22 +1031,369 @@ const App = () => {
     );
   };
 
-  const AnalyticsDashboard = () => (
-    <div className="min-h-screen bg-gray-50">
-      <Header title="Dashboard Analytics" onBack={() => setCurrentPage('home')} />
-      <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-blue-600">{analytics.totalOrders}</p><p className="text-xs text-gray-500">Ordini Totali</p></div><ShoppingCart className="text-blue-500" size={24} /></div></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-green-600">{analytics.totalSuppliers}</p><p className="text-xs text-gray-500">Fornitori</p></div><Users className="text-green-500" size={24} /></div></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-purple-600">{analytics.ordersThisWeek}</p><p className="text-xs text-gray-500">Questa Settimana</p></div><Calendar className="text-purple-500" size={24} /></div></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-lg font-bold text-orange-600 truncate">{analytics.mostOrderedProduct}</p><p className="text-xs text-gray-500">Più Ordinato</p></div><BarChart3 className="text-orange-500" size={24} /></div></div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Azioni Rapide</h3><div className="space-y-3"><button onClick={() => setCurrentPage('createOrder')} className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg text-left hover:bg-blue-100 transition-colors"><div className="flex items-center space-x-3"><ShoppingCart size={16} /><span className="text-sm font-medium">Crea Nuovo Ordine</span></div></button><button onClick={() => setCurrentPage('suppliers')} className="w-full p-3 bg-green-50 text-green-700 rounded-lg text-left hover:bg-green-100 transition-colors"><div className="flex items-center space-x-3"><Plus size={16} /><span className="text-sm font-medium">Aggiungi Fornitore</span></div></button></div></div>
-        <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Attività Recente</h3>{orders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span></div>; })}
+  const AnalyticsDashboard = () => {
+    const [filters, setFilters] = useState({
+      dateFrom: '',
+      dateTo: '',
+      supplierId: '',
+      productName: '',
+    });
+    const [productSearchTerm, setProductSearchTerm] = useState('');
+    const [productFilterSupplierId, setProductFilterSupplierId] = useState(''); // New state for supplier filter in product list
+    const [productSortOrder, setProductSortOrder] = useState('name-asc'); // New state for sorting: 'name-asc', 'name-desc', 'quantity-desc'
+    const [showFilters, setShowFilters] = useState(false);
+
+    const filteredOrders = useMemo(() => {
+      let currentOrders = orders;
+
+      if (filters.dateFrom) {
+        const fromDate = new Date(filters.dateFrom);
+        currentOrders = currentOrders.filter(order => new Date(order.sent_at || order.created_at) >= fromDate);
+      }
+      if (filters.dateTo) {
+        const toDate = new Date(filters.dateTo);
+        currentOrders = currentOrders.filter(order => new Date(order.sent_at || order.created_at) <= toDate);
+      }
+
+      if (filters.supplierId) {
+        currentOrders = currentOrders.filter(order => order.supplier_id.toString() === filters.supplierId);
+      }
+
+      if (filters.productName) {
+        const searchProduct = filters.productName.toLowerCase();
+        currentOrders = currentOrders.filter(order =>
+          order.order_items && order.order_items.some(item =>
+            item.product_name.toLowerCase().includes(searchProduct)
+          )
+        );
+      }
+      return currentOrders;
+    }, [orders, filters]);
+
+    const ordersOverTimeData = useMemo(() => {
+      const monthlyCounts = {};
+      filteredOrders.forEach(order => {
+        const date = new Date(order.sent_at || order.created_at);
+        const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        monthlyCounts[monthYear] = (monthlyCounts[monthYear] || 0) + 1;
+      });
+
+      const sortedMonths = Object.keys(monthlyCounts).sort();
+      return {
+        labels: sortedMonths,
+        datasets: [{
+          label: 'Numero di Ordini',
+          data: sortedMonths.map(month => monthlyCounts[month]),
+          backgroundColor: 'rgba(75, 192, 192, 0.6)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1,
+        }],
+      };
+    }, [filteredOrders]);
+
+    const ordersBySupplierData = useMemo(() => {
+      const supplierCounts = {};
+      filteredOrders.forEach(order => {
+        const supplier = suppliers.find(s => s.id === order.supplier_id);
+        const supplierName = supplier ? supplier.name : 'Sconosciuto';
+        supplierCounts[supplierName] = (supplierCounts[supplierName] || 0) + 1;
+      });
+
+      const labels = Object.keys(supplierCounts);
+      const data = Object.values(supplierCounts);
+      const backgroundColors = labels.map((_, i) => `hsl(${i * 60}, 70%, 60%)`);
+
+      return {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: backgroundColors,
+          hoverOffset: 4,
+        }],
+      };
+    }, [filteredOrders, suppliers]);
+
+    const mostOrderedProductsData = useMemo(() => {
+      const productQuantities = {};
+      filteredOrders.forEach(order => {
+        if (order.order_items) {
+          order.order_items.forEach(item => {
+            productQuantities[item.product_name] = (productQuantities[item.product_name] || 0) + Number(item.quantity);
+          });
+        }
+      });
+
+      const sortedProducts = Object.entries(productQuantities)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10);
+
+      return {
+        labels: sortedProducts.map(([name]) => name),
+        datasets: [{
+          label: 'Quantità Ordinata',
+          data: sortedProducts.map(([, quantity]) => quantity),
+          backgroundColor: 'rgba(153, 102, 255, 0.6)',
+          borderColor: 'rgba(153, 102, 255, 1)',
+          borderWidth: 1,
+        }],
+      };
+    }, [filteredOrders]);
+
+    const allOrderedProductsData = useMemo(() => {
+      const productDetails = {}; // { productName: { totalQuantity: 0, suppliers: Set<string> } }
+      filteredOrders.forEach(order => {
+        const supplier = suppliers.find(s => s.id === order.supplier_id);
+        const supplierName = supplier ? supplier.name : 'Sconosciuto';
+
+        if (order.order_items) {
+          order.order_items.forEach(item => {
+            if (!productDetails[item.product_name]) {
+              productDetails[item.product_name] = { totalQuantity: 0, suppliers: new Set() };
+            }
+            productDetails[item.product_name].totalQuantity += Number(item.quantity);
+            productDetails[item.product_name].suppliers.add(supplierName);
+          });
+        }
+      });
+
+      let products = Object.entries(productDetails).map(([productName, details]) => [
+        productName,
+        details.totalQuantity,
+        Array.from(details.suppliers).sort().join(', ') // Convert set to sorted array and join
+      ]);
+
+      // Apply search filter
+      if (productSearchTerm) {
+        const lowercasedSearchTerm = productSearchTerm.toLowerCase();
+        products = products.filter(([productName]) =>
+          productName.toLowerCase().includes(lowercasedSearchTerm)
+        );
+      }
+
+      // Apply sorting
+      products.sort((a, b) => {
+        const [nameA, quantityA] = a;
+        const [nameB, quantityB] = b;
+
+        if (productSortOrder === 'name-asc') {
+          return nameA.localeCompare(nameB);
+        } else if (productSortOrder === 'name-desc') {
+          return nameB.localeCompare(nameA);
+        } else if (productSortOrder === 'quantity-desc') {
+          return quantityB - quantityA;
+        }
+        return 0;
+      });
+
+      return products;
+    }, [filteredOrders, productSearchTerm, productFilterSupplierId, productSortOrder, suppliers]);
+
+    const clearFilters = () => {
+      setFilters({ dateFrom: '', dateTo: '', supplierId: '', productName: '' });
+    };
+
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+        },
+      },
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Dashboard Analytics" onBack={() => setCurrentPage('home')} />
+        <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
+              <Filter size={16} />
+              <span>Filtri</span>
+              {Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}
+            </button>
+            <button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci Filtri</button>
+          </div>
+
+          {showFilters && (
+            <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4">
+              <h3 className="font-medium text-gray-900">Filtra Dati</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label>
+                  <input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">A Data</label>
+                  <input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label>
+                <select value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500">
+                  <option value="">Tutti i fornitori</option>
+                  {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Prodotto</label>
+                <input type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" placeholder="Cerca prodotto..." />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-blue-600">{filteredOrders.length}</p><p className="text-xs text-gray-500">Ordini Filtrati</p></div><ShoppingCart className="text-blue-500" size={24} /></div></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-green-600">{Object.keys(ordersBySupplierData.labels).length}</p><p className="text-xs text-gray-500">Fornitori Coinvolti</p></div><Users className="text-green-500" size={24} /></div></div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <h3 className="font-medium text-gray-900 mb-4">Ordini nel Tempo</h3>
+            <div style={{ height: '250px' }}>
+              <Line data={ordersOverTimeData} options={chartOptions} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <h3 className="font-medium text-gray-900 mb-4">Ordini per Fornitore</h3>
+            <div style={{ height: '250px' }}>
+              <Pie data={ordersBySupplierData} options={chartOptions} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <h3 className="font-medium text-gray-900 mb-4">Prodotti più Ordinati (Quantità)</h3>
+            <div style={{ height: '250px' }}>
+              <Bar data={mostOrderedProductsData} options={chartOptions} />
+            </div>
+          </div>
+
+          {/* New section: All Ordered Products */}
+          {allOrderedProductsData.length > 0 && (
+            <details className="bg-white rounded-xl shadow-sm group">
+              <summary className="font-medium text-gray-800 bg-gray-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                <span>Tutti i Prodotti Ordinati ({allOrderedProductsData.length})</span>
+                <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+              </summary>
+              <div className="p-4 border-t border-gray-100">
+                <div className="mb-4 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Filtra per Fornitore</label>
+                    <select
+                      value={productFilterSupplierId}
+                      onChange={(e) => setProductFilterSupplierId(e.target.value)}
+                      className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">Tutti i fornitori</option>
+                      {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Ordina per</label>
+                    <select
+                      value={productSortOrder}
+                      onChange={(e) => setProductSortOrder(e.target.value)}
+                      className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="name-asc">Nome (A-Z)</option>
+                      <option value="name-desc">Nome (Z-A)</option>
+                      <option value="quantity-desc">Quantità (Decrescente)</option>
+                    </select>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cerca prodotto..."
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                  className="w-full p-2 mb-4 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
+                />
+                <div className="space-y-2">
+                  {allOrderedProductsData.map(([productName, quantity, suppliersList]) => (
+                    <button
+                      key={productName}
+                      onClick={() => {
+                        setSelectedProductForHistory(productName);
+                        setCurrentPage('productHistory');
+                      }}
+                      className="w-full text-left p-2 bg-gray-50 rounded-lg hover:bg-gray-100"
+                    >
+                      <div className="flex justify-between items-center text-sm text-gray-700">
+                        <span>{productName}</span>
+                        <span className="font-medium">{quantity}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Fornitori: {suppliersList}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
+          )}
+
+          <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Azioni Rapide</h3><div className="space-y-3"><button onClick={() => setCurrentPage('createOrder')} className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg text-left hover:bg-blue-100 transition-colors"><div className="flex items-center space-x-3"><ShoppingCart size={16} /><span className="text-sm font-medium">Crea Nuovo Ordine</span></div></button><button onClick={() => setCurrentPage('suppliers')} className="w-full p-3 bg-green-50 text-green-700 rounded-lg text-left hover:bg-green-100 transition-colors"><div className="flex items-center space-x-3"><Plus size={16} /><span className="text-sm font-medium">Aggiungi Fornitore</span></div></button></div></div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Attività Recente</h3>{filteredOrders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span></div>; })}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const ProductHistoryPage = () => {
+    const productOrders = useMemo(() => {
+      if (!selectedProductForHistory) return [];
+      return orders.filter(order =>
+        order.order_items && order.order_items.some(item => item.product_name === selectedProductForHistory)
+      ).sort((a, b) => new Date(b.sent_at || b.created_at) - new Date(a.sent_at || a.created_at));
+    }, [orders, selectedProductForHistory]);
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title={`Storico Ordini per ${selectedProductForHistory}`} onBack={() => setCurrentPage('analytics')} />
+        <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
+          {productOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <History size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">Nessun ordine trovato per questo prodotto.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {productOrders.map(order => {
+                const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
+                const orderedItem = order.order_items.find(item => item.product_name === selectedProductForHistory);
+                return (
+                  <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3>
+                        <p className="text-sm text-gray-500">
+                          {new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')} - {new Date(order.sent_at || order.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      {orderedItem && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          Qt: {orderedItem.quantity}
+                        </span>
+                      )}
+                    </div>
+                    <div className="border-t pt-3">
+                      <p className="text-xs text-gray-500">
+                        Messaggio: <pre className="whitespace-pre-wrap">{order.order_message}</pre>
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const SettingsPage = () => {
     useEffect(() => {
@@ -1492,6 +1888,7 @@ const App = () => {
         // Redirect to home if not authorized
         return <HomePage />;
       case 'notifications': return <NotificationsPage onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
+      case 'productHistory': return <ProductHistoryPage />;
       default: return <HomePage />;
     }
   };
