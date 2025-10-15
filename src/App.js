@@ -25,7 +25,30 @@ const openLinkInNewTab = (url) => {
 };
 
 const App = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        try {
+          const profileData = await supabaseHelpers.getUserProfile(user.id);
+          setProfile(profileData);
+        } catch (error) {
+          // It's okay if a profile doesn't exist yet (e.g., new user).
+          // The helper throws an error with code 'PGRST116' in this case.
+          if (error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
+          }
+          setProfile(null);
+        }
+      } else {
+        setProfile(null);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
   const { setPrefilledData } = usePrefill();
   const [currentPage, setCurrentPage] = useState('home');
   const [suppliers, setSuppliers] = useState([]);
@@ -1653,8 +1676,7 @@ const App = () => {
     );
   };
 
-  const UserProfilePage = () => {
-    const { user, profile, setProfile } = useAuth();
+  const UserProfilePage = ({ user, profile, setProfile }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -1884,7 +1906,7 @@ const App = () => {
       case 'history': return <HistoryPage />;
       case 'analytics': return <AnalyticsDashboard />;
       case 'settings': return <SettingsPage />;
-      case 'userProfile': return <UserProfilePage />;
+      case 'userProfile': return <UserProfilePage user={user} profile={profile} setProfile={setProfile} />;
       case 'adminAuth': return <AdminAuthPage />;
       case 'admin': 
         if (profile?.is_admin && isAdminAuthenticated) {
