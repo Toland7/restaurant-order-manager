@@ -4,8 +4,8 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { supabase, supabaseHelpers } from './supabase.js';
 import { Toaster, toast } from 'react-hot-toast';
-import { useAuth } from './AuthContext';
-import { usePrefill } from './PrefillContext';
+import { useAuth } from './AuthContext.js';
+import { usePrefill } from './PrefillContext.js';
 
 ChartJS.register(
   CategoryScale,

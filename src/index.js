@@ -4,8 +4,8 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
-import { AuthProvider } from './AuthContext';
-import { PrefillProvider } from './PrefillContext';
+import { AuthProvider } from './AuthContext.js';
+import { PrefillProvider } from './PrefillContext.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
