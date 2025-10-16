@@ -60,6 +60,18 @@ const App = () => {
   const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch { return 'light'; }
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') root.classList.add('dark'); else root.classList.remove('dark');
+    try { localStorage.setItem('theme', theme); } catch {}
+  }, [theme]);
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
 
   const handleUrlNavigation = useCallback(async (path) => {
@@ -158,9 +170,9 @@ const App = () => {
   }, [user, loadData, handleUrlNavigation]);
 
   const MenuButton = ({ icon, title, subtitle, onClick, color }) => (
-    <button onClick={onClick} className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-left hover:shadow-md transition-all duration-200">
+    <button onClick={onClick} className="w-full glass-card border border-white/60 p-6 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md active:scale-95 group">
       <div className="flex items-center space-x-4">
-        <div className={`${color} rounded-full p-3 text-white`}>{icon}</div>
+        <div className={`rounded-2xl p-3 text-white bg-gradient-to-br ${color} ring-1 ring-white/60 shadow-inner`}>{icon}</div>
         <div className="flex-1">
           <h3 className="font-medium text-gray-900 text-sm">{title}</h3>
           <p className="text-gray-500 text-xs mt-1">{subtitle}</p>
@@ -171,10 +183,10 @@ const App = () => {
   );
 
   const Header = ({ title, onBack }) => (
-    <div className="bg-white shadow-sm sticky top-0 z-10">
+    <div className="backdrop-blur bg-white/60 dark:bg-black/40 border-b border-white/60 dark:border-white/10 sticky top-0 z-10">
       <div className="max-w-sm mx-auto px-6 py-4 flex items-center">
         <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button>
-        <h2 className="text-lg font-medium text-gray-900 mx-auto pr-10">{title}</h2>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mx-auto pr-10">{title}</h2>
       </div>
     </div>
   );
@@ -226,9 +238,9 @@ const App = () => {
       }
     };
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+      <div className="min-h-screen app-background flex items-center justify-center px-6">
         <div className="max-w-sm w-full">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="glass-card p-6">
             <div className="text-center mb-6"><h1 className="text-2xl font-light text-gray-900 mb-2">Gestione Ordini</h1><p className="text-gray-500 text-sm">{isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}</p></div>
             <form onSubmit={handleAuth} className="space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" /></div>
@@ -259,8 +271,8 @@ const App = () => {
   };
 
   const HomePage = () => (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
+    <div className="min-h-screen app-background">
+      <div className="backdrop-blur bg-white/60 dark:bg-black/40 border-b border-white/60 dark:border-white/10">
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {profile?.first_name || user?.email?.split('@')[0]}</p></div>
             <div className="flex space-x-2">
@@ -277,17 +289,17 @@ const App = () => {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-blue-50 rounded-lg p-3 text-center"><p className="text-lg font-bold text-blue-600">{analytics.totalOrders}</p><p className="text-xs text-blue-600">Ordini</p></div>
-            <div className="bg-green-50 rounded-lg p-3 text-center"><p className="text-lg font-bold text-green-600">{analytics.totalSuppliers}</p><p className="text-xs text-green-600">Fornitori</p></div>
-            <div className="bg-purple-50 rounded-lg p-3 text-center"><p className="text-lg font-bold text-purple-600">{analytics.ordersThisWeek}</p><p className="text-xs text-purple-600">Settimana</p></div>
+            <div className="glass-card p-3 text-center"><p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-br from-blue-600 to-indigo-600">{analytics.totalOrders}</p><p className="text-xs text-gray-600">Ordini</p></div>
+            <div className="glass-card p-3 text-center"><p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-br from-emerald-600 to-green-600">{analytics.totalSuppliers}</p><p className="text-xs text-gray-600">Fornitori</p></div>
+            <div className="glass-card p-3 text-center"><p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-br from-purple-600 to-violet-600">{analytics.ordersThisWeek}</p><p className="text-xs text-gray-600">Settimana</p></div>
           </div>
         </div>
       </div>
       <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
-        <MenuButton icon={<ShoppingCart size={24} />} title="CREA IL TUO ORDINE" subtitle="Nuovo ordine ai fornitori" onClick={() => setCurrentPage('createOrder')} color="bg-blue-500" />
-        <MenuButton icon={<Users size={24} />} title="GESTIONE FORNITORI" subtitle="Aggiungi e modifica fornitori" onClick={() => setCurrentPage('suppliers')} color="bg-green-500" />
-        <MenuButton icon={<Calendar size={24} />} title="PROGRAMMA ORDINI" subtitle="Pianifica ordini futuri" onClick={() => setCurrentPage('schedule')} color="bg-purple-500" />
-        <MenuButton icon={<History size={24} />} title="CRONOLOGIA ORDINI" subtitle="Storico degli ordini" onClick={() => setCurrentPage('history')} color="bg-orange-500" />
+        <MenuButton icon={<ShoppingCart size={24} />} title="CREA IL TUO ORDINE" subtitle="Nuovo ordine ai fornitori" onClick={() => setCurrentPage('createOrder')} color="from-blue-500 to-indigo-600" />
+        <MenuButton icon={<Users size={24} />} title="GESTIONE FORNITORI" subtitle="Aggiungi e modifica fornitori" onClick={() => setCurrentPage('suppliers')} color="from-emerald-500 to-green-600" />
+        <MenuButton icon={<Calendar size={24} />} title="PROGRAMMA ORDINI" subtitle="Pianifica ordini futuri" onClick={() => setCurrentPage('schedule')} color="from-purple-500 to-violet-600" />
+        <MenuButton icon={<History size={24} />} title="CRONOLOGIA ORDINI" subtitle="Storico degli ordini" onClick={() => setCurrentPage('history')} color="from-orange-500 to-amber-600" />
       </div>
     </div>
   );
@@ -452,21 +464,21 @@ const App = () => {
     const selectedSupplierData = suppliers.find(s => s.id.toString() === selectedSupplier);
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Crea Ordine" onBack={() => { onOrderSent ? onOrderSent() : setCurrentPage('home'); }} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
 
-          <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="glass-card p-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-            <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={!!(prefilledData && prefilledData.type === 'order')}> 
+            <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" disabled={!!(prefilledData && prefilledData.type === 'order')}> 
               <option value="">Scegli un fornitore...</option>
               {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
             </select>
           </div>
           {suppliers.length === 0 && <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center"><p className="text-yellow-800 text-sm mb-3">Non hai ancora fornitori configurati</p><button onClick={() => setCurrentPage('suppliers')} className="text-yellow-600 hover:text-yellow-800 font-medium text-sm">Aggiungi il primo fornitore →</button></div>}
           {selectedSupplierData && (
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h3 className="font-medium text-gray-900 mb-4">Prodotti Disponibili</h3>
+            <div className="glass-card p-4">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti Disponibili</h3>
               {selectedSupplierData.products.length === 0 ? (
                 <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div>
               ) : (
@@ -478,7 +490,7 @@ const App = () => {
                           type="checkbox"
                           checked={orderItems.hasOwnProperty(product)}
                           onChange={(e) => handleProductSelectionChange(product, e.target.checked)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95"
                         />
                         <span className="text-sm text-gray-700">{product}</span>
                       </label>
@@ -495,7 +507,7 @@ const App = () => {
               )}
             </div>
           )}
-          {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
+          {selectedSupplierData && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           {selectedSupplierData && (Object.keys(orderItems).length > 0 || additionalItems.trim()) && (
             <div className="flex space-x-3">
               <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
@@ -503,7 +515,7 @@ const App = () => {
             </div>
           )}
         </div>
-        {showConfirm && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="bg-white rounded-xl p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 mb-4">Conferma Ordine</h3><div className="bg-gray-50 p-3 rounded-lg mb-4"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div><div className="flex space-x-3"><button onClick={() => setShowConfirm(false)} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : 'Invia'}</span></button></div></div></div>}
+        {showConfirm && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Conferma Ordine</h3><div className="bg-gray-50 p-3 rounded-lg mb-4"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div><div className="flex space-x-3"><button onClick={() => setShowConfirm(false)} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : 'Invia'}</span></button></div></div></div>}
         {showScheduleModal && <ScheduleOrderModal 
             onClose={() => setShowScheduleModal(false)} 
             supplierId={selectedSupplier}
@@ -577,8 +589,8 @@ const App = () => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl p-6 max-w-sm w-full max-h-[80vh] flex flex-col">
-          <h3 className="font-medium text-gray-900 mb-4">Associa a un ordine programmato</h3>
+        <div className="glass-card p-6 max-w-sm w-full max-h-[80vh] flex flex-col">
+          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Associa a un ordine programmato</h3>
           <div className="overflow-y-auto space-y-3">
             {futureScheduledOrders.length > 0 ? (
               futureScheduledOrders.map(order => (
@@ -589,7 +601,7 @@ const App = () => {
                   className="w-full text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:bg-gray-200"
                 >
                   <p className="font-medium text-sm text-purple-900">{suppliers.find(s => s.id === order.supplier_id)?.name || 'Fornitore eliminato'}</p>
-                  <p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                  <p className="text-xs text-purple-700 dark:text-purple-300">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 </button>
               ))
             ) : (
@@ -683,7 +695,7 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Gestione Fornitori" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6">
           {!isAdding ? (
@@ -691,7 +703,7 @@ const App = () => {
               <button onClick={() => setIsAdding(true)} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-6 flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors"><Plus size={20} /><span>Aggiungi Fornitore</span></button>
               <div className="space-y-4">
                 {suppliers.map(supplier => (
-                  <div key={supplier.id} className="bg-white rounded-xl p-4 shadow-sm">
+                  <div key={supplier.id} className="glass-card p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-medium text-gray-900">{supplier.name}</h3>
                       <div className="flex space-x-2">
@@ -708,15 +720,15 @@ const App = () => {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Es. Fornitore Verdure Bio" /></div>
-              <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
-              <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
-              <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Es. Fornitore Verdure Bio" /></div>
+              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
+              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
+              <div className="glass-card p-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti</label>
                 <div className="flex space-x-2 mb-3"><input type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"><Plus size={16} /></button></div>
                 <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button></div>)}</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
+              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
               <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' }); }} className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="flex-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
             </div>
           )}
@@ -874,19 +886,19 @@ const App = () => {
     const selectedSupplierData = suppliers.find(s => s.id.toString() === selectedSupplier);
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Programma Ordini" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
-          {selectedSupplierData && selectedSupplierData.products && <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
-          {selectedSupplierData && <div className="bg-white rounded-xl p-4 shadow-sm"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
+          <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
+          <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
+          <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+          {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
+          {selectedSupplierData && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           
           {scheduledOrders.length > 0 ? (<div className="space-y-4">
             {readyToSendOrders.length > 0 && (
-                <details className="bg-white rounded-xl shadow-sm group">
-                    <summary className="font-medium text-green-800 bg-green-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                <details className="glass-card group">
+                    <summary className="font-medium text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
                         <span>Pronti per l'invio ({readyToSendOrders.length})</span>
                         <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                     </summary>
@@ -898,11 +910,11 @@ const App = () => {
                                         setPrefilledData({ type: 'order', data: order });
                                         setCurrentPage('createOrder');
                                     }}
-                                    className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 border-l-4 border-green-500">
+                                    className="w-full text-left p-3 rounded-lg bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/40 border-l-4 border-green-500">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <p className="font-medium text-sm text-green-900">{supplier?.name || 'Fornitore eliminato'}</p>
-                                            <p className="text-xs text-green-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                                            <p className="font-medium text-sm text-green-900 dark:text-green-200">{supplier?.name || 'Fornitore eliminato'}</p>
+                                            <p className="text-xs text-green-700 dark:text-green-300">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <Send size={16} className="text-green-600" />
@@ -916,8 +928,8 @@ const App = () => {
             )}
 
             {futureOrders.length > 0 && (
-                <details className="bg-white rounded-xl shadow-sm group">
-                    <summary className="font-medium text-purple-800 bg-purple-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                <details className="glass-card group">
+                    <summary className="font-medium text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
                         <span>Ordini Programmati ({futureOrders.length})</span>
                         <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                     </summary>
@@ -925,11 +937,11 @@ const App = () => {
                         {futureOrders.map(order => {
                             const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
                             return (
-                                <button key={order.id} onClick={() => setEditingOrder(order)} className={`w-full text-left p-3 rounded-lg hover:bg-purple-100 ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-purple-50'}`}>
+                                <button key={order.id} onClick={() => setEditingOrder(order)} className={`w-full text-left p-3 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-purple-50'} dark:bg-purple-900/30`}>
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
-                                            <p className="text-xs text-purple-700">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                                            <p className="text-xs text-purple-700 dark:text-purple-300">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <Bell size={16} className="text-purple-600" />
@@ -944,7 +956,7 @@ const App = () => {
             )}
         </div>
         ) : (
-                <div className="bg-white rounded-xl p-4 shadow-sm">
+                <div className="glass-card p-4">
                     <div className="text-center py-12">
                         <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
                         <p className="text-gray-500">Nessun ordine programmato.</p>
@@ -1019,21 +1031,21 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Cronologia Ordini" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-6">
-            <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50"><Filter size={16} /><span>Filtri</span>{Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}</button>
-            <button onClick={exportFilteredData} className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"><Download size={16} /><span>Esporta</span></button>
+            <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"><Filter size={16} className="text-gray-700 dark:text-gray-200" /><span>Filtri</span>{Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}</button>
+            <button onClick={exportFilteredData} className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 active:scale-95 transition-transform"><Download size={16} /><span>Esporta</span></button>
           </div>
-          {showFilters && <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
+          {showFilters && <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
           <div className="flex justify-between items-center mb-4"><p className="text-sm text-gray-600">{filteredOrders.length} {filteredOrders.length === 1 ? 'ordine trovato' : 'ordini trovati'}</p></div>
-          {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : 
+          {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : 
           <div className="space-y-4">
             {Object.entries(groupedOrders).map(([groupName, groupOrders]) => (
                 groupOrders.length > 0 && (
-                    <details key={groupName} className="bg-white rounded-xl shadow-sm group" open={groupName === 'Ultime 48 ore'}>
-                        <summary className="font-medium text-gray-800 bg-gray-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                    <details key={groupName} className="glass-card group" open={groupName === 'Ultime 48 ore'}>
+                        <summary className="font-medium text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-800/60 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
                             <span>{groupName} ({groupOrders.length})</span>
                             <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                         </summary>
@@ -1041,7 +1053,7 @@ const App = () => {
                             {groupOrders.map(order => {
                                 const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
                                 return (
-                                  <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm"><div className="flex justify-between items-start mb-3"><div><h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3><p className="text-sm text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')} - {new Date(order.sent_at || order.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p></div><span className={`px-2 py-1 text-xs rounded-full flex items-center space-x-1 ${order.status === 'sent' ? 'bg-green-100 text-green-800' : order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' : order.status === 'delivered' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}><Check size={12} /><span>{order.status === 'sent' ? 'Inviato' : order.status === 'confirmed' ? 'Confermato' : order.status === 'delivered' ? 'Consegnato' : 'Sconosciuto'}</span></span></div><div className="border-t pt-3"><div className="bg-gray-50 p-3 rounded-lg mb-3"><pre className="text-xs text-gray-700 whitespace-pre-wrap">{order.order_message}</pre></div></div><div className="pt-3 border-t"><p className="text-xs text-gray-500">Inviato via {supplier?.contact_method || 'N/A'} a {supplier?.contact || 'N/A'}</p></div></div>
+                                  <div key={order.id} className="glass-card p-4"><div className="flex justify-between items-start mb-3"><div><h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3><p className="text-sm text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')} - {new Date(order.sent_at || order.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p></div><span className={`px-2 py-1 text-xs rounded-full flex items-center space-x-1 ${order.status === 'sent' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : order.status === 'confirmed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : order.status === 'delivered' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}`}><Check size={12} /><span>{order.status === 'sent' ? 'Inviato' : order.status === 'confirmed' ? 'Confermato' : order.status === 'delivered' ? 'Consegnato' : 'Sconosciuto'}</span></span></div><div className="border-t pt-3"><div className="bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg mb-3"><pre className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{order.order_message}</pre></div></div><div className="pt-3 border-t"><p className="text-xs text-gray-500">Inviato via {supplier?.contact_method || 'N/A'} a {supplier?.contact || 'N/A'}</p></div></div>
                                 );
                             })}
                         </div>
@@ -1234,66 +1246,72 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Dashboard Analytics" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="flex justify-between items-center mb-4">
-            <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-              <Filter size={16} />
+            <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <Filter size={16} className="text-gray-700 dark:text-gray-200" />
               <span>Filtri</span>
               {Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}
             </button>
-            <button onClick={clearFilters} className="text-sm text-blue-500 hover:text-blue-600">Pulisci Filtri</button>
+            <button onClick={clearFilters} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">Pulisci Filtri</button>
           </div>
 
           {showFilters && (
-            <div className="bg-white rounded-xl p-4 shadow-sm mb-6 space-y-4">
-              <h3 className="font-medium text-gray-900">Filtra Dati</h3>
+            <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4">
+              <div className="flex items-center justify-between"><h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Filtra Dati</h3><div className="flex items-center gap-2"><span className="px-2 py-1 text-xs rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300">Ordini: {filteredOrders.length}</span><span className="px-2 py-1 text-xs rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300">Fornitori: {ordersBySupplierData.labels.length}</span></div></div>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2">
+                  <button onClick={() => { const d=new Date(); const f=new Date(d.getTime()-24*60*60*1000); setFilters(prev=>({ ...prev, dateFrom: f.toISOString().split('T')[0], dateTo: d.toISOString().split('T')[0] })); }} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Ultime 24h</button>
+                  <button onClick={() => { const d=new Date(); const f=new Date(d.getFullYear(), d.getMonth(), 1); setFilters(prev=>({ ...prev, dateFrom: f.toISOString().split('T')[0], dateTo: d.toISOString().split('T')[0] })); }} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Questo mese</button>
+                  <button onClick={() => { const d=new Date(); const f=new Date(d.getTime()-7*24*60*60*1000); setFilters(prev=>({ ...prev, dateFrom: f.toISOString().split('T')[0], dateTo: d.toISOString().split('T')[0] })); }} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Ultimi 7g</button>
+                  <button onClick={() => { const d=new Date(); const f=new Date(d.getTime()-30*24*60*60*1000); setFilters(prev=>({ ...prev, dateFrom: f.toISOString().split('T')[0], dateTo: d.toISOString().split('T')[0] })); }} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Ultimi 30g</button>
+                  <button onClick={() => setFilters({ dateFrom: '', dateTo: '', supplierId: '', productName: '' })} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Tutti</button>
+                </div>
+                <button onClick={clearFilters} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Pulisci</button>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label>
-                  <input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" />
+                  <input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">A Data</label>
-                  <input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" />
+                  <input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label>
-                <select value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500">
+                <select value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">Tutti i fornitori</option>
                   {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Prodotto</label>
-                <input type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500" placeholder="Cerca prodotto..." />
+                <input type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Cerca prodotto..." />
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-blue-600">{filteredOrders.length}</p><p className="text-xs text-gray-500">Ordini Filtrati</p></div><ShoppingCart className="text-blue-500" size={24} /></div></div>
-            <div className="bg-white rounded-xl p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-2xl font-bold text-green-600">{Object.keys(ordersBySupplierData.labels).length}</p><p className="text-xs text-gray-500">Fornitori Coinvolti</p></div><Users className="text-green-500" size={24} /></div></div>
-          </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-medium text-gray-900 mb-4">Ordini nel Tempo</h3>
+          <div className="glass-card p-4">
+            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Ordini nel Tempo</h3>
             <div style={{ height: '250px' }}>
               <Line data={ordersOverTimeData} options={chartOptions} />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-medium text-gray-900 mb-4">Ordini per Fornitore</h3>
+          <div className="glass-card p-4">
+            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Ordini per Fornitore</h3>
             <div style={{ height: '250px' }}>
               <Pie data={ordersBySupplierData} options={chartOptions} />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-medium text-gray-900 mb-4">Prodotti più Ordinati (Quantità)</h3>
+          <div className="glass-card p-4">
+            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti più Ordinati (Quantit��)</h3>
             <div style={{ height: '250px' }}>
               <Bar data={mostOrderedProductsData} options={chartOptions} />
             </div>
@@ -1301,8 +1319,8 @@ const App = () => {
 
           {/* New section: All Ordered Products */}
           {allOrderedProductsData.length > 0 && (
-            <details className="bg-white rounded-xl shadow-sm group">
-              <summary className="font-medium text-gray-800 bg-gray-50 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+            <details className="glass-card group">
+              <summary className="font-medium text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-800/60 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
                 <span>Tutti i Prodotti Ordinati ({allOrderedProductsData.length})</span>
                 <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
               </summary>
@@ -1313,7 +1331,7 @@ const App = () => {
                     <select
                       value={productFilterSupplierId}
                       onChange={(e) => setProductFilterSupplierId(e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
+                      className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Tutti i fornitori</option>
                       {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
@@ -1324,7 +1342,7 @@ const App = () => {
                     <select
                       value={productSortOrder}
                       onChange={(e) => setProductSortOrder(e.target.value)}
-                      className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
+                      className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="name-asc">Nome (A-Z)</option>
                       <option value="name-desc">Nome (Z-A)</option>
@@ -1347,7 +1365,7 @@ const App = () => {
                         setSelectedProductForHistory(productName);
                         setCurrentPage('productHistory');
                       }}
-                      className="w-full text-left p-2 bg-gray-50 rounded-lg hover:bg-gray-100"
+                      className="w-full text-left p-2 bg-gray-50 dark:bg-gray-800/60 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       <div className="flex justify-between items-center text-sm text-gray-700">
                         <span>{productName}</span>
@@ -1361,9 +1379,9 @@ const App = () => {
             </details>
           )}
 
-          <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Azioni Rapide</h3><div className="space-y-3"><button onClick={() => setCurrentPage('createOrder')} className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg text-left hover:bg-blue-100 transition-colors"><div className="flex items-center space-x-3"><ShoppingCart size={16} /><span className="text-sm font-medium">Crea Nuovo Ordine</span></div></button><button onClick={() => setCurrentPage('suppliers')} className="w-full p-3 bg-green-50 text-green-700 rounded-lg text-left hover:bg-green-100 transition-colors"><div className="flex items-center space-x-3"><Plus size={16} /><span className="text-sm font-medium">Aggiungi Fornitore</span></div></button></div></div>
+          <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Azioni Rapide</h3><div className="space-y-3"><button onClick={() => setCurrentPage('createOrder')} className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg text-left hover:bg-blue-100 transition-colors"><div className="flex items-center space-x-3"><ShoppingCart size={16} /><span className="text-sm font-medium">Crea Nuovo Ordine</span></div></button><button onClick={() => setCurrentPage('suppliers')} className="w-full p-3 bg-green-50 text-green-700 rounded-lg text-left hover:bg-green-100 transition-colors"><div className="flex items-center space-x-3"><Plus size={16} /><span className="text-sm font-medium">Aggiungi Fornitore</span></div></button></div></div>
           
-          <div className="bg-white rounded-xl p-4 shadow-sm"><h3 className="font-medium text-gray-900 mb-4">Attività Recente</h3>{filteredOrders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Inviato</span></div>; })}
+          <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Attività Recente</h3>{filteredOrders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs rounded-full">Inviato</span></div>; })}
           </div>
         </div>
       </div>
@@ -1380,12 +1398,12 @@ const App = () => {
     }, [orders, selectedProductForHistory]);
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title={`Storico Ordini per ${selectedProductForHistory}`} onBack={() => setCurrentPage('analytics')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
           {productOrders.length === 0 ? (
             <div className="text-center py-12">
-              <History size={48} className="mx-auto text-gray-300 mb-4" />
+              <History size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
               <p className="text-gray-500">Nessun ordine trovato per questo prodotto.</p>
             </div>
           ) : (
@@ -1394,7 +1412,7 @@ const App = () => {
                 const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
                 const orderedItem = order.order_items.find(item => item.product_name === selectedProductForHistory);
                 return (
-                  <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm">
+                  <div key={order.id} className="glass-card p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</h3>
@@ -1403,15 +1421,14 @@ const App = () => {
                         </p>
                       </div>
                       {orderedItem && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full">
                           Qt: {orderedItem.quantity}
                         </span>
                       )}
                     </div>
                     <div className="border-t pt-3">
-                      <p className="text-xs text-gray-500">
-                        Messaggio: <pre className="whitespace-pre-wrap">{order.order_message}</pre>
-                      </p>
+                      <div className="text-xs text-gray-500 mb-1">Messaggio:</div>
+                      <pre className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{order.order_message}</pre>
                     </div>
                   </div>
                 );
@@ -1459,10 +1476,10 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Impostazioni" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
-          <button onClick={() => setCurrentPage('userProfile')} className="w-full bg-white rounded-xl p-4 shadow-sm text-left hover:shadow-md transition-all">
+          <button onClick={() => setCurrentPage('userProfile')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><User size={24} className="text-gray-500" /></div>
               <div>
@@ -1485,8 +1502,21 @@ const App = () => {
             </button>
           )}
 
-          <button onClick={handleEnablePush} className="w-full flex items-center justify-center space-x-2 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"><Bell size={16} /><span>Abilita Notifiche Push</span></button>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"><LogOut size={16} /><span>Esci</span></button>
+          <div className="glass-card p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Tema scuro</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Interfaccia ottimizzata per ambienti poco luminosi</p>
+            </div>
+            <label className="inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={theme === 'dark'} onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')} />
+              <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 transition-colors relative">
+                <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></span>
+              </div>
+            </label>
+          </div>
+
+          <button onClick={handleEnablePush} className="w-full flex items-center justify-center space-x-2 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 active:scale-95 transition-transform"><Bell size={16} /><span>Abilita Notifiche Push</span></button>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 active:scale-95 transition-transform"><LogOut size={16} /><span>Esci</span></button>
         </div>
       </div>
     );
@@ -1514,10 +1544,10 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Verifica Admin" onBack={() => setCurrentPage('settings')} />
         <div className="max-w-sm mx-auto px-6 py-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="glass-card p-6">
             <p className="text-center text-gray-600 mb-4">Per accedere al pannello di amministrazione, per favore inserisci di nuovo la tua password.</p>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
@@ -1604,21 +1634,21 @@ const App = () => {
 
       return (
         <div className="relative">
-          <button onClick={() => setActionUser(actionUser === u.id ? null : u.id)} className="px-3 py-1 text-sm border rounded-md hover:bg-gray-50">Azioni</button>
+          <button onClick={() => setActionUser(actionUser === u.id ? null : u.id)} className="px-3 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-100">Azioni</button>
           {actionUser === u.id && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-100">
               {!u.is_approved ? (
                 <>
-                  <button onClick={() => handleAction('approve-user', u.id, { user_id_to_approve: u.id })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Approva</button>
-                  <button onClick={() => handleAction('reject-user', u.id, { user_id_to_reject: u.id })} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Rifiuta</button>
+                  <button onClick={() => handleAction('approve-user', u.id, { user_id_to_approve: u.id })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800">Approva</button>
+                  <button onClick={() => handleAction('reject-user', u.id, { user_id_to_reject: u.id })} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800">Rifiuta</button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => handleAction('revoke-approval', u.id, { user_id_to_revoke: u.id })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Revoca Approvazione</button>
+                  <button onClick={() => handleAction('revoke-approval', u.id, { user_id_to_revoke: u.id })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800">Revoca Approvazione</button>
                   {u.is_admin ? (
-                    <button onClick={() => handleAction('set-admin-status', u.id, { target_user_id: u.id, is_admin: false })} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Rimuovi Admin</button>
+                    <button onClick={() => handleAction('set-admin-status', u.id, { target_user_id: u.id, is_admin: false })} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800">Rimuovi Admin</button>
                   ) : (
-                    <button onClick={() => handleAction('set-admin-status', u.id, { target_user_id: u.id, is_admin: true })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Rendi Admin</button>
+                    <button onClick={() => handleAction('set-admin-status', u.id, { target_user_id: u.id, is_admin: true })} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800">Rendi Admin</button>
                   )}
                 </>
               )}
@@ -1629,7 +1659,7 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Pannello Admin" onBack={() => setCurrentPage('settings')} />
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-4">
@@ -1646,7 +1676,7 @@ const App = () => {
           ) : (
             <div className="space-y-4">
               {users.map(u => (
-                <div key={u.id} className="bg-white rounded-xl shadow-sm p-4">
+                <div key={u.id} className="glass-card p-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium">{u.first_name || 'N/A'} {u.last_name || ''}</p>
@@ -1654,11 +1684,11 @@ const App = () => {
                       <p className="text-xs text-gray-400">Registrato: {new Date(u.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">
-                      <div className={`inline-block px-2 py-1 text-xs rounded-full ${u.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      <div className={`inline-block px-2 py-1 text-xs rounded-full ${u.is_approved ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
                         {u.is_approved ? 'Approvato' : 'In attesa'}
                       </div>
                       {u.is_admin && (
-                        <div className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 mt-1">
+                        <div className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 mt-1">
                           Admin
                         </div>
                       )}
@@ -1725,18 +1755,18 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Profilo Utente" onBack={() => setCurrentPage('settings')} />
         <div className="max-w-sm mx-auto px-6 py-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+            <div className="glass-card space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
               </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" name="role" value={formData.role} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+            <div className="glass-card space-y-4">
               <h3 className="text-base font-medium text-gray-800">Dettagli Azienda</h3>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" name="company_vat_id" value={formData.company_vat_id} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
@@ -1834,13 +1864,13 @@ const App = () => {
     const readNotifications = notifications.filter(n => n.is_read);
 
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen app-background">
         <Header title="Notifiche" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-medium text-gray-900">Centro Notifiche</h2>
             {unreadCount > 0 && (
-              <button onClick={handleMarkAllAsRead} className="text-sm text-blue-500 hover:text-blue-600">
+              <button onClick={handleMarkAllAsRead} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">
                 Segna tutte come lette
               </button>
             )}
