@@ -611,9 +611,21 @@ const App = () => {
               </div>
               <div className="flex space-x-3">
                 {wizardStep > 0 && <button onClick={() => setWizardStep(wizardStep - 1)} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Indietro</button>}
-                <button onClick={() => {
+                <button onClick={async () => {
                   // Send this order
                   const order = wizardOrders[wizardStep];
+
+                  // Save order to DB
+                  try {
+                    const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additional || null, status: 'sent' };
+                    const orderItemsToInsert = Object.entries(order.items).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
+                    const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
+                    setOrders(prev => [{ ...newOrder, suppliers: order.supplier, order_items: orderItemsToInsert }, ...prev]);
+                  } catch (error) {
+                    console.error('Error saving order from wizard:', error);
+                    toast.error('Errore durante il salvataggio dell\'ordine.');
+                  }
+
                   const encodedMessage = encodeURIComponent(order.message);
                   let contactLink = '';
                   switch (order.supplier.contact_method) {
