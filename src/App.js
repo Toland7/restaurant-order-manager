@@ -577,7 +577,13 @@ const App = () => {
                   </div>
                 );
               })}
-              <select onChange={(e) => { if (e.target.value) { updateSupplierOrder(Date.now(), 'supplier', e.target.value); addSupplierOrder(); e.target.value = ''; } }} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 mb-4">
+              <select onChange={(e) => {
+                const supplierId = e.target.value;
+                if (supplierId) {
+                  setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '' }]);
+                  e.target.value = '';
+                }
+              }} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 mb-4">
                 <option value="">Aggiungi Fornitore...</option>
                 {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
