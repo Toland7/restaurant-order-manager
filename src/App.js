@@ -229,7 +229,7 @@ const App = () => {
     </div>
   );
 
-  const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, batchMode, setBatchMode, multiOrders, setMultiOrders, suppliers }) => {
+  const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, batchMode, setBatchMode, multiOrders, setMultiOrders, suppliers, setOrders }) => {
     const { prefilledData, setPrefilledData } = usePrefill();
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
@@ -242,6 +242,7 @@ const App = () => {
     const [showWizard, setShowWizard] = useState(false);
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
+    const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
 
 
@@ -620,7 +621,7 @@ const App = () => {
                     const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additional || null, status: 'sent' };
                     const orderItemsToInsert = Object.entries(order.items).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
                     const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
-                    setOrders(prev => [{ ...newOrder, suppliers: order.supplier, order_items: orderItemsToInsert }, ...prev]);
+                    setNewlyCreatedOrders(prev => [...prev, { ...newOrder, suppliers: order.supplier, order_items: orderItemsToInsert }]);
                   } catch (error) {
                     console.error('Error saving order from wizard:', error);
                     toast.error('Errore durante il salvataggio dell\'ordine.');
@@ -655,6 +656,8 @@ const App = () => {
                     setWizardStep(wizardStep + 1);
                   } else {
                     // Finish
+                    setOrders(prev => [...newlyCreatedOrders, ...prev]);
+                    setNewlyCreatedOrders([]);
                     setShowWizard(false);
                     setWizardOrders([]);
                     setWizardStep(0);
@@ -2200,7 +2203,7 @@ const App = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
-      case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} suppliers={suppliers} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} />;
+      case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} suppliers={suppliers} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} setOrders={setOrders} />;
       case 'suppliers': return <SuppliersPage />;
       case 'schedule': return <SchedulePage batchMode={batchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} />;
       case 'history': return <HistoryPage />;
