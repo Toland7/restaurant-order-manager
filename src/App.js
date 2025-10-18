@@ -262,9 +262,7 @@ const App = () => {
 
 
 
-    const addSupplierOrder = () => {
-      setMultiOrders(prev => [...prev, { id: Date.now(), supplier: '', items: {}, additional: '' }]);
-    };
+
 
     const removeSupplierOrder = (id) => {
       if (multiOrders.length > 1) {
@@ -356,7 +354,9 @@ const App = () => {
                 toast.error(`Inserire la quantità per i seguenti prodotti: ${itemsWithMissingQuantity.join(', ')}`);
                 return;
             }
-            setConfirmMessages(null);
+            const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
+            const orderMessage = generateOrderMessage(supplier);
+            setConfirmMessages([{ supplier: supplier.name, message: orderMessage }]);
             setShowConfirm(true);
         }
     };
