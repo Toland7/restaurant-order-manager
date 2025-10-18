@@ -58,6 +58,8 @@ const App = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
+  const [batchMode, setBatchMode] = useState(false);
+  const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
   const [theme, setTheme] = useState(() => {
@@ -191,84 +193,7 @@ const App = () => {
     </div>
   );
 
-  const AuthPage = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLogin, setIsLogin] = useState(true);
 
-    // New profile fields
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [role, setRole] = useState('');
-    const [companyName, setCompanyName] = useState('');
-    const [companyVatId, setCompanyVatId] = useState('');
-    const [headquartersName, setHeadquartersName] = useState('');
-    const [headquartersAddress, setHeadquartersAddress] = useState('');
-
-
-    const handleAuth = async (e) => {
-      e.preventDefault();
-      setIsAuthenticating(true);
-      try {
-        if (isLogin) {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          toast.success('Login effettuato con successo!');
-        } else {
-          const { data: { user }, error } = await supabase.auth.signUp({ email, password });
-          if (error) throw error;
-
-          if (user) {
-            await supabaseHelpers.updateUserProfile(user.id, {
-              first_name: firstName,
-              last_name: lastName,
-              role: role,
-              company_name: companyName,
-              company_vat_id: companyVatId,
-              headquarters_name: headquartersName,
-              headquarters_address: headquartersAddress,
-            });
-          }
-          toast.success('Registrazione completata! Il tuo account è in attesa di approvazione.');
-        }
-      } catch (error) {
-        toast.error(error.message);
-      } finally {
-        setIsAuthenticating(false);
-      }
-    };
-    return (
-      <div className="min-h-screen app-background flex items-center justify-center px-6">
-        <div className="max-w-sm w-full">
-          <div className="glass-card p-6">
-            <div className="text-center mb-6"><h1 className="text-2xl font-light text-gray-900 mb-2">Gestione Ordini</h1><p className="text-gray-500 text-sm">{isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}</p></div>
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Password (min 6 caratteri)" /></div>
-              {!isLogin && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Mario" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Rossi" /></div>
-                  </div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Es. Manager" /></div>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                    <h3 className="text-sm font-medium text-gray-800">Dettagli Azienda</h3>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante S.R.L." /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="IT12345678901" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante da Mario" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Via Roma, 1" /></div>
-                  </div>
-                </>
-              )}
-              <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">{isAuthenticating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isLogin ? 'Accedi' : 'Registrati'}</span>}</button>
-            </form>
-            <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-blue-500 hover:text-blue-600 text-sm">{isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}</button></div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const HomePage = () => (
     <div className="min-h-screen app-background">
@@ -304,19 +229,34 @@ const App = () => {
     </div>
   );
 
-  const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent }) => {
+  const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, batchMode, setBatchMode, multiOrders, setMultiOrders, suppliers }) => {
     const { prefilledData, setPrefilledData } = usePrefill();
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmMessages, setConfirmMessages] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [showTypeModal, setShowTypeModal] = useState(false);
+    const [showWizard, setShowWizard] = useState(false);
+    const [wizardOrders, setWizardOrders] = useState([]);
+    const [wizardStep, setWizardStep] = useState(0);
 
-    const handleSupplierChange = (supplierId) => {
-      setSelectedSupplier(supplierId);
-      setOrderItems({});
-      setAdditionalItems('');
+
+
+    const addSupplierOrder = () => {
+      setMultiOrders(prev => [...prev, { id: Date.now(), supplier: '', items: {}, additional: '' }]);
+    };
+
+    const removeSupplierOrder = (id) => {
+      if (multiOrders.length > 1) {
+        setMultiOrders(prev => prev.filter(order => order.id !== id));
+      }
+    };
+
+    const updateSupplierOrder = (id, field, value) => {
+      setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
     };
 
     useEffect(() => {
@@ -343,9 +283,7 @@ const App = () => {
         setOrderItems(prev => {
             const newItems = { ...prev };
             if (isSelected) {
-                if (!newItems.hasOwnProperty(product)) {
-                    newItems[product] = '';
-                }
+                newItems[product] = '';
             } else {
                 delete newItems[product];
             }
@@ -357,107 +295,151 @@ const App = () => {
       setOrderItems(prev => ({ ...prev, [product]: quantity }));
     };
 
-    const generateOrderMessage = () => {
-      const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
+    const generateOrderMessage = (supplier, items = orderItems, additional = additionalItems) => {
       if (!supplier) return '';
       let message = supplier.message_template + `\n\n`;
-      Object.entries(orderItems).forEach(([product, quantity]) => {
+      Object.entries(items).forEach(([product, quantity]) => {
         if (quantity && quantity !== '0') message += `• ${product}: ${quantity}\n`;
       });
-      if (additionalItems.trim()) message += '\nProdotti aggiuntivi:\n' + additionalItems + '\n';
+      if (additional.trim()) message += '\nProdotti aggiuntivi:\n' + additional + '\n';
       message += '\nGrazie!';
       return message;
     };
 
     const handlePreviewOrder = () => {
+        if (batchMode) {
+            const invalidOrders = [];
+            const orderMessages = [];
+            multiOrders.forEach((order, index) => {
+                if (!order.supplier) {
+                    invalidOrders.push(`Ordine ${index + 1}: Seleziona un fornitore`);
+                    return;
+                }
+                const supplier = suppliers.find(s => s.id.toString() === order.supplier);
+                if (!supplier) return;
+                const itemsWithMissingQuantity = Object.keys(order.items).filter(product => order.items[product] === '');
+                if (itemsWithMissingQuantity.length > 0) {
+                    invalidOrders.push(`Ordine ${index + 1} (${supplier.name}): Inserire quantità per ${itemsWithMissingQuantity.join(', ')}`);
+                    return;
+                }
+                const message = generateOrderMessage(supplier, order.items, order.additional);
+                orderMessages.push({ supplier: supplier.name, message });
+            });
+            if (invalidOrders.length > 0) {
+                toast.error(invalidOrders.join('; '));
+                return;
+            }
+            setConfirmMessages(orderMessages);
+            setShowConfirm(true);
+        } else {
+            const itemsWithMissingQuantity = Object.keys(orderItems)
+                .filter(product => orderItems.hasOwnProperty(product) && orderItems[product] === '');
+
+            if (itemsWithMissingQuantity.length > 0) {
+                toast.error(`Inserire la quantità per i seguenti prodotti: ${itemsWithMissingQuantity.join(', ')}`);
+                return;
+            }
+            setConfirmMessages(null);
+            setShowConfirm(true);
+        }
+    };
+
+    const sendOrder = async () => {
+      if (batchMode) {
+        const validOrders = multiOrders.filter(order => order.supplier && Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0'));
+        if (validOrders.length === 0) {
+          toast.error('Nessun ordine valido da inviare');
+          setShowConfirm(false);
+          setConfirmMessages(null);
+          return;
+        }
+        setWizardOrders(validOrders.map(order => {
+          const supplier = suppliers.find(s => s.id.toString() === order.supplier);
+          return { ...order, supplier, message: generateOrderMessage(supplier, order.items, order.additional) };
+        }));
+        setWizardStep(0);
+        setShowWizard(true);
+        setShowConfirm(false);
+        setConfirmMessages(null);
+      } else {
         const itemsWithMissingQuantity = Object.keys(orderItems)
             .filter(product => orderItems.hasOwnProperty(product) && orderItems[product] === '');
 
         if (itemsWithMissingQuantity.length > 0) {
             toast.error(`Inserire la quantità per i seguenti prodotti: ${itemsWithMissingQuantity.join(', ')}`);
+            setShowConfirm(false);
             return;
         }
-        setShowConfirm(true);
-    };
 
-    const sendOrder = async () => {
-      const itemsWithMissingQuantity = Object.keys(orderItems)
-          .filter(product => orderItems.hasOwnProperty(product) && orderItems[product] === '');
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+          const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
+          const orderMessage = generateOrderMessage();
+          const orderData = { user_id: user.id, supplier_id: selectedSupplier, order_message: orderMessage, additional_items: additionalItems || null, status: 'sent' };
+          const orderItemsToInsert = Object.entries(orderItems).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
+          const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
+                  const encodedMessage = encodeURIComponent(orderMessage);
 
-      if (itemsWithMissingQuantity.length > 0) {
-          toast.error(`Inserire la quantità per i seguenti prodotti: ${itemsWithMissingQuantity.join(', ')}`);
+                  let contactLink = '';
+                  switch (supplier.contact_method) {
+                    case 'whatsapp': {
+                      if (!supplier.contact) return toast.error('Numero di telefono del fornitore non impostato.');
+                      const sanitizedContact = supplier.contact.replace(/\D/g, '');
+                      if (!sanitizedContact) return toast.error('Numero di telefono del fornitore non valido.');
+                      contactLink = `https://wa.me/${sanitizedContact}?text=${encodedMessage}`;
+                      break;
+                    }
+                    case 'whatsapp_group': {
+                      contactLink = `whatsapp://send?text=${encodedMessage}`;
+                      break;
+                    }
+                    case 'email': {
+                      if (!supplier.contact) return toast.error('Indirizzo email del fornitore non impostato.');
+                      contactLink = `mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`;
+                      break;
+                    }
+                    case 'sms': {
+                      if (!supplier.contact) return toast.error('Numero di telefono del fornitore non impostato.');
+                      const sanitizedContact = supplier.contact.replace(/\D/g, '');
+                      if (!sanitizedContact) return toast.error('Numero di telefono del fornitore non valido.');
+                      contactLink = `sms:${sanitizedContact}?body=${encodedMessage}`;
+                      break;
+                    }
+                    default: {
+                      return toast.error('Metodo di contatto non supportato: ' + supplier.contact_method);
+                    }
+                  }
+
+                  openLinkInNewTab(contactLink);
+
+          let scheduledOrderMessagePart = '';
+          if (prefilledData && prefilledData.type === 'order' && prefilledData.data.id && prefilledData.data.scheduled_at) {
+              try {
+                  await supabaseHelpers.deleteScheduledOrder(prefilledData.data.id);
+                  setScheduledOrders(prev => prev.filter(order => order.id !== prefilledData.data.id));
+                  setPrefilledData(null);
+                  scheduledOrderMessagePart = ' L\'ordine programmato è stato rimosso.';
+              } catch (error) {
+                  console.error('Error deleting scheduled order:', error);
+                  toast.error("Errore durante l'eliminazione dell'ordine programmato");
+              }
+          }
+
+          toast.success(`Ordine inviato via ${supplier.contact_method} a ${supplier.name}!${scheduledOrderMessagePart}`);
+          setOrders(prev => [{ ...newOrder, suppliers: supplier, order_items: orderItemsToInsert }, ...prev]);
+          setSelectedSupplier('');
+          setOrderItems({});
+          setAdditionalItems('');
           setShowConfirm(false);
-          return;
-      }
-
-      if (isSubmitting) return;
-      setIsSubmitting(true);
-      try {
-        const supplier = suppliers.find(s => s.id.toString() === selectedSupplier);
-        const orderMessage = generateOrderMessage();
-        const orderData = { user_id: user.id, supplier_id: selectedSupplier, order_message: orderMessage, additional_items: additionalItems || null, status: 'sent' };
-        const orderItemsToInsert = Object.entries(orderItems).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
-        const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
-                const encodedMessage = encodeURIComponent(orderMessage);
-        
-                let contactLink = '';
-                switch (supplier.contact_method) {
-                  case 'whatsapp': {
-                    if (!supplier.contact) return toast.error('Numero di telefono del fornitore non impostato.');
-                    const sanitizedContact = supplier.contact.replace(/\D/g, '');
-                    if (!sanitizedContact) return toast.error('Numero di telefono del fornitore non valido.');
-                    contactLink = `https://wa.me/${sanitizedContact}?text=${encodedMessage}`;
-                    break;
-                  }
-                  case 'whatsapp_group': {
-                    contactLink = `whatsapp://send?text=${encodedMessage}`;
-                    break;
-                  }
-                  case 'email': {
-                    if (!supplier.contact) return toast.error('Indirizzo email del fornitore non impostato.');
-                    contactLink = `mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`;
-                    break;
-                  }
-                  case 'sms': {
-                    if (!supplier.contact) return toast.error('Numero di telefono del fornitore non impostato.');
-                    const sanitizedContact = supplier.contact.replace(/\D/g, '');
-                    if (!sanitizedContact) return toast.error('Numero di telefono del fornitore non valido.');
-                    contactLink = `sms:${sanitizedContact}?body=${encodedMessage}`;
-                    break;
-                  }
-                  default: {
-                    return toast.error('Metodo di contatto non supportato: ' + supplier.contact_method);
-                  }
-                }
-                
-                openLinkInNewTab(contactLink);
-
-        let scheduledOrderMessagePart = '';
-        if (prefilledData && prefilledData.type === 'order' && prefilledData.data.id && prefilledData.data.scheduled_at) {
-            try {
-                await supabaseHelpers.deleteScheduledOrder(prefilledData.data.id);
-                setScheduledOrders(prev => prev.filter(order => order.id !== prefilledData.data.id));
-                setPrefilledData(null);
-                scheduledOrderMessagePart = ' L\'ordine programmato è stato rimosso.';
-            } catch (error) {
-                console.error('Error deleting scheduled order:', error);
-                toast.error("Errore durante l'eliminazione dell'ordine programmato");
-            }
+          if (onOrderSent) onOrderSent();
+          else { setTimeout(() => { if (!window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) setCurrentPage('home'); }, 1000); }
+        } catch (error) {
+          console.error('Error sending order:', error);
+          toast.error("Errore durante l'invio dell'ordine");
+        } finally {
+          setIsSubmitting(false);
         }
-
-        toast.success(`Ordine inviato via ${supplier.contact_method} a ${supplier.name}!${scheduledOrderMessagePart}`);
-        setOrders(prev => [{ ...newOrder, suppliers: supplier, order_items: orderItemsToInsert }, ...prev]);
-        setSelectedSupplier('');
-        setOrderItems({});
-        setAdditionalItems('');
-        setShowConfirm(false);
-        if (onOrderSent) onOrderSent();
-        else { setTimeout(() => { if (!window.confirm('Ordine inviato con successo! Vuoi creare un altro ordine?')) setCurrentPage('home'); }, 1000); } 
-      } catch (error) {
-        console.error('Error sending order:', error);
-        toast.error("Errore durante l'invio dell'ordine");
-      } finally {
-        setIsSubmitting(false);
       }
     };
 
@@ -469,11 +451,21 @@ const App = () => {
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
 
           <div className="glass-card p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-            <select value={selectedSupplier} onChange={(e) => handleSupplierChange(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" disabled={!!(prefilledData && prefilledData.type === 'order')}> 
-              <option value="">Scegli un fornitore...</option>
-              {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-            </select>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">Tipo Ordine</h3>
+              <button onClick={() => setShowTypeModal(true)} className={`px-4 py-2 rounded-lg text-sm font-medium ${batchMode ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700'} transition-colors`}>
+                {batchMode ? 'Più Fornitori' : 'Singolo Fornitore'}
+              </button>
+            </div>
+            {!batchMode && (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
+                <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" disabled={!!(prefilledData && prefilledData.type === 'order')}>
+                  <option value="">Scegli un fornitore...</option>
+                  {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                </select>
+              </>
+            )}
           </div>
           {suppliers.length === 0 && <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center"><p className="text-yellow-800 text-sm mb-3">Non hai ancora fornitori configurati</p><button onClick={() => setCurrentPage('suppliers')} className="text-yellow-600 hover:text-yellow-800 font-medium text-sm">Aggiungi il primo fornitore →</button></div>}
           {selectedSupplierData && (
@@ -514,31 +506,198 @@ const App = () => {
               <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
             </div>
           )}
+
+          {batchMode && (
+            <div className="space-y-6">
+              {multiOrders.map((order, index) => {
+                const supplierData = suppliers.find(s => s.id.toString() === order.supplier);
+                return (
+                  <div key={order.id} className="glass-card p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Ordine {index + 1}: {supplierData ? supplierData.name : 'Seleziona Fornitore'}</h3>
+                      {multiOrders.length > 1 && (
+                        <button onClick={() => removeSupplierOrder(order.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
+                        <select value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                          <option value="">Scegli un fornitore...</option>
+                          {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                        </select>
+                      </div>
+                      {supplierData && (
+                        <>
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti Disponibili</h4>
+                            {supplierData.products.length === 0 ? (
+                              <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div>
+                            ) : (
+                              <div className="space-y-3">
+                                {supplierData.products.map(product => (
+                                  <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
+                                    <label className="flex items-center space-x-3 flex-1">
+                                      <input
+                                        type="checkbox"
+                                        checked={order.items.hasOwnProperty(product)}
+                                        onChange={(e) => {
+                                          const newItems = { ...order.items };
+                                          if (e.target.checked) {
+                                            newItems[product] = '';
+                                          } else {
+                                            delete newItems[product];
+                                          }
+                                          updateSupplierOrder(order.id, 'items', newItems);
+                                        }}
+                                        className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95"
+                                      />
+                                      <span className="text-sm text-gray-700">{product}</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="Qt."
+                                      value={order.items[product] || ''}
+                                      onChange={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })}
+                                      className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
+                            <textarea value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <select onChange={(e) => { if (e.target.value) { updateSupplierOrder(Date.now(), 'supplier', e.target.value); addSupplierOrder(); e.target.value = ''; } }} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 mb-4">
+                <option value="">Aggiungi Fornitore...</option>
+                {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+              </select>
+              {multiOrders.some(order => order.supplier && (Object.keys(order.items).length > 0 || order.additional.trim())) && (
+                <div className="flex space-x-3">
+                  <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordini</button>
+                  <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        {showConfirm && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Conferma Ordine</h3><div className="bg-gray-50 p-3 rounded-lg mb-4"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div><div className="flex space-x-3"><button onClick={() => setShowConfirm(false)} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : 'Invia'}</span></button></div></div></div>}
-        {showScheduleModal && <ScheduleOrderModal 
-            onClose={() => setShowScheduleModal(false)} 
+        {showConfirm && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">{confirmMessages ? 'Conferma Ordini' : 'Conferma Ordine'}</h3><div className="space-y-4 mb-4">{confirmMessages ? confirmMessages.map((msg, index) => (<div key={index} className="bg-gray-50 p-3 rounded-lg"><h4 className="font-medium text-gray-800 mb-2">{msg.supplier}</h4><pre className="text-sm text-gray-700 whitespace-pre-wrap">{msg.message}</pre></div>)) : <div className="bg-gray-50 p-3 rounded-lg"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div>}</div><div className="flex space-x-3"><button onClick={() => { setShowConfirm(false); setConfirmMessages(null); }} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : (confirmMessages ? 'Invia Ordini' : 'Invia')}</span></button></div></div></div>}
+        {showTypeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="glass-card p-6 max-w-sm w-full">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
+              <div className="space-y-3">
+                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">Singolo Fornitore</button>
+                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="w-full py-3 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition-colors">Più Fornitori</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showWizard && wizardOrders.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Invio Ordine {wizardStep + 1} di {wizardOrders.length}</h3>
+              <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                <h4 className="font-medium text-gray-800 mb-2">{wizardOrders[wizardStep].supplier.name}</h4>
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap">{wizardOrders[wizardStep].message}</pre>
+              </div>
+              <div className="flex space-x-3">
+                {wizardStep > 0 && <button onClick={() => setWizardStep(wizardStep - 1)} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Indietro</button>}
+                <button onClick={() => {
+                  // Send this order
+                  const order = wizardOrders[wizardStep];
+                  const encodedMessage = encodeURIComponent(order.message);
+                  let contactLink = '';
+                  switch (order.supplier.contact_method) {
+                    case 'whatsapp': {
+                      const sanitizedContact = order.supplier.contact.replace(/\D/g, '');
+                      contactLink = `https://wa.me/${sanitizedContact}?text=${encodedMessage}`;
+                      break;
+                    }
+                    case 'whatsapp_group': {
+                      contactLink = `whatsapp://send?text=${encodedMessage}`;
+                      break;
+                    }
+                    case 'email': {
+                      contactLink = `mailto:${order.supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${order.supplier.name}`)}&body=${encodedMessage}`;
+                      break;
+                    }
+                    case 'sms': {
+                      const sanitizedContact = order.supplier.contact.replace(/\D/g, '');
+                      contactLink = `sms:${sanitizedContact}?body=${encodedMessage}`;
+                      break;
+                    }
+                    default:
+                      break;
+                  }
+                  openLinkInNewTab(contactLink);
+                  if (wizardStep < wizardOrders.length - 1) {
+                    setWizardStep(wizardStep + 1);
+                  } else {
+                    // Finish
+                    setShowWizard(false);
+                    setWizardOrders([]);
+                    setWizardStep(0);
+                    toast.success('Tutti gli ordini inviati!');
+                    setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
+                    if (onOrderSent) onOrderSent();
+                    else setCurrentPage('home');
+                  }
+                }} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Invia</button>
+                <button onClick={() => {
+                  if (wizardStep < wizardOrders.length - 1) {
+                    setWizardStep(wizardStep + 1);
+                  } else {
+                    setShowWizard(false);
+                    setWizardOrders([]);
+                    setWizardStep(0);
+                    toast.info('Invio completato (alcuni saltati)');
+                    setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
+                    if (onOrderSent) onOrderSent();
+                    else setCurrentPage('home');
+                  }
+                }} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Salta</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showScheduleModal && <ScheduleOrderModal
+            onClose={() => setShowScheduleModal(false)}
+            batchMode={batchMode}
             supplierId={selectedSupplier}
             orderItems={orderItems}
             additionalItems={additionalItems}
+            multiOrders={multiOrders}
             scheduledOrders={scheduledOrders}
             setScheduledOrders={setScheduledOrders}
             onSchedule={() => {
-              setSelectedSupplier('');
-              setOrderItems({});
-              setAdditionalItems('');
+              if (batchMode) {
+                setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
+              } else {
+                setSelectedSupplier('');
+                setOrderItems({});
+                setAdditionalItems('');
+              }
               setShowScheduleModal(false);
               setCurrentPage('home');
             }}
-          />} 
+          />}
       </div>
     );
   };
 
-  const ScheduleOrderModal = ({ onClose, supplierId, orderItems, additionalItems, onSchedule, scheduledOrders, setScheduledOrders }) => {
+  const ScheduleOrderModal = ({ onClose = () => {}, batchMode = false, supplierId = '', orderItems = {}, additionalItems = '', multiOrders = [], onSchedule = () => {}, scheduledOrders = [], setScheduledOrders = () => {} }) => {
     const { setPrefilledData } = usePrefill();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === supplierId);
+    const futureScheduledOrders = batchMode ? scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date()) : scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === supplierId);
 
     const linkToScheduledOrder = async (scheduledOrderId) => {
       if (isSubmitting) return;
@@ -737,7 +896,7 @@ const App = () => {
     );
   };
 
-  const SchedulePage = () => {
+  const SchedulePage = ({ batchMode, multiOrders, setMultiOrders }) => {
     const { prefilledData, setPrefilledData } = usePrefill();
     const getRoundedTime = (date = new Date()) => { const minutes = date.getMinutes(); const roundedMinutes = Math.ceil(minutes / 15) * 15; date.setMinutes(roundedMinutes); return date.toTimeString().slice(0, 5); };
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -793,70 +952,89 @@ const App = () => {
     }, [editingOrder]);
 
     const scheduleOrder = async () => {
-      if (!selectedDate || !selectedSupplier) { toast.error('Seleziona data e fornitore'); return; }
+      if (!selectedDate) { toast.error('Seleziona data'); return; }
+      if (!batchMode && !selectedSupplier) { toast.error('Seleziona fornitore'); return; }
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
       if (scheduledDateTime < new Date() && !editingOrder) { toast.error('Non puoi programmare un ordine nel passato.'); return; }
       setIsSubmitting(true);
       try {
-        const orderData = { 
-          user_id: user.id, 
-          supplier_id: selectedSupplier, 
-          scheduled_at: scheduledDateTime.toISOString(), 
-          order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
-        };
-
-        if (editingOrder) {
-          let existingOrderData = { items: {}, additional_items: '' };
-          if (editingOrder.order_data) {
-            try {
-              existingOrderData = JSON.parse(editingOrder.order_data);
-            } catch (e) {
-              console.error("Failed to parse existing order_data", e);
-            }
+        if (batchMode) {
+          const validOrders = multiOrders.filter(order => order.supplier && Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0'));
+          if (validOrders.length === 0) { toast.error('Nessun ordine valido da programmare'); return; }
+          for (const order of validOrders) {
+            const orderData = {
+              user_id: user.id,
+              supplier_id: order.supplier,
+              scheduled_at: scheduledDateTime.toISOString(),
+              order_data: JSON.stringify({ items: order.items, additional_items: order.additional })
+            };
+            const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+            setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === order.supplier) }]);
           }
-
-          const mergedItems = { ...existingOrderData.items };
-          Object.entries(orderItems).forEach(([product, quantity]) => {
-            const newQuantity = parseInt(quantity, 10) || 0;
-            if (newQuantity > 0) {
-              mergedItems[product] = (parseInt(mergedItems[product], 10) || 0) + newQuantity;
-            } else if (mergedItems[product]) {
-              delete mergedItems[product]; // Remove if quantity is 0 or empty
-            }
-          });
-
-          let mergedAdditionalItems = existingOrderData.additional_items;
-          if (additionalItems.trim()) {
-            mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${additionalItems.trim()}` : additionalItems.trim();
-          }
-
-          const updatedOrderData = {
+          toast.success(`${validOrders.length} ordini programmati con successo`);
+        } else {
+          const orderData = {
+            user_id: user.id,
             supplier_id: selectedSupplier,
             scheduled_at: scheduledDateTime.toISOString(),
-            order_data: JSON.stringify({ items: mergedItems, additional_items: mergedAdditionalItems })
+            order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
           };
 
-          const updatedOrder = await supabaseHelpers.updateScheduledOrder(editingOrder.id, updatedOrderData);
-          setScheduledOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updatedOrder } : o));
-          toast.success('Ordine programmato aggiornato con successo');
-        } else {
-          const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
-          setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === selectedSupplier) }]);
-          toast.success(`Ordine programmato creato con successo`);
+          if (editingOrder) {
+            let existingOrderData = { items: {}, additional_items: '' };
+            if (editingOrder.order_data) {
+              try {
+                existingOrderData = JSON.parse(editingOrder.order_data);
+              } catch (e) {
+                console.error("Failed to parse existing order_data", e);
+              }
+            }
+
+            const mergedItems = { ...existingOrderData.items };
+            Object.entries(orderItems).forEach(([product, quantity]) => {
+              const newQuantity = parseInt(quantity, 10) || 0;
+              if (newQuantity > 0) {
+                mergedItems[product] = (parseInt(mergedItems[product], 10) || 0) + newQuantity;
+              } else if (mergedItems[product]) {
+                delete mergedItems[product]; // Remove if quantity is 0 or empty
+              }
+            });
+
+            let mergedAdditionalItems = existingOrderData.additional_items;
+            if (additionalItems.trim()) {
+              mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${additionalItems.trim()}` : additionalItems.trim();
+            }
+
+            const updatedOrderData = {
+              supplier_id: selectedSupplier,
+              scheduled_at: scheduledDateTime.toISOString(),
+              order_data: JSON.stringify({ items: mergedItems, additional_items: mergedAdditionalItems })
+            };
+
+            const updatedOrder = await supabaseHelpers.updateScheduledOrder(editingOrder.id, updatedOrderData);
+            setScheduledOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updatedOrder } : o));
+            toast.success('Ordine programmato aggiornato con successo');
+          } else {
+            const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+            setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === selectedSupplier) }]);
+            toast.success(`Ordine programmato creato con successo`);
+          }
         }
 
         setEditingOrder(null);
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedTime(getRoundedTime());
-        setSelectedSupplier('');
-        setOrderItems({});
-        setAdditionalItems('');
+        if (!batchMode) {
+          setSelectedSupplier('');
+          setOrderItems({});
+          setAdditionalItems('');
+        }
         if (!editingOrder) {
-          setTimeout(() => { if (!window.confirm('Ordine programmato con successo! Vuoi programmarne un altro?')) setCurrentPage('home'); }, 1000);
+          setTimeout(() => { if (!window.confirm('Ordini programmati con successo! Vuoi programmarne altri?')) setCurrentPage('home'); }, 1000);
         }
       } catch (error) {
         console.error('Error saving scheduled order:', error);
-        toast.error('Errore durante il salvataggio dell\'ordine programmato');
+        toast.error('Errore durante il salvataggio degli ordini programmati');
       } finally {
         setIsSubmitting(false);
       }
@@ -891,11 +1069,11 @@ const App = () => {
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
           <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
           <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
-          <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+          {!batchMode && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
           {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
           {selectedSupplierData && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           
-          {scheduledOrders.length > 0 ? (<div className="space-y-4">
+          {scheduledOrders.length > 0 && !batchMode ? (<div className="space-y-4">
             {readyToSendOrders.length > 0 && (
                 <details className="glass-card group">
                     <summary className="font-medium text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
@@ -964,9 +1142,9 @@ const App = () => {
                 </div>
             )}
 
-          <div className="flex space-x-3">
+           <div className="flex space-x-3">
             {editingOrder && <button onClick={handleCancelEdit} className="w-full py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Annulla</button>}
-            {selectedDate && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : 'Programmando...') : (editingOrder ? 'Aggiorna Ordine' : 'Programma Ordine')}</span></button>}
+            {selectedDate && (batchMode || (selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : (batchMode ? 'Programmando...' : 'Programmando...')) : (editingOrder ? 'Aggiorna Ordine' : (batchMode ? 'Programma Ordini' : 'Programma Ordine'))}</span></button>}
           </div>
         </div>
       </div>
@@ -1655,8 +1833,9 @@ const App = () => {
             </div>
           )}
         </div>
-      );
-    };
+    );
+  };
+
 
     return (
       <div className="min-h-screen app-background">
@@ -1925,14 +2104,93 @@ const App = () => {
     );
   };
 
+    const AuthPage = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLogin, setIsLogin] = useState(true);
+
+    // New profile fields
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [role, setRole] = useState('');
+    const [companyName, setCompanyName] = useState('');
+    const [companyVatId, setCompanyVatId] = useState('');
+    const [headquartersName, setHeadquartersName] = useState('');
+    const [headquartersAddress, setHeadquartersAddress] = useState('');
+
+
+    const handleAuth = async (e) => {
+      e.preventDefault();
+      setIsAuthenticating(true);
+      try {
+        if (isLogin) {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          toast.success('Login effettuato con successo!');
+        } else {
+          const { data: { user }, error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+
+          if (user) {
+            await supabaseHelpers.updateUserProfile(user.id, {
+              first_name: firstName,
+              last_name: lastName,
+              role: role,
+              company_name: companyName,
+              company_vat_id: companyVatId,
+              headquarters_name: headquartersName,
+              headquarters_address: headquartersAddress,
+            });
+          }
+          toast.success('Registrazione completata! Il tuo account è in attesa di approvazione.');
+        }
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
+    return (
+      <div className="min-h-screen app-background flex items-center justify-center px-6">
+        <div className="max-w-sm w-full">
+          <div className="glass-card p-6">
+            <div className="text-center mb-6"><h1 className="text-2xl font-light text-gray-900 mb-2">Gestione Ordini</h1><p className="text-gray-500 text-sm">{isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}</p></div>
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Password (min 6 caratteri)" /></div>
+              {!isLogin && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Mario" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Rossi" /></div>
+                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Es. Manager" /></div>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                    <h3 className="text-sm font-medium text-gray-800">Dettagli Azienda</h3>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante S.R.L." /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="IT12345678901" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante da Mario" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Via Roma, 1" /></div>
+                  </div>
+                </>
+              )}
+              <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">{isAuthenticating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isLogin ? 'Accedi' : 'Registrati'}</span>}</button>
+            </form>
+            <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-blue-500 hover:text-blue-600 text-sm">{isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}</button></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!user) return <><Toaster position="top-center" reverseOrder={false} /><AuthPage /></>;
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
-      case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} />;
+      case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} suppliers={suppliers} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} />;
       case 'suppliers': return <SuppliersPage />;
-      case 'schedule': return <SchedulePage />;
+      case 'schedule': return <SchedulePage batchMode={batchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} />;
       case 'history': return <HistoryPage />;
       case 'analytics': return <AnalyticsDashboard />;
       case 'settings': return <SettingsPage />;
