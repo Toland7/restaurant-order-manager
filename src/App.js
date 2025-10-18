@@ -244,6 +244,22 @@ const App = () => {
     const [wizardStep, setWizardStep] = useState(0);
     const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
+    useEffect(() => {
+      if (showWizard) {
+        sessionStorage.setItem('wizardState', JSON.stringify({ wizardOrders, wizardStep }));
+      }
+    }, [showWizard, wizardOrders, wizardStep]);
+
+    useEffect(() => {
+      const savedWizardState = sessionStorage.getItem('wizardState');
+      if (savedWizardState) {
+        const { wizardOrders, wizardStep } = JSON.parse(savedWizardState);
+        setWizardOrders(wizardOrders);
+        setWizardStep(wizardStep);
+        setShowWizard(true);
+      }
+    }, []);
+
 
 
     const addSupplierOrder = () => {
@@ -662,6 +678,7 @@ const App = () => {
                     setWizardStep(wizardStep + 1);
                   } else {
                     // Finish
+                    sessionStorage.removeItem('wizardState');
                     setOrders(prev => [...newlyCreatedOrders, ...prev]);
                     setNewlyCreatedOrders([]);
                     setShowWizard(false);
@@ -677,10 +694,11 @@ const App = () => {
                   if (wizardStep < wizardOrders.length - 1) {
                     setWizardStep(wizardStep + 1);
                   } else {
+                    sessionStorage.removeItem('wizardState');
                     setShowWizard(false);
                     setWizardOrders([]);
                     setWizardStep(0);
-                    toast.info('Invio completato (alcuni saltati)');
+                    toast('Invio completato (alcuni saltati)');
                     setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
                     if (onOrderSent) onOrderSent();
                     else setCurrentPage('home');
