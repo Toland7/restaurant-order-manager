@@ -1140,6 +1140,20 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
       }
     };
 
+    const handleDeleteBatch = async (ordersToDelete) => {
+      if (!window.confirm(`Sei sicuro di voler eliminare questo lotto di ${ordersToDelete.length} ordini programmati? Questa azione è irreversibile.`)) return;
+      try {
+        for (const order of ordersToDelete) {
+          await supabaseHelpers.deleteScheduledOrder(order.id);
+        }
+        setScheduledOrders(prev => prev.filter(order => !ordersToDelete.some(deletedOrder => deletedOrder.id === order.id)));
+        toast.success(`${ordersToDelete.length} ordini programmati eliminati`);
+      } catch (error) {
+        console.error('Error deleting scheduled order batch:', error);
+        toast.error("Errore durante l'eliminazione del lotto di ordini");
+      }
+    };
+
     const handleSendBatch = (orders) => {
         const ordersForWizard = orders.map(order => {
             const supplier = suppliers.find(s => s.id === order.supplier_id);
@@ -1209,7 +1223,10 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
                                         {isBatch ? (
                                             <div className="w-full flex justify-between items-center">
                                                 <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
-                                                <button onClick={() => handleSendBatch(orders)} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                <div className="flex items-center space-x-2">
+                                                    <button onClick={() => handleSendBatch(orders)} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                    <button onClick={() => handleDeleteBatch(orders)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                </div>
                                             </div>
                                         ) : (
                                             <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
@@ -1225,13 +1242,11 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
                                                         <div>
                                                             <p className="font-medium text-sm text-green-900 dark:text-green-200">{supplier?.name || 'Fornitore eliminato'}</p>
                                                         </div>
-                                                        {!isBatch && (
                                                         <div className="flex items-center space-x-2">
                                                             <button onClick={() => { setPrefilledData({ type: 'order', data: order, immediateSend: true }); setCurrentPage('createOrder'); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
                                                             <button onClick={() => setEditingOrder(order)} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
                                                             <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
                                                         </div>
-                                                        )}
                                                     </div>
                                                     <ScheduledOrderPreview order={order} suppliers={suppliers} />
                                                 </div>
@@ -1262,7 +1277,10 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
                                         {isBatch ? (
                                             <div className="w-full flex justify-between items-center">
                                                 <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
-                                                <button onClick={() => handleSendBatch(orders)} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                <div className="flex items-center space-x-2">
+                                                    <button onClick={() => handleSendBatch(orders)} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                    <button onClick={() => handleDeleteBatch(orders)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                </div>
                                             </div>
                                         ) : (
                                             <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
@@ -1278,13 +1296,11 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
                                                         <div>
                                                             <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
                                                         </div>
-                                                        {!isBatch && (
                                                         <div className="flex items-center space-x-2">
                                                             <button onClick={() => { setPrefilledData({ type: 'order', data: order, immediateSend: true }); setCurrentPage('createOrder'); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
                                                             <button onClick={() => setEditingOrder(order)} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
                                                             <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
                                                         </div>
-                                                        )}
                                                     </div>
                                                     <ScheduledOrderPreview order={order} suppliers={suppliers} />
                                                 </div>
