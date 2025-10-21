@@ -1815,22 +1815,62 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
       setCurrentPage('home'); 
     };
 
-    const handleEnablePush = async () => {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) { toast.error('Le notifiche push non sono supportate da questo browser.'); return; }
+    const [isPushEnabled, setIsPushEnabled] = useState(false);
+
+    useEffect(() => {
+      const checkSubscription = async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          setIsPushEnabled(false);
+          return;
+        }
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setIsPushEnabled(!!subscription);
+      };
+      checkSubscription();
+    }, []);
+
+    const handleTogglePush = async (enable) => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast.error('Le notifiche push non sono supportate da questo browser.');
+        return;
+      }
+
       try {
         const registration = await navigator.serviceWorker.ready;
-        const existingSubscription = await registration.pushManager.getSubscription();
-        if (existingSubscription) { toast.success('Le notifiche push sono già attive.'); return; }
-        const permission = await window.Notification.requestPermission();
-        if (permission !== 'granted') { toast.error('Permesso per le notifiche non concesso.'); return; }
-        const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
-        if (!vapidPublicKey) { console.error('VAPID public key not found.'); toast.error('Errore di configurazione: chiave pubblica non trovata.'); return; }
-        const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidPublicKey });
-        await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscription });
-        toast.success('Notifiche push abilitate con successo!');
+
+        if (enable) {
+          // Enable push notifications
+          const permission = await window.Notification.requestPermission();
+          if (permission !== 'granted') {
+            toast.error('Permesso per le notifiche non concesso.');
+            return;
+          }
+          const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+          if (!vapidPublicKey) {
+            console.error('VAPID public key not found.');
+            toast.error('Errore di configurazione: chiave pubblica non trovata.');
+            return;
+          }
+          const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidPublicKey });
+          await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscription });
+          setIsPushEnabled(true);
+          toast.success('Notifiche push abilitate con successo!');
+        } else {
+          // Disable push notifications
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            await subscription.unsubscribe();
+            await supabaseHelpers.updateUserProfile(user.id, { push_subscription: null });
+            setIsPushEnabled(false);
+            toast.success('Notifiche push disabilitate con successo!');
+          } else {
+            toast.info('Le notifiche push non sono attive.');
+          }
+        }
       } catch (error) {
-        console.error('Error enabling push notifications:', error);
-        toast.error('Impossibile abilitare le notifiche push.');
+        console.error('Error toggling push notifications:', error);
+        toast.error('Impossibile modificare lo stato delle notifiche push.');
       }
     };
 
@@ -1874,7 +1914,18 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
             </label>
           </div>
 
-          <button onClick={handleEnablePush} className="w-full flex items-center justify-center space-x-2 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 active:scale-95 transition-transform"><Bell size={16} /><span>Abilita Notifiche Push</span></button>
+          <div className="glass-card p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Notifiche Push</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Ricevi notifiche per gli ordini programmati</p>
+            </div>
+            <label className="inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={isPushEnabled} onChange={(e) => handleTogglePush(e.target.checked)} />
+              <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 transition-colors relative">
+                <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></span>
+              </div>
+            </label>
+          </div>
           <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 active:scale-95 transition-transform"><LogOut size={16} /><span>Esci</span></button>
         </div>
       </div>
