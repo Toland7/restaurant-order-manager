@@ -33,7 +33,15 @@ Deno.serve(async (req: Request) => {
     });
 
     // Read the response from Vercel
-    const vercelResponseBody = await vercelResponse.json();
+    let vercelResponseBody;
+    try {
+      vercelResponseBody = await vercelResponse.json();
+    } catch (jsonError) {
+      // If the response is not JSON, or empty, handle it gracefully
+      console.warn('Vercel API response was not JSON or was empty:', jsonError);
+      // Attempt to read as text if not JSON, or default to an empty object
+      vercelResponseBody = await vercelResponse.text().then(text => text ? { message: text } : {});
+    }
 
     // Return the Vercel API's response
     return new Response(JSON.stringify(vercelResponseBody), {
