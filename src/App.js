@@ -54,7 +54,6 @@ const App = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
@@ -515,8 +514,8 @@ const App = () => {
             </div>
             {!batchMode && (
               <>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-                <select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" disabled={!!(prefilledData && prefilledData.type === 'order')}>
+                <label htmlFor="supplier-select" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
+                <select id="supplier-select" name="supplier-select" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" disabled={!!(prefilledData && prefilledData.type === 'order')}>
                   <option value="">Scegli un fornitore...</option>
                   {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                 </select>
@@ -536,6 +535,8 @@ const App = () => {
                       <label className="flex items-center space-x-3 flex-1">
                         <input
                           type="checkbox"
+                          id={`product-checkbox-${product}`}
+                          name={`product-checkbox-${product}`}
                           checked={orderItems.hasOwnProperty(product)}
                           onChange={(e) => handleProductSelectionChange(product, e.target.checked)}
                           className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95"
@@ -543,7 +544,10 @@ const App = () => {
                         <span className="text-sm text-gray-700">{product}</span>
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="decimal"
+                        id={`quantity-${product}`}
+                        name={`quantity-${product}`}
                         placeholder="Qt."
                         value={orderItems[product] || ''}
                         onChange={(e) => handleQuantityChange(product, e.target.value)}
@@ -555,8 +559,7 @@ const App = () => {
               )}
             </div>
           )}
-          {selectedSupplierData && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
-          {selectedSupplierData && (Object.keys(orderItems).length > 0 || additionalItems.trim()) && (
+          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="additional-items" name="additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
             <div className="flex space-x-3">
               <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
               <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
@@ -577,8 +580,8 @@ const App = () => {
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-                        <select value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                        <label htmlFor={`supplier-select-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
+                        <select id={`supplier-select-${order.id}`} name={`supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                           <option value="">Scegli un fornitore...</option>
                           {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                         </select>
@@ -596,6 +599,8 @@ const App = () => {
                                     <label className="flex items-center space-x-3 flex-1">
                                       <input
                                         type="checkbox"
+                                        id={`product-checkbox-${order.id}-${product}`}
+                                        name={`product-checkbox-${order.id}-${product}`}
                                         checked={order.items.hasOwnProperty(product)}
                                         onChange={(e) => {
                                           const newItems = { ...order.items };
@@ -611,7 +616,10 @@ const App = () => {
                                       <span className="text-sm text-gray-700">{product}</span>
                                     </label>
                                     <input
-                                      type="text"
+                                      type="tel"
+                                      inputMode="decimal"
+                                      id={`quantity-${order.id}-${product}`}
+                                      name={`quantity-${order.id}-${product}`}
                                       placeholder="Qt."
                                       value={order.items[product] || ''}
                                       onChange={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })}
@@ -623,8 +631,8 @@ const App = () => {
                             )}
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
-                            <textarea value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" />
+                            <label htmlFor={`additional-items-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
+                            <textarea id={`additional-items-${order.id}`} name={`additional-items-${order.id}`} value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" />
                           </div>
                         </>
                       )}
@@ -632,7 +640,8 @@ const App = () => {
                   </div>
                 );
               })}
-              <select onChange={(e) => {
+              <label htmlFor="add-supplier-select" className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
+              <select id="add-supplier-select" name="add-supplier-select" onChange={(e) => {
                 const supplierId = e.target.value;
                 if (supplierId) {
                   setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '' }]);
@@ -952,15 +961,16 @@ const App = () => {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Es. Fornitore Verdure Bio" /></div>
-              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
-              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
+              <div className="glass-card p-4"><label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input id="supplier-name" name="supplier-name" type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Es. Fornitore Verdure Bio" /></div>
+              <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
+              <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
               <div className="glass-card p-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti</label>
-                <div className="flex space-x-2 mb-3"><input type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"><Plus size={16} /></button></div>
+                <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">Nuovo Prodotto</label>
+                <div className="flex space-x-2 mb-3"><input id="new-product" name="new-product" type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"><Plus size={16} /></button></div>
                 <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button></div>)}</div>
               </div>
-              <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
+              <div className="glass-card p-4"><label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea id="message-template" name="message-template" value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
               <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' }); }} className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="flex-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
             </div>
           )}
@@ -1199,11 +1209,11 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
       <div className="min-h-screen app-background">
         <Header title="Programma Ordini" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-          <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
-          <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
-          {!batchMode && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
-          {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
-          {selectedSupplierData && <div className="glass-card p-4"><label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
+          <div className="glass-card p-4"><label htmlFor="schedule-date" className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input id="schedule-date" name="schedule-date" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
+          <div className="glass-card p-4"><label htmlFor="schedule-time" className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select id="schedule-time" name="schedule-time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
+          {!batchMode && <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
+          {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="tel" inputMode="decimal" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
+          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           
           {scheduledOrders.length > 0 && !batchMode ? (<div className="space-y-4">
             {Object.keys(groupedReadyToSendOrders).length > 0 && (
@@ -1397,7 +1407,7 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
             <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"><Filter size={16} className="text-gray-700 dark:text-gray-200" /><span>Filtri</span>{Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}</button>
             <button onClick={exportFilteredData} className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 active:scale-95 transition-transform"><Download size={16} /><span>Esporta</span></button>
           </div>
-          {showFilters && <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div><div><label className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
+          {showFilters && <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label htmlFor="history-date-from" className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input id="history-date-from" name="history-date-from" type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div><div><label htmlFor="history-date-to" className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input id="history-date-to" name="history-date-to" type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div></div><div><label htmlFor="history-supplier" className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select id="history-supplier" name="history-supplier" value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label htmlFor="history-status" className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select id="history-status" name="history-status" value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
           <div className="flex justify-between items-center mb-4"><p className="text-sm text-gray-600">{filteredOrders.length} {filteredOrders.length === 1 ? 'ordine trovato' : 'ordini trovati'}</p></div>
           {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : 
           <div className="space-y-4">
@@ -1632,24 +1642,24 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Da Data</label>
-                  <input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <label htmlFor="analytics-date-from" className="block text-xs font-medium text-gray-700 mb-1">Da Data</label>
+                  <input id="analytics-date-from" name="analytics-date-from" type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">A Data</label>
-                  <input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <label htmlFor="analytics-date-to" className="block text-xs font-medium text-gray-700 mb-1">A Data</label>
+                  <input id="analytics-date-to" name="analytics-date-to" type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label>
-                <select value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <label htmlFor="analytics-supplier" className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label>
+                <select id="analytics-supplier" name="analytics-supplier" value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">Tutti i fornitori</option>
                   {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Prodotto</label>
-                <input type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Cerca prodotto..." />
+                <label htmlFor="analytics-product" className="block text-xs font-medium text-gray-700 mb-1">Prodotto</label>
+                <input id="analytics-product" name="analytics-product" type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Cerca prodotto..." />
               </div>
             </div>
           )}
@@ -1686,8 +1696,10 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
               <div className="p-4 border-t border-gray-100">
                 <div className="mb-4 space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Filtra per Fornitore</label>
+                    <label htmlFor="analytics-product-filter-supplier" className="block text-xs font-medium text-gray-700 mb-1">Filtra per Fornitore</label>
                     <select
+                      id="analytics-product-filter-supplier"
+                      name="analytics-product-filter-supplier"
                       value={productFilterSupplierId}
                       onChange={(e) => setProductFilterSupplierId(e.target.value)}
                       className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1697,8 +1709,10 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Ordina per</label>
+                    <label htmlFor="analytics-product-sort-order" className="block text-xs font-medium text-gray-700 mb-1">Ordina per</label>
                     <select
+                      id="analytics-product-sort-order"
+                      name="analytics-product-sort-order"
                       value={productSortOrder}
                       onChange={(e) => setProductSortOrder(e.target.value)}
                       className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1709,8 +1723,11 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
                     </select>
                   </div>
                 </div>
+                <label htmlFor="analytics-product-search" className="block text-xs font-medium text-gray-700 mb-1">Cerca Prodotto</label>
                 <input
-                  type="text"
+                  id="analytics-product-search"
+                  name="analytics-product-search"
+                  type="search"
                   placeholder="Cerca prodotto..."
                   value={productSearchTerm}
                   onChange={(e) => setProductSearchTerm(e.target.value)}
@@ -1907,7 +1924,7 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
               <p className="text-xs text-gray-500 dark:text-gray-400">Interfaccia ottimizzata per ambienti poco luminosi</p>
             </div>
             <label className="inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={theme === 'dark'} onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')} />
+              <input id="theme-toggle" name="theme-toggle" type="checkbox" className="sr-only peer" checked={theme === 'dark'} onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')} />
               <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 transition-colors relative">
                 <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></span>
               </div>
@@ -1920,7 +1937,7 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
               <p className="text-xs text-gray-500 dark:text-gray-400">Ricevi notifiche per gli ordini programmati</p>
             </div>
             <label className="inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={isPushEnabled} onChange={(e) => handleTogglePush(e.target.checked)} />
+              <input id="push-toggle" name="push-toggle" type="checkbox" className="sr-only peer" checked={isPushEnabled} onChange={(e) => handleTogglePush(e.target.checked)} />
               <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 transition-colors relative">
                 <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></span>
               </div>
@@ -1961,9 +1978,11 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
             <p className="text-center text-gray-600 mb-4">Per accedere al pannello di amministrazione, per favore inserisci di nuovo la tua password.</p>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <label htmlFor="admin-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
                 <input 
                   type="password"
+                  id="admin-password"
+                  name="admin-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -2169,26 +2188,22 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
       <div className="min-h-screen app-background">
         <Header title="Profilo Utente" onBack={() => setCurrentPage('settings')} />
         <div className="max-w-sm mx-auto px-6 py-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="glass-card space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" name="role" value={formData.role} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-            </div>
-            <div className="glass-card space-y-4">
-              <h3 className="text-base font-medium text-gray-800">Dettagli Azienda</h3>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" name="company_vat_id" value={formData.company_vat_id} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input type="text" name="headquarters_name" value={formData.headquarters_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input type="text" name="headquarters_address" value={formData.headquarters_address} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-            </div>
-            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">
-              {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}
-              <span>{isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}</span>
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div><label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input id="first_name" type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input id="last_name" type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="email" type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg bg-gray-100" disabled /></div>
+              <div><label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input id="role" type="text" name="role" value={formData.role} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              
+              <h4 className="text-md font-medium text-gray-800 pt-2">Dati Aziendali</h4>
+              <div><label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input id="company_name" type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="company_vat_id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input id="company_vat_id" type="text" name="company_vat_id" value={formData.company_vat_id} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="headquarters_name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters_name" type="text" name="headquarters_name" value={formData.headquarters_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="headquarters_address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters_address" type="text" name="headquarters_address" value={formData.headquarters_address} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+
+              <button type="submit" disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+                {isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}
+              </button>
+            </form>
         </div>
       </div>
     );
@@ -2349,22 +2364,32 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
     const [companyVatId, setCompanyVatId] = useState('');
     const [headquartersName, setHeadquartersName] = useState('');
     const [headquartersAddress, setHeadquartersAddress] = useState('');
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-
-    const handleAuth = async (e) => {
+    const handleLogin = async (e) => {
       e.preventDefault();
       setIsAuthenticating(true);
       try {
-        if (isLogin) {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          toast.success('Login effettuato con successo!');
-        } else {
-          const { data: { user }, error } = await supabase.auth.signUp({ email, password });
-          if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast.success('Accesso effettuato con successo!');
+        setCurrentPage('home');
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
 
-          if (user) {
-            await supabaseHelpers.updateUserProfile(user.id, {
+    const handleSignUp = async (e) => {
+      e.preventDefault();
+      setIsAuthenticating(true);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
               first_name: firstName,
               last_name: lastName,
               role: role,
@@ -2372,9 +2397,15 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
               company_vat_id: companyVatId,
               headquarters_name: headquartersName,
               headquarters_address: headquartersAddress,
-            });
+              is_approved: false,
+              is_admin: false,
+            }
           }
-          toast.success('Registrazione completata! Il tuo account è in attesa di approvazione.');
+        });
+        if (error) throw error;
+        if (data.user) {
+          toast.success('Registrazione completata! Un amministratore approverà il tuo account a breve.');
+          setIsLogin(true);
         }
       } catch (error) {
         toast.error(error.message);
@@ -2382,31 +2413,30 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
         setIsAuthenticating(false);
       }
     };
+
     return (
       <div className="min-h-screen app-background flex items-center justify-center px-6">
         <div className="max-w-sm w-full">
           <div className="glass-card p-6">
             <div className="text-center mb-6"><h1 className="text-2xl font-light text-gray-900 mb-2">Gestione Ordini</h1><p className="text-gray-500 text-sm">{isLogin ? 'Accedi al tuo account' : 'Crea un nuovo account'}</p></div>
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="tua@email.com" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Password (min 6 caratteri)" /></div>
+            <form onSubmit={isLogin ? handleLogin : handleSignUp} className="space-y-4">
               {!isLogin && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Mario" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Rossi" /></div>
-                  </div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Es. Manager" /></div>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                    <h3 className="text-sm font-medium text-gray-800">Dettagli Azienda</h3>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante S.R.L." /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="IT12345678901" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante da Mario" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Via Roma, 1" /></div>
-                  </div>
+                  <div><label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input id="first-name" name="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Mario" /></div>
+                  <div><label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input id="last-name" name="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Rossi" /></div>
+                  <div><label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input id="role" name="role" type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Es. Manager" /></div>
+                  <h4 className="text-md font-medium text-gray-800 pt-2">Dati Aziendali</h4>
+                  <div><label htmlFor="company-name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input id="company-name" name="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante S.R.L." /></div>
+                  <div><label htmlFor="company-vat-id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input id="company-vat-id" name="company-vat-id" type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="IT12345678901" /></div>
+                  <div><label htmlFor="headquarters-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters-name" name="headquarters-name" type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante da Mario" /></div>
+                  <div><label htmlFor="headquarters-address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters-address" name="headquarters-address" type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Via Roma, 1" /></div>
                 </>
               )}
-              <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:bg-blue-300 flex items-center justify-center space-x-2">{isAuthenticating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>{isLogin ? 'Accedi' : 'Registrati'}</span>}</button>
+              <div><label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="auth-email" name="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="mario.rossi@email.com" /></div>
+              <div><label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label><input id="auth-password" name="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="••••••••" /></div>
+              <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+                {isAuthenticating ? (isLogin ? 'Accesso in corso...' : 'Registrazione in corso...') : (isLogin ? 'Accedi' : 'Registrati')}
+              </button>
             </form>
             <div className="mt-6 text-center"><button onClick={() => setIsLogin(!isLogin)} className="text-blue-500 hover:text-blue-600 text-sm">{isLogin ? 'Non hai un account? Registrati' : 'Hai già un account? Accedi'}</button></div>
           </div>
