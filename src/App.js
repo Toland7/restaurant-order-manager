@@ -1012,7 +1012,7 @@ const groupOrdersByScheduledAt = (orders) => {
     }, {});
 };
 
-const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, suppliers, scheduledOrders, setScheduledOrders, setWizardOrders, showWizard, setShowWizard, wizardOrders, wizardStep, setWizardStep }) => {
+const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, setCurrentPage, suppliers, scheduledOrders, setScheduledOrders, setWizardOrders, showWizard, setShowWizard, wizardOrders, wizardStep, setWizardStep }) => {
     const { prefilledData, setPrefilledData } = usePrefill();
     const getRoundedTime = (date = new Date()) => { const minutes = date.getMinutes(); const roundedMinutes = Math.ceil(minutes / 15) * 15; date.setMinutes(roundedMinutes); return date.toTimeString().slice(0, 5); };
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -1022,6 +1022,7 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
     const [additionalItems, setAdditionalItems] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
+    const [showTypeModal, setShowTypeModal] = useState(false);
     const timeSlots = [];
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
 
@@ -1209,6 +1210,14 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
       <div className="min-h-screen app-background">
         <Header title="Programma Ordini" onBack={() => setCurrentPage('home')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
+          <div className="glass-card p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">Tipo Ordine</h3>
+              <button onClick={() => setShowTypeModal(true)} className={`px-4 py-2 rounded-lg text-sm font-medium ${batchMode ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700'} transition-colors`}>
+                {batchMode ? 'Più Fornitori' : 'Singolo Fornitore'}
+              </button>
+            </div>
+          </div>
           <div className="glass-card p-4"><label htmlFor="schedule-date" className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input id="schedule-date" name="schedule-date" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
           <div className="glass-card p-4"><label htmlFor="schedule-time" className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select id="schedule-time" name="schedule-time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
           {!batchMode && <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
@@ -1338,6 +1347,17 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
             {selectedDate && (batchMode || (selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : (batchMode ? 'Programmando...' : 'Programmando...')) : (editingOrder ? 'Aggiorna Ordine' : (batchMode ? 'Programma Ordini' : 'Programma Ordine'))}</span></button>}
           </div>
         </div>
+        {showTypeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="glass-card p-6 max-w-sm w-full">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
+              <div className="space-y-3">
+                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">Singolo Fornitore</button>
+                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="w-full py-3 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition-colors">Più Fornitori</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
 }
@@ -1755,7 +1775,7 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
             </details>
           )}
 
-          <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Azioni Rapide</h3><div className="space-y-3"><button onClick={() => setCurrentPage('createOrder')} className="w-full p-3 bg-blue-50 text-blue-700 rounded-lg text-left hover:bg-blue-100 transition-colors"><div className="flex items-center space-x-3"><ShoppingCart size={16} /><span className="text-sm font-medium">Crea Nuovo Ordine</span></div></button><button onClick={() => setCurrentPage('suppliers')} className="w-full p-3 bg-green-50 text-green-700 rounded-lg text-left hover:bg-green-100 transition-colors"><div className="flex items-center space-x-3"><Plus size={16} /><span className="text-sm font-medium">Aggiungi Fornitore</span></div></button></div></div>
+
           
           <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Attività Recente</h3>{filteredOrders.slice(0, 3).map(order => { const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers; return <div key={order.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"><div><p className="text-sm font-medium text-gray-900">{supplier?.name || 'Fornitore eliminato'}</p><p className="text-xs text-gray-500">{new Date(order.sent_at || order.created_at).toLocaleDateString('it-IT')}</p></div><span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs rounded-full">Inviato</span></div>; })}
           </div>
@@ -2452,7 +2472,7 @@ const SchedulePage = ({ batchMode, multiOrders, setMultiOrders, setCurrentPage, 
       case 'home': return <HomePage />;
       case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} suppliers={suppliers} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} />;
       case 'suppliers': return <SuppliersPage />;
-      case 'schedule': return <SchedulePage setCurrentPage={setCurrentPage} batchMode={batchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} />;
+      case 'schedule': return <SchedulePage setCurrentPage={setCurrentPage} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} />;
       case 'history': return <HistoryPage />;
       case 'analytics': return <AnalyticsDashboard />;
       case 'settings': return <SettingsPage />;
