@@ -312,7 +312,7 @@ const App = () => {
             Object.entries(newOrderItems).forEach(([product, quantity]) => {
               if (quantity && quantity !== '0') message += `• ${product}: ${quantity}\n`;
             });
-            if (newAdditionalItems.trim()) message += '\nProdotti aggiuntivi:\n' + newAdditionalItems + '\n';
+            if (newAdditionalItems.trim()) message += newAdditionalItems + '\n';
             message += '\nGrazie!';
             
             setConfirmMessages([{ supplier: supplier.name, message: message }]);
@@ -347,7 +347,7 @@ const App = () => {
       Object.entries(items).forEach(([product, quantity]) => {
         if (quantity && quantity !== '0') message += `• ${product}: ${quantity}\n`;
       });
-      if (additional.trim()) message += '\nProdotti aggiuntivi:\n' + additional + '\n';
+      if (additional.trim()) message += additional + '\n';
       message += '\nGrazie!';
       return message;
     };
@@ -570,7 +570,6 @@ const App = () => {
               <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
               <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
             </div>
-          )}
 
           {batchMode && (
             <div className="space-y-6">
@@ -998,13 +997,10 @@ const ScheduledOrderPreview = ({ order, suppliers }) => {
                 {Object.entries(orderData.items).map(([product, quantity]) => (
                     <li key={product} className="flex justify-between"><span>{product}</span><span>{quantity}</span></li>
                 ))}
-            </ul>
             {orderData.additional_items && (
-                <div className="mt-2 pt-2 border-t">
-                    <h5 className="text-xs font-medium">Prodotti Aggiuntivi:</h5>
-                    <p className="text-xs">{orderData.additional_items}</p>
-                </div>
+                <li className="flex justify-between"><span>{orderData.additional_items}</span><span></span></li>
             )}
+        </ul>
         </div>
     );
 }
