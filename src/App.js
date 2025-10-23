@@ -58,7 +58,7 @@ const App = () => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
   const [batchMode, setBatchMode] = useState(false);
-  const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
+  const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardOrders, setWizardOrders] = useState([]);
   const [wizardStep, setWizardStep] = useState(0);
@@ -254,6 +254,7 @@ const App = () => {
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmMessages, setConfirmMessages] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -284,6 +285,10 @@ const App = () => {
       if (prefilledData && prefilledData.type === 'order') {
         const newSelectedSupplierId = prefilledData.data.supplier_id;
         setSelectedSupplier(newSelectedSupplierId);
+        const supplier = suppliers.find(s => s.id.toString() === newSelectedSupplierId);
+        if (supplier) {
+          setEmailSubject(supplier.email_subject || '');
+        }
 
         let newOrderItems = {};
         let newAdditionalItems = '';
@@ -402,7 +407,7 @@ const App = () => {
             console.warn(`Supplier with ID ${order.supplier} not found for order. Skipping.`);
             return null; // Mark for removal
           }
-          return { ...order, supplier, message: generateOrderMessage(supplier, order.items, order.additional) };
+          return { ...order, supplier, message: generateOrderMessage(supplier, order.items, order.additional), email_subject: order.email_subject };
         }).filter(Boolean); // Remove null entries
 
         if (ordersWithSuppliers.length === 0) {
@@ -451,7 +456,7 @@ const App = () => {
                     }
                     case 'email': {
                       if (!supplier.contact) return toast.error('Indirizzo email del fornitore non impostato.');
-                      contactLink = `mailto:${supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`;
+                      contactLink = `mailto:${supplier.contact}?subject=${encodeURIComponent(emailSubject || `Ordine Fornitore - ${supplier.name}`)}&body=${encodedMessage}`;
                       break;
                     }
                     case 'sms': {
@@ -559,6 +564,7 @@ const App = () => {
               )}
             </div>
           )}
+          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
           {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="additional-items" name="additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
             <div className="flex space-x-3">
               <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
@@ -634,6 +640,7 @@ const App = () => {
                             <label htmlFor={`additional-items-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
                             <textarea id={`additional-items-${order.id}`} name={`additional-items-${order.id}`} value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" />
                           </div>
+                          {supplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor={`email-subject-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id={`email-subject-${order.id}`} name={`email-subject-${order.id}`} type="text" value={order.email_subject} onChange={(e) => updateSupplierOrder(order.id, 'email_subject', e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
                         </>
                       )}
                     </div>
@@ -710,7 +717,7 @@ const App = () => {
                       break;
                     }
                     case 'email': {
-                      contactLink = `mailto:${order.supplier.contact}?subject=${encodeURIComponent(`Ordine Fornitore - ${order.supplier.name}`)}&body=${encodedMessage}`;
+                      contactLink = `mailto:${order.supplier.contact}?subject=${encodeURIComponent(order.email_subject || `Ordine Fornitore - ${order.supplier.name}`)}&body=${encodedMessage}`;
                       break;
                     }
                     case 'sms': {
@@ -878,7 +885,7 @@ const App = () => {
   const SuppliersPage = () => {
     const [isAdding, setIsAdding] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
-    const [newSupplier, setNewSupplier] = useState({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' });
+    const [newSupplier, setNewSupplier] = useState({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '' });
     const [newProduct, setNewProduct] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -890,7 +897,7 @@ const App = () => {
       if (!user) { toast.error('Sessione utente non valida. Effettua nuovamente il login.'); setCurrentPage('auth'); return; }
       setIsSubmitting(true);
       try {
-        const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template };
+        const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template, email_subject: newSupplier.email_subject };
         let savedSupplier;
         if (editingSupplier) {
           savedSupplier = await supabaseHelpers.updateSupplier(editingSupplier.id, supplierData);
@@ -918,7 +925,7 @@ const App = () => {
     };
 
     const editSupplier = (supplier) => {
-      setNewSupplier({ name: supplier.name, contact_method: supplier.contact_method, contact: supplier.contact, products: supplier.products || [], message_template: supplier.message_template });
+      setNewSupplier({ name: supplier.name, contact_method: supplier.contact_method, contact: supplier.contact, products: supplier.products || [], message_template: supplier.message_template, email_subject: supplier.email_subject || '' });
       setEditingSupplier(supplier);
       setIsAdding(true);
     };
@@ -964,6 +971,7 @@ const App = () => {
               <div className="glass-card p-4"><label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input id="supplier-name" name="supplier-name" type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Es. Fornitore Verdure Bio" /></div>
               <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
               <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
+              {newSupplier.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
               <div className="glass-card p-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti</label>
                 <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">Nuovo Prodotto</label>
@@ -1020,6 +1028,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
+    const [emailSubject, setEmailSubject] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
     const [showTypeModal, setShowTypeModal] = useState(false);
@@ -1097,7 +1106,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
             user_id: user.id,
             supplier_id: selectedSupplier,
             scheduled_at: scheduledDateTime.toISOString(),
-            order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
+            order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems, email_subject: emailSubject })
           };
 
           if (editingOrder) {
@@ -1174,11 +1183,13 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
             }
             let orderItems = {};
             let additionalItems = '';
+            let emailSubject = '';
             if (order.order_data) {
                 try {
                     const parsedData = JSON.parse(order.order_data);
                     orderItems = parsedData.items || {};
                     additionalItems = parsedData.additional_items || '';
+                    emailSubject = parsedData.email_subject || '';
                 } catch (e) {
                     console.error("Failed to parse order_data for scheduled order", e);
                 }
@@ -1190,7 +1201,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
             if (additionalItems.trim()) message += '\nProdotti aggiuntivi:\n' + additionalItems + '\n';
             message += '\nGrazie!';
 
-            return { ...order, supplier, items: orderItems, additional: additionalItems, message };
+            return { ...order, supplier, items: orderItems, additional: additionalItems, message, emailSubject };
         }).filter(Boolean);
 
         if (ordersForWizard.length === 0) {
@@ -1205,6 +1216,12 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
     }
 
     const selectedSupplierData = suppliers.find(s => s.id.toString() === selectedSupplier);
+
+    useEffect(() => {
+      if (selectedSupplierData) {
+        setEmailSubject(selectedSupplierData.email_subject || '');
+      }
+    }, [selectedSupplierData]);
 
     return (
       <div className="min-h-screen app-background">
@@ -1222,6 +1239,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
           <div className="glass-card p-4"><label htmlFor="schedule-time" className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select id="schedule-time" name="schedule-time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
           {!batchMode && <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
           {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="tel" inputMode="decimal" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
+          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="schedule-email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="schedule-email-subject" name="schedule-email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
           {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
           
           {scheduledOrders.length > 0 && !batchMode ? (<div className="space-y-4">
