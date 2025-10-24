@@ -1,0 +1,34 @@
+{
+  "common": {
+    "login": "Login",
+    "logout": "Logout",
+    "orders": "Orders",
+    "suppliers": "Suppliers",
+    "products": "Products",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "auth": {
+    "welcome": "Welcome",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password"
+  },
+  "orders": {
+    "newOrder": "New Order",
+    "orderHistory": "Order History",
+    "sendOrder": "Send Order",
+    "orderSent": "Order Sent Successfully"
+  }
+}

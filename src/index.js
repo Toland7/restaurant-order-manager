@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -7,17 +8,28 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './AuthContext.js';
 import { PrefillProvider } from './PrefillContext.js';
+import './i18n';
+
+// Inizializza Sentry per monitoraggio errori
+Sentry.init({
+  dsn: process.env.REACT_APP_SENTRY_DSN || 'https://your-dsn@sentry.io/project-id', // Sostituisci con DSN reale
+  integrations: [Sentry.browserTracingIntegration()],
+  tracesSampleRate: 1.0, // Cattura 100% delle transazioni per demo
+  environment: process.env.NODE_ENV,
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <PrefillProvider>
-          <App />
-        </PrefillProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <Sentry.ErrorBoundary fallback={<p>Si è verificato un errore. Ricarica la pagina.</p>}>
+      <BrowserRouter>
+        <AuthProvider>
+          <PrefillProvider>
+            <App />
+          </PrefillProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </Sentry.ErrorBoundary>
   </React.StrictMode>
 );
 

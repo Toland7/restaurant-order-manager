@@ -1,0 +1,34 @@
+{
+  "common": {
+    "login": "Accedi",
+    "logout": "Esci",
+    "orders": "Ordini",
+    "suppliers": "Fornitori",
+    "products": "Prodotti",
+    "notifications": "Notifiche",
+    "settings": "Impostazioni",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "add": "Aggiungi",
+    "search": "Cerca",
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo"
+  },
+  "auth": {
+    "welcome": "Benvenuto",
+    "signIn": "Accedi",
+    "signUp": "Registrati",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Conferma Password"
+  },
+  "orders": {
+    "newOrder": "Nuovo Ordine",
+    "orderHistory": "Storico Ordini",
+    "sendOrder": "Invia Ordine",
+    "orderSent": "Ordine Inviato con Successo"
+  }
+}
