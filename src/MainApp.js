@@ -2025,36 +2025,6 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
           </div>
 
           <button onClick={handleLogout} className="btn btn-danger w-full"><LogOut size={16} /><span>{t('common.logout')}</span></button>
-
-          <div className="mt-8 pt-4 border-t border-red-200/50">
-            <h3 className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">Danger Zone</h3>
-            <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 space-y-1">
-              <p><span className="font-bold">Attenzione:</span> L'eliminazione del tuo account è un'azione irreversibile e cancellerà permanentemente tutti i tuoi dati, inclusi fornitori, ordini e cronologia.</p>
-              <p>Per motivi di sicurezza, ti verrà richiesto di confermare questa azione più volte.</p>
-            </div>
-            <button 
-              onClick={async () => {
-                if (window.confirm('Sei assolutamente sicuro di voler eliminare il tuo account? Questa azione è irreversibile.')) {
-                  if (window.confirm('CONFERMA FINALE: Tutti i tuoi dati, inclusi ordini e fornitori, verranno eliminati permanentemente. Continuare?')) {
-                    try {
-                      toast.loading("Eliminazione dell'account in corso...");
-                      await supabaseHelpers.deleteCurrentUser();
-                      toast.dismiss();
-                      toast.success('Account eliminato con successo.');
-                      await signOut();
-                    } catch (error) {
-                      toast.dismiss();
-                      toast.error(`Errore durante l'eliminazione: ${error.message}`);
-                    }
-                  }
-                }
-              }}
-              className="btn bg-red-600 hover:bg-red-700 text-white w-full"
-            >
-              <Trash2 size={16} />
-              <span>Elimina il mio account</span>
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -2249,6 +2219,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
 
   const UserProfilePage = ({ user, profile, setProfile }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
 
     const [formData, setFormData] = useState({
       first_name: '',
@@ -2315,13 +2286,58 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
               <div><label htmlFor="headquarters_name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters_name" type="text" name="headquarters_name" value={formData.headquarters_name} onChange={handleChange} className="input" /></div>
               <div><label htmlFor="headquarters_address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters_address" type="text" name="headquarters_address" value={formData.headquarters_address} onChange={handleChange} className="input" /></div>
 
-              <button type="submit" disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
-                {isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}
-              </button>
-            </form>
-        </div>
-      </div>
-    );
+               <button type="submit" disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+                 {isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}
+               </button>
+             </form>
+
+             <div className="mt-8 pt-4 border-t border-red-200/50">
+               <button
+                 onClick={() => setIsDangerZoneOpen(!isDangerZoneOpen)}
+                 className="w-full glass-card p-4 text-left hover:shadow-md transition-all flex items-center justify-between"
+                 aria-expanded={isDangerZoneOpen}
+                 aria-controls="danger-zone-content"
+               >
+                 <div>
+                   <h3 className="text-sm font-medium text-red-600 dark:text-red-400">Danger Zone</h3>
+                   <p className="text-xs text-gray-500 dark:text-gray-400">Azioni irreversibili per il tuo account</p>
+                 </div>
+                 <ChevronDown size={20} className={`text-gray-400 transition-transform ${isDangerZoneOpen ? 'rotate-180' : ''}`} />
+               </button>
+               {isDangerZoneOpen && (
+                 <div id="danger-zone-content" className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                   <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 space-y-1">
+                     <p><span className="font-bold">Attenzione:</span> L'eliminazione del tuo account è un'azione irreversibile e cancellerà permanentemente tutti i tuoi dati, inclusi fornitori, ordini e cronologia.</p>
+                     <p>Per motivi di sicurezza, ti verrà richiesto di confermare questa azione più volte.</p>
+                   </div>
+                   <button
+                     onClick={async () => {
+                       if (window.confirm('Sei assolutamente sicuro di voler eliminare il tuo account? Questa azione è irreversibile.')) {
+                         if (window.confirm('CONFERMA FINALE: Tutti i tuoi dati, inclusi ordini e fornitori, verranno eliminati permanentemente. Continuare?')) {
+                           try {
+                             toast.loading("Eliminazione dell'account in corso...");
+                             await supabaseHelpers.deleteCurrentUser();
+                             toast.dismiss();
+                             toast.success('Account eliminato con successo.');
+                             await signOut();
+                           } catch (error) {
+                             toast.dismiss();
+                             toast.error(`Errore durante l'eliminazione: ${error.message}`);
+                           }
+                         }
+                       }
+                     }}
+                     className="btn bg-red-600 hover:bg-red-700 text-white w-full"
+                   >
+                     <Trash2 size={16} />
+                     <span>Elimina il mio account</span>
+                   </button>
+                 </div>
+               )}
+             </div>
+         </div>
+       </div>
+     );
   };
 
   const NotificationsPage = ({ onNotificationClick, unreadCount, setUnreadCount }) => {
