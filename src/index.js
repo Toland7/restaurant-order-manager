@@ -4,17 +4,20 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './AuthContext.js';
 import { PrefillProvider } from './PrefillContext.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <PrefillProvider>
-        <App />
-      </PrefillProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <PrefillProvider>
+          <App />
+        </PrefillProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
 

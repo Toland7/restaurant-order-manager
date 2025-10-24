@@ -302,5 +302,21 @@ export const supabaseHelpers = {
   async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  },
+
+  async deleteCurrentUser() {
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      method: 'POST',
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  async exportUserData() {
+    const { data, error } = await supabase.functions.invoke('export-user-data', {
+      method: 'POST',
+    });
+    if (error) throw error;
+    return data;
   }
 };
