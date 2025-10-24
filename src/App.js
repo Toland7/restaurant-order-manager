@@ -82,13 +82,7 @@ const App = () => {
   }, [showWizard, wizardOrders, wizardStep]);
 
   const [analytics, setAnalytics] = useState({ totalOrders: 0, totalSuppliers: 0, ordersThisWeek: 0, mostOrderedProduct: '' });
-  const [theme, setTheme] = useState(() => {
-    try {
-      const saved = localStorage.getItem('theme');
-      if (saved) return saved;
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    } catch { return 'light'; }
-  });
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('theme') || 'light'; } catch { return 'light'; } });
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') root.classList.add('dark'); else root.classList.remove('dark');
@@ -207,7 +201,7 @@ const App = () => {
   const Header = ({ title, onBack }) => (
     <div className="backdrop-blur bg-white/60 dark:bg-black/40 border-b border-white/60 dark:border-white/10 sticky top-0 z-10">
       <div className="max-w-sm mx-auto px-6 py-4 flex items-center">
-        <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button>
+        <button onClick={onBack} className="-ml-2 icon-btn"><ChevronLeft size={24} /></button>
         <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mx-auto pr-10">{title}</h2>
       </div>
     </div>
@@ -221,8 +215,8 @@ const App = () => {
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {profile?.first_name || user?.email?.split('@')[0]}</p></div>
             <div className="flex space-x-2">
-              <button onClick={() => setCurrentPage('analytics')} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full"><BarChart3 size={20} /></button>
-              <button onClick={() => setCurrentPage('notifications')} className="relative p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-full">
+              <button onClick={() => setCurrentPage('analytics')} className="icon-btn"><BarChart3 size={20} /></button>
+              <button onClick={() => setCurrentPage('notifications')} className="relative icon-btn">
                 <Bell size={20} />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
@@ -230,7 +224,7 @@ const App = () => {
                   </span>
                 )}
               </button>
-              <button onClick={() => setCurrentPage('settings')} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"><Settings size={20} /></button>
+              <button onClick={() => setCurrentPage('settings')} className="icon-btn"><Settings size={20} /></button>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 mb-6">
@@ -513,14 +507,14 @@ const App = () => {
           <div className="glass-card p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-medium text-gray-900 dark:text-gray-100">Tipo Ordine</h3>
-              <button onClick={() => setShowTypeModal(true)} className={`px-4 py-2 rounded-lg text-sm font-medium ${batchMode ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700'} transition-colors`}>
+              <button onClick={() => setShowTypeModal(true)} className={`btn text-sm ${batchMode ? 'btn-purple' : 'btn-primary'}`}>
                 {batchMode ? 'Più Fornitori' : 'Singolo Fornitore'}
               </button>
             </div>
             {!batchMode && (
               <>
                 <label htmlFor="supplier-select" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-                <select id="supplier-select" name="supplier-select" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" disabled={!!(prefilledData && prefilledData.type === 'order')}>
+                <select id="supplier-select" name="supplier-select" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="select" disabled={!!(prefilledData && prefilledData.type === 'order')}>
                   <option value="">Scegli un fornitore...</option>
                   {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                 </select>
@@ -556,7 +550,7 @@ const App = () => {
                         placeholder="Qt."
                         value={orderItems[product] || ''}
                         onChange={(e) => handleQuantityChange(product, e.target.value)}
-                        className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
+                        className="input-sm w-16 text-center"
                       />
                     </div>
                   ))}
@@ -564,11 +558,11 @@ const App = () => {
               )}
             </div>
           )}
-          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
-          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="additional-items" name="additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
+          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
+          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="additional-items" name="additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" /></div>}
             <div className="flex space-x-3">
-              <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordine</button>
-              <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
+              <button onClick={handlePreviewOrder} className="btn btn-primary w-full">Anteprima Ordine</button>
+              <button onClick={() => setShowScheduleModal(true)} className="btn btn-warning w-full">Programma per dopo</button>
             </div>
 
           {batchMode && (
@@ -586,7 +580,7 @@ const App = () => {
                     <div className="space-y-4">
                       <div>
                         <label htmlFor={`supplier-select-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-                        <select id={`supplier-select-${order.id}`} name={`supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                        <select id={`supplier-select-${order.id}`} name={`supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="select">
                           <option value="">Scegli un fornitore...</option>
                           {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                         </select>
@@ -628,7 +622,7 @@ const App = () => {
                                       placeholder="Qt."
                                       value={order.items[product] || ''}
                                       onChange={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })}
-                                      className="w-16 p-1 text-center border border-gray-200 rounded text-sm"
+                                      className="input-sm w-16 text-center"
                                     />
                                   </div>
                                 ))}
@@ -637,9 +631,9 @@ const App = () => {
                           </div>
                           <div>
                             <label htmlFor={`additional-items-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
-                            <textarea id={`additional-items-${order.id}`} name={`additional-items-${order.id}`} value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" />
+                            <textarea id={`additional-items-${order.id}`} name={`additional-items-${order.id}`} value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" />
                           </div>
-                          {supplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor={`email-subject-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id={`email-subject-${order.id}`} name={`email-subject-${order.id}`} type="text" value={order.email_subject} onChange={(e) => updateSupplierOrder(order.id, 'email_subject', e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
+                          {supplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor={`email-subject-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id={`email-subject-${order.id}`} name={`email-subject-${order.id}`} type="text" value={order.email_subject} onChange={(e) => updateSupplierOrder(order.id, 'email_subject', e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
                         </>
                       )}
                     </div>
@@ -653,33 +647,33 @@ const App = () => {
                   setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '' }]);
                   e.target.value = '';
                 }
-              }} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 mb-4">
+              }} className="select mb-4">
                 <option value="">Aggiungi Fornitore...</option>
                 {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
               {multiOrders.some(order => order.supplier && (Object.keys(order.items).length > 0 || order.additional.trim())) && (
                 <div className="flex space-x-3">
-                  <button onClick={handlePreviewOrder} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">Anteprima Ordini</button>
-                  <button onClick={() => setShowScheduleModal(true)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium hover:bg-orange-600 transition-colors">Programma per dopo</button>
+                  <button onClick={handlePreviewOrder} className="btn btn-primary w-full">Anteprima Ordini</button>
+                  <button onClick={() => setShowScheduleModal(true)} className="btn btn-warning w-full">Programma per dopo</button>
                 </div>
               )}
             </div>
           )}
         </div>
-        {showConfirm && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">{confirmMessages ? 'Conferma Ordini' : 'Conferma Ordine'}</h3><div className="space-y-4 mb-4">{confirmMessages ? confirmMessages.map((msg, index) => (<div key={index} className="bg-gray-50 p-3 rounded-lg"><h4 className="font-medium text-gray-800 mb-2">{msg.supplier}</h4><pre className="text-sm text-gray-700 whitespace-pre-wrap">{msg.message}</pre></div>)) : <div className="bg-gray-50 p-3 rounded-lg"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div>}</div><div className="flex space-x-3"><button onClick={() => { setShowConfirm(false); setConfirmMessages(null); }} className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : (confirmMessages ? 'Invia Ordini' : 'Invia')}</span></button></div></div></div>}
+        {showConfirm && <div className="modal-overlay"><div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">{confirmMessages ? 'Conferma Ordini' : 'Conferma Ordine'}</h3><div className="space-y-4 mb-4">{confirmMessages ? confirmMessages.map((msg, index) => (<div key={index} className="bg-gray-50 p-3 rounded-lg"><h4 className="font-medium text-gray-800 mb-2">{msg.supplier}</h4><pre className="text-sm text-gray-700 whitespace-pre-wrap">{msg.message}</pre></div>)) : <div className="bg-gray-50 p-3 rounded-lg"><pre className="text-sm text-gray-700 whitespace-pre-wrap">{generateOrderMessage()}</pre></div>}</div><div className="flex space-x-3"><button onClick={() => { setShowConfirm(false); setConfirmMessages(null); }} className="btn btn-outline flex-1" disabled={isSubmitting}>Modifica</button><button onClick={sendOrder} disabled={isSubmitting} className="btn btn-primary flex-1">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : (confirmMessages ? 'Invia Ordini' : 'Invia')}</span></button></div></div></div>}
         {showTypeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="modal-overlay">
             <div className="glass-card p-6 max-w-sm w-full">
               <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
               <div className="space-y-3">
-                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">Singolo Fornitore</button>
-                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="w-full py-3 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition-colors">Più Fornitori</button>
+                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="btn btn-primary w-full">Singolo Fornitore</button>
+                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="btn btn-purple w-full">Più Fornitori</button>
               </div>
             </div>
           </div>
         )}
         {showWizard && wizardOrders.length > 0 && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="modal-overlay">
             <div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto">
               <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Invio Ordine {wizardStep + 1} di {wizardOrders.length}</h3>
               <div className="bg-gray-50 p-3 rounded-lg mb-4">
@@ -835,7 +829,7 @@ const App = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="modal-overlay">
         <div className="glass-card p-6 max-w-sm w-full max-h-[80vh] flex flex-col">
           <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Associa a un ordine programmato</h3>
           <div className="overflow-y-auto space-y-3">
@@ -967,18 +961,18 @@ const App = () => {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="glass-card p-4"><label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input id="supplier-name" name="supplier-name" type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Es. Fornitore Verdure Bio" /></div>
-              <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
-              <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
-              {newSupplier.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
+              <div className="glass-card p-4"><label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input id="supplier-name" name="supplier-name" type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="input" placeholder="Es. Fornitore Verdure Bio" /></div>
+              <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="select"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
+              <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="input" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
+              {newSupplier.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" /></div>}
               <div className="glass-card p-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti</label>
                 <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">Nuovo Prodotto</label>
-                <div className="flex space-x-2 mb-3"><input id="new-product" name="new-product" type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"><Plus size={16} /></button></div>
+                <div className="flex space-x-2 mb-3"><input id="new-product" name="new-product" type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="btn btn-primary"><Plus size={16} /></button></div>
                 <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button></div>)}</div>
               </div>
-              <div className="glass-card p-4"><label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea id="message-template" name="message-template" value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
-              <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' }); }} className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="flex-1 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center space-x-2">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
+              <div className="glass-card p-4"><label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea id="message-template" name="message-template" value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="input" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
+              <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' }); }} className="btn btn-outline flex-1" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="btn btn-primary flex-1">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
             </div>
           )}
         </div>
@@ -1226,17 +1220,17 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
           <div className="glass-card p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-medium text-gray-900 dark:text-gray-100">Tipo Ordine</h3>
-              <button onClick={() => setShowTypeModal(true)} className={`px-4 py-2 rounded-lg text-sm font-medium ${batchMode ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700'} transition-colors`}>
+              <button onClick={() => setShowTypeModal(true)} className={`btn text-sm ${batchMode ? 'btn-purple' : 'btn-primary'}`}>
                 {batchMode ? 'Più Fornitori' : 'Singolo Fornitore'}
               </button>
             </div>
           </div>
-          <div className="glass-card p-4"><label htmlFor="schedule-date" className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input id="schedule-date" name="schedule-date" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div>
-          <div className="glass-card p-4"><label htmlFor="schedule-time" className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select id="schedule-time" name="schedule-time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
-          {!batchMode && <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
-          {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="tel" inputMode="decimal" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="w-16 p-1 text-center border border-gray-200 rounded text-sm" /></div>)}</div></div>}
-          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="schedule-email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="schedule-email-subject" name="schedule-email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Oggetto dell'email" /></div>}
-          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" /></div>}
+          <div className="glass-card p-4"><label htmlFor="schedule-date" className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input id="schedule-date" name="schedule-date" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input" /></div>
+          <div className="glass-card p-4"><label htmlFor="schedule-time" className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select id="schedule-time" name="schedule-time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="select">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
+          {!batchMode && <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="select"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
+          {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="tel" inputMode="decimal" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="input-sm w-16 text-center" /></div>)}</div></div>}
+          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="schedule-email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="schedule-email-subject" name="schedule-email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
+          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" /></div>}
           
           {scheduledOrders.length > 0 && !batchMode ? (<div className="space-y-4">
             {Object.keys(groupedReadyToSendOrders).length > 0 && (
@@ -1362,12 +1356,12 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
           </div>
         </div>
         {showTypeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="modal-overlay">
             <div className="glass-card p-6 max-w-sm w-full">
               <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
               <div className="space-y-3">
-                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">Singolo Fornitore</button>
-                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="w-full py-3 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition-colors">Più Fornitori</button>
+                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="btn btn-primary w-full">Singolo Fornitore</button>
+                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="btn btn-purple w-full">Più Fornitori</button>
               </div>
             </div>
           </div>
@@ -1439,9 +1433,9 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-6">
             <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"><Filter size={16} className="text-gray-700 dark:text-gray-200" /><span>Filtri</span>{Object.values(filters).some(v => v !== '') && <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{Object.values(filters).filter(v => v !== '').length}</span>}</button>
-            <button onClick={exportFilteredData} className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 active:scale-95 transition-transform"><Download size={16} /><span>Esporta</span></button>
+            <button onClick={exportFilteredData} className="btn btn-success text-sm"><Download size={16} /><span>Esporta</span></button>
           </div>
-          {showFilters && <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label htmlFor="history-date-from" className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input id="history-date-from" name="history-date-from" type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div><div><label htmlFor="history-date-to" className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input id="history-date-to" name="history-date-to" type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" /></div></div><div><label htmlFor="history-supplier" className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select id="history-supplier" name="history-supplier" value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label htmlFor="history-status" className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select id="history-status" name="history-status" value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
+          {showFilters && <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4"><div className="flex justify-between items-center"><h3 className="font-medium text-gray-900">Filtri</h3><button onClick={clearFilters} className="text-sm text-blue-500 dark:text-blue-400 hover:underline">Pulisci</button></div><div className="grid grid-cols-2 gap-3"><div><label htmlFor="history-date-from" className="block text-xs font-medium text-gray-700 mb-1">Da Data</label><input id="history-date-from" name="history-date-from" type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="input input-sm" /></div><div><label htmlFor="history-date-to" className="block text-xs font-medium text-gray-700 mb-1">A Data</label><input id="history-date-to" name="history-date-to" type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="input input-sm" /></div></div><div><label htmlFor="history-supplier" className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label><select id="history-supplier" name="history-supplier" value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="input input-sm"><option value="">Tutti i fornitori</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div><div><label htmlFor="history-status" className="block text-xs font-medium text-gray-700 mb-1">Stato</label><select id="history-status" name="history-status" value={filters.status} onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))} className="input input-sm"><option value="">Tutti gli stati</option><option value="sent">Inviato</option><option value="confirmed">Confermato</option><option value="delivered">Consegnato</option></select></div></div>} 
           <div className="flex justify-between items-center mb-4"><p className="text-sm text-gray-600">{filteredOrders.length} {filteredOrders.length === 1 ? 'ordine trovato' : 'ordini trovati'}</p></div>
           {filteredOrders.length === 0 ? <div className="text-center py-12"><History size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" /><p className="text-gray-500 mb-2">{orders.length === 0 ? 'Nessun ordine inviato ancora' : 'Nessun ordine trovato con questi filtri'}</p>{orders.length === 0 && <button onClick={() => setCurrentPage('createOrder')} className="text-blue-500 hover:text-blue-600 font-medium">Crea il primo ordine</button>}</div> : 
           <div className="space-y-4">
@@ -1677,23 +1671,23 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="analytics-date-from" className="block text-xs font-medium text-gray-700 mb-1">Da Data</label>
-                  <input id="analytics-date-from" name="analytics-date-from" type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <input id="analytics-date-from" name="analytics-date-from" type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="input input-sm" />
                 </div>
                 <div>
                   <label htmlFor="analytics-date-to" className="block text-xs font-medium text-gray-700 mb-1">A Data</label>
-                  <input id="analytics-date-to" name="analytics-date-to" type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  <input id="analytics-date-to" name="analytics-date-to" type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="input input-sm" />
                 </div>
               </div>
               <div>
                 <label htmlFor="analytics-supplier" className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label>
-                <select id="analytics-supplier" name="analytics-supplier" value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select id="analytics-supplier" name="analytics-supplier" value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="input input-sm">
                   <option value="">Tutti i fornitori</option>
                   {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
                 </select>
               </div>
               <div>
                 <label htmlFor="analytics-product" className="block text-xs font-medium text-gray-700 mb-1">Prodotto</label>
-                <input id="analytics-product" name="analytics-product" type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Cerca prodotto..." />
+                <input id="analytics-product" name="analytics-product" type="text" value={filters.productName} onChange={(e) => setFilters(prev => ({ ...prev, productName: e.target.value }))} className="input input-sm" placeholder="Cerca prodotto..." />
               </div>
             </div>
           )}
@@ -1736,7 +1730,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
                       name="analytics-product-filter-supplier"
                       value={productFilterSupplierId}
                       onChange={(e) => setProductFilterSupplierId(e.target.value)}
-                      className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="input input-sm"
                     >
                       <option value="">Tutti i fornitori</option>
                       {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
@@ -1749,7 +1743,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
                       name="analytics-product-sort-order"
                       value={productSortOrder}
                       onChange={(e) => setProductSortOrder(e.target.value)}
-                      className="w-full p-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="input input-sm"
                     >
                       <option value="name-asc">Nome (A-Z)</option>
                       <option value="name-desc">Nome (Z-A)</option>
@@ -1977,7 +1971,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
               </div>
             </label>
           </div>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center space-x-2 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 active:scale-95 transition-transform"><LogOut size={16} /><span>Esci</span></button>
+          <button onClick={handleLogout} className="btn btn-danger w-full"><LogOut size={16} /><span>Esci</span></button>
         </div>
       </div>
     );
@@ -2020,10 +2014,10 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full p-3 border border-gray-200 rounded-lg"
+                  className="input"
                 />
               </div>
-              <button type="submit" disabled={isVerifying} className="w-full bg-yellow-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+              <button type="submit" disabled={isVerifying} className="btn btn-warning w-full">
                 {isVerifying ? 'Verifica...' : 'Accedi'}
               </button>
             </form>
@@ -2223,16 +2217,16 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
         <Header title="Profilo Utente" onBack={() => setCurrentPage('settings')} />
         <div className="max-w-sm mx-auto px-6 py-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div><label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input id="first_name" type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input id="last_name" type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input id="first_name" type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="input" /></div>
+              <div><label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input id="last_name" type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="input" /></div>
               <div><label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="email" type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg bg-gray-100" disabled /></div>
-              <div><label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input id="role" type="text" name="role" value={formData.role} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input id="role" type="text" name="role" value={formData.role} onChange={handleChange} className="input" /></div>
               
               <h4 className="text-md font-medium text-gray-800 pt-2">Dati Aziendali</h4>
-              <div><label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input id="company_name" type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label htmlFor="company_vat_id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input id="company_vat_id" type="text" name="company_vat_id" value={formData.company_vat_id} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label htmlFor="headquarters_name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters_name" type="text" name="headquarters_name" value={formData.headquarters_name} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
-              <div><label htmlFor="headquarters_address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters_address" type="text" name="headquarters_address" value={formData.headquarters_address} onChange={handleChange} className="w-full p-3 border border-gray-200 rounded-lg" /></div>
+              <div><label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input id="company_name" type="text" name="company_name" value={formData.company_name} onChange={handleChange} className="input" /></div>
+              <div><label htmlFor="company_vat_id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input id="company_vat_id" type="text" name="company_vat_id" value={formData.company_vat_id} onChange={handleChange} className="input" /></div>
+              <div><label htmlFor="headquarters_name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters_name" type="text" name="headquarters_name" value={formData.headquarters_name} onChange={handleChange} className="input" /></div>
+              <div><label htmlFor="headquarters_address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters_address" type="text" name="headquarters_address" value={formData.headquarters_address} onChange={handleChange} className="input" /></div>
 
               <button type="submit" disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
                 {isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}
@@ -2456,18 +2450,18 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
             <form onSubmit={isLogin ? handleLogin : handleSignUp} className="space-y-4">
               {!isLogin && (
                 <>
-                  <div><label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input id="first-name" name="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Mario" /></div>
-                  <div><label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input id="last-name" name="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Rossi" /></div>
-                  <div><label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input id="role" name="role" type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Es. Manager" /></div>
+                  <div><label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label><input id="first-name" name="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="input" placeholder="Mario" /></div>
+                  <div><label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label><input id="last-name" name="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="input" placeholder="Rossi" /></div>
+                  <div><label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label><input id="role" name="role" type="text" value={role} onChange={(e) => setRole(e.target.value)} required className="input" placeholder="Es. Manager" /></div>
                   <h4 className="text-md font-medium text-gray-800 pt-2">Dati Aziendali</h4>
-                  <div><label htmlFor="company-name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input id="company-name" name="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante S.R.L." /></div>
-                  <div><label htmlFor="company-vat-id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input id="company-vat-id" name="company-vat-id" type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="IT12345678901" /></div>
-                  <div><label htmlFor="headquarters-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters-name" name="headquarters-name" type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Ristorante da Mario" /></div>
-                  <div><label htmlFor="headquarters-address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters-address" name="headquarters-address" type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="Via Roma, 1" /></div>
+                  <div><label htmlFor="company-name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label><input id="company-name" name="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required className="input" placeholder="Ristorante S.R.L." /></div>
+                  <div><label htmlFor="company-vat-id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label><input id="company-vat-id" name="company-vat-id" type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} required className="input" placeholder="IT12345678901" /></div>
+                  <div><label htmlFor="headquarters-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label><input id="headquarters-name" name="headquarters-name" type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} required className="input" placeholder="Ristorante da Mario" /></div>
+                  <div><label htmlFor="headquarters-address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters-address" name="headquarters-address" type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="input" placeholder="Via Roma, 1" /></div>
                 </>
               )}
-              <div><label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="auth-email" name="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="mario.rossi@email.com" /></div>
-              <div><label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label><input id="auth-password" name="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-3 border border-gray-200 rounded-lg" placeholder="••••••••" /></div>
+              <div><label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="auth-email" name="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input" placeholder="mario.rossi@email.com" /></div>
+              <div><label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label><input id="auth-password" name="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input" placeholder="••••••••" /></div>
               <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
                 {isAuthenticating ? (isLogin ? 'Accesso in corso...' : 'Registrazione in corso...') : (isLogin ? 'Accedi' : 'Registrati')}
               </button>
@@ -2479,7 +2473,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
     );
   };
 
-  if (!user) return <><Toaster position="top-center" reverseOrder={false} /><AuthPage /></>;
+  if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
 
   const renderPage = () => {
     switch (currentPage) {
@@ -2504,7 +2498,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
     }
   };
 
-  return <><Toaster position="top-center" reverseOrder={false} />{renderPage()}</>;
+  return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />{renderPage()}</>;
 };
 
 export default App;
