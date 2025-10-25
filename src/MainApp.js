@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User, ChevronDown } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Trash2, Edit3, Send, Check, Bell, History, Users, ShoppingCart, LogOut, Settings, Filter, Download, BarChart3, User, ChevronDown, Cookie } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, LineElement, PointElement } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { supabase, supabaseHelpers } from './supabase.js';
@@ -55,6 +55,31 @@ const MainApp = () => {
   }, [user]);
   const { setPrefilledData } = usePrefill();
   const [currentPage, setCurrentPage] = useState('home');
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [touchEndY, setTouchEndY] = useState(null);
+
+  // Minimum pull distance (in px)
+  const minPullDistance = 100;
+
+  const onTouchStart = (e) => {
+    setTouchStartY(e.targetTouches[0].clientY);
+    setTouchEndY(null);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEndY(e.targetTouches[0].clientY);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartY || !touchEndY) return;
+
+    const distanceY = touchEndY - touchStartY;
+
+    // For pull-to-refresh
+    if (touchStartY < 50 && distanceY > minPullDistance) {
+      window.location.reload();
+    }
+  };
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
@@ -1845,6 +1870,8 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
   };
 
   const SettingsPage = () => {
+    const navigate = useNavigate();
+
     useEffect(() => {
       const isIos = () => { const userAgent = window.navigator.userAgent.toLowerCase(); return /iphone|ipad|ipod/.test(userAgent); };
       const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
@@ -2023,6 +2050,17 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
             </select>
             <span id="language-description" className="sr-only">Cambia la lingua dell'interfaccia dell'applicazione</span>
           </div>
+
+          <button onClick={() => navigate('/cookie-policy')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><Cookie size={24} className="text-gray-500" /></div>
+              <div>
+                <p className="font-medium text-gray-900">Gestione Cookie</p>
+                <p className="text-sm text-gray-500">Modifica le preferenze sui cookie</p>
+              </div>
+              <ChevronRight size={20} className="text-gray-300 ml-auto" />
+            </div>
+          </button>
 
           <button onClick={handleLogout} className="btn btn-danger w-full"><LogOut size={16} /><span>{t('common.logout')}</span></button>
         </div>
@@ -2583,7 +2621,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
 
   if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
 
-  const renderPage = () => {
+  const getPageContent = () => {
     switch (currentPage) {
       case 'home': return <HomePage />;
       case 'createOrder': return <CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => { setPrefilledData(null); setCurrentPage('home'); }} suppliers={suppliers} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} />;
@@ -2591,19 +2629,33 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
       case 'schedule': return <SchedulePage setCurrentPage={setCurrentPage} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} />;
       case 'history': return <HistoryPage />;
       case 'analytics': return <AnalyticsDashboard />;
+      case 'productHistory': return <ProductHistoryPage />;
+      case 'notifications': return <NotificationsPage onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
       case 'settings': return <SettingsPage />;
       case 'userProfile': return <UserProfilePage user={user} profile={profile} setProfile={setProfile} />;
       case 'adminAuth': return <AdminAuthPage />;
-      case 'admin': 
+      case 'admin':
         if (profile?.is_admin && isAdminAuthenticated) {
           return <AdminPage />;
+        } else {
+          return <div className="min-h-screen flex items-center justify-center"><p>Accesso negato</p></div>;
         }
-        // Redirect to home if not authorized
+      default:
         return <HomePage />;
-      case 'notifications': return <NotificationsPage onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />;
-      case 'productHistory': return <ProductHistoryPage />;
-      default: return <HomePage />;
     }
+  };
+
+  const renderPage = () => {
+    return (
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className="min-h-screen"
+      >
+        {getPageContent()}
+      </div>
+    );
   };
 
   return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />{renderPage()}</>;
