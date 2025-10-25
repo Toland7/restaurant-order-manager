@@ -1,6 +1,9 @@
 {
   "version": 2,
   "name": "restaurant-order-manager",
+  "env": {
+    "npm_config_legacy_peer_deps": "true"
+  },
   "builds": [
     {
       "src": "api/**/*.js",
@@ -10,8 +13,7 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build",
-        "installCommand": "npm install --legacy-peer-deps"
+        "distDir": "build"
       }
     }
   ],
