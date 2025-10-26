@@ -55,31 +55,6 @@ const MainApp = () => {
   }, [user]);
   const { setPrefilledData } = usePrefill();
   const [currentPage, setCurrentPage] = useState('home');
-  const [touchStartY, setTouchStartY] = useState(null);
-  const [touchEndY, setTouchEndY] = useState(null);
-
-  // Minimum pull distance (in px)
-  const minPullDistance = 100;
-
-  const onTouchStart = (e) => {
-    setTouchStartY(e.targetTouches[0].clientY);
-    setTouchEndY(null);
-  };
-
-  const onTouchMove = (e) => {
-    setTouchEndY(e.targetTouches[0].clientY);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStartY || !touchEndY) return;
-
-    const distanceY = touchEndY - touchStartY;
-
-    // For pull-to-refresh
-    if (touchStartY < 50 && distanceY > minPullDistance) {
-      window.location.reload();
-    }
-  };
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [scheduledOrders, setScheduledOrders] = useState([]);
@@ -2646,16 +2621,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, se
   };
 
   const renderPage = () => {
-    return (
-      <div
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        className="min-h-screen"
-      >
-        {getPageContent()}
-      </div>
-    );
+    return getPageContent();
   };
 
   return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />{renderPage()}</>;
