@@ -5,6 +5,7 @@ import { supabaseHelpers } from '../supabase';
 import { useNavigate } from 'react-router-dom';
 
 const NotificationsPage = ({ user, handleNotificationClick }) => {
+    console.log('NotificationsPage: user prop', user);
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,9 +15,14 @@ const NotificationsPage = ({ user, handleNotificationClick }) => {
             if (user) {
                 try {
                     setLoading(true);
+                    console.log('🔕 Calling supabaseHelpers.getNotifications with userId:', user.id);
                     const { data, error } = await supabaseHelpers.getNotifications(user.id);
-                    if (error) throw error;
-                    setNotifications(data);
+                    if (error) {
+                        console.error('🔕 Error from getNotifications:', error);
+                        throw error;
+                    }
+                    console.log('🔕 Data from getNotifications:', data);
+                    setNotifications(data || []);
                 } catch (error) {
                     console.error('Error fetching notifications:', error);
                     toast.error('Errore durante il caricamento delle notifiche.');
@@ -31,7 +37,7 @@ const NotificationsPage = ({ user, handleNotificationClick }) => {
     const markAsRead = async (id) => {
         try {
             await supabaseHelpers.markNotificationAsRead(id);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         } catch (error) {
             console.error('Error marking notification as read:', error);
             toast.error('Errore durante l\'aggiornamento della notifica.');
@@ -60,14 +66,14 @@ const NotificationsPage = ({ user, handleNotificationClick }) => {
                     <div className="text-center py-12 text-gray-500">Nessuna notifica.</div>
                 ) : (
                     notifications.map(notification => (
-                        <div key={notification.id} className={`glass-card p-4 ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                        <div key={notification.id} className={`glass-card p-4 ${!notification.is_read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
                             <div className="flex justify-between items-start mb-2">
                                 <p className="font-medium text-gray-900 dark:text-gray-100">{notification.title}</p>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(notification.created_at).toLocaleDateString()}</span>
                             </div>
                             <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{notification.message}</p>
                             <div className="flex justify-end space-x-2">
-                                {!notification.read && (
+                                {!notification.is_read && (
                                     <button onClick={() => markAsRead(notification.id)} className="text-blue-500 hover:text-blue-600 text-sm">Segna come letta</button>
                                 )}
                                 {notification.reminder_id && (

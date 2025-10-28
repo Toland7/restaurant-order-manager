@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Anon Key (first 5 chars):', supabaseAnonKey ? supabaseAnonKey.substring(0, 5) : 'N/A');
+
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.')
 }
@@ -223,17 +226,22 @@ export const supabaseHelpers = {
     return data;
   },
 
-  async getNotifications(userId) {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data;
-  },
-
+    async getNotifications(userId, includeRead = true) { // Add a parameter to control filtering
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId);
+  
+      if (!includeRead) { // Apply filter only if includeRead is false
+        query = query.eq('is_read', false);
+      }
+  
+      query = query.order('created_at', { ascending: false });
+  
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
   async getUnreadNotificationsCount(userId) {
     const { count, error } = await supabase
       .from('notifications')
