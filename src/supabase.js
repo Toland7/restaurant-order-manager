@@ -227,23 +227,58 @@ export const supabaseHelpers = {
     return data;
   },
 
-    async getNotifications(userId, includeRead = true) { // Add a parameter to control filtering
-      let query = supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId);
-  
-      if (!includeRead) { // Apply filter only if includeRead is false
-        query = query.eq('is_read', false);
-      }
-  
-      query = query.order('created_at', { ascending: false });
-  
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-  async getUnreadNotificationsCount(userId) {
+      async getAllNotifications(userId) {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+    
+        if (error) throw error;
+        return data;
+      },
+    
+        // OLD: getNotifications function (commented out)
+    
+        /*
+    
+        async getNotifications(userId, includeRead = true) {
+    
+          let query = supabase
+    
+            .from('notifications')
+    
+            .select('*')
+    
+            .eq('user_id', userId);
+    
+      
+    
+          if (!includeRead) {
+    
+            query = query.eq('is_read', false);
+    
+          }
+    
+      
+    
+          query = query.order('created_at', { ascending: false });
+    
+      
+    
+          const { data, error } = await query;
+    
+          if (error) throw error;
+    
+          return data;
+    
+        },
+    
+        */
+    
+      
+    
+        async getUnreadNotificationsCount(userId) {
     const { count, error } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })

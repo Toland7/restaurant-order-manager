@@ -15,13 +15,13 @@ const NotificationsPage = ({ user, handleNotificationClick }) => {
             if (user) {
                 try {
                     setLoading(true);
-                    console.log('🔕 Calling supabaseHelpers.getNotifications with userId:', user.id);
-                    const { data, error } = await supabaseHelpers.getNotifications(user.id);
+                    console.log('🔕 Calling supabaseHelpers.getAllNotifications with userId:', user.id);
+                    const { data, error } = await supabaseHelpers.getAllNotifications(user.id);
                     if (error) {
-                        console.error('🔕 Error from getNotifications:', error);
+                        console.error('🔕 Error from getAllNotifications:', error);
                         throw error;
                     }
-                    console.log('🔕 Data from getNotifications:', data);
+                    console.log('🔕 Data from getAllNotifications:', data);
                     setNotifications(data || []);
                 } catch (error) {
                     console.error('Error fetching notifications:', error);
