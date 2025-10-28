@@ -233,7 +233,9 @@ export const supabaseHelpers = {
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
-    
+
+        console.log('🔕 Raw response from Supabase query:', { data, error });
+
         if (error) throw error;
         return data;
       },

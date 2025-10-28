@@ -16,11 +16,7 @@ const NotificationsPage = ({ user, handleNotificationClick }) => {
                 try {
                     setLoading(true);
                     console.log('🔕 Calling supabaseHelpers.getAllNotifications with userId:', user.id);
-                    const { data, error } = await supabaseHelpers.getAllNotifications(user.id);
-                    if (error) {
-                        console.error('🔕 Error from getAllNotifications:', error);
-                        throw error;
-                    }
+                    const data = await supabaseHelpers.getAllNotifications(user.id);
                     console.log('🔕 Data from getAllNotifications:', data);
                     setNotifications(data || []);
                 } catch (error) {
