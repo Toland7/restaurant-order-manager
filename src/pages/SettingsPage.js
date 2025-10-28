@@ -89,8 +89,18 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           console.log('🔕 Subscribing to push');
           const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
           console.log('🔕 Subscription:', subscription);
+
+          const subscriptionData = {
+            endpoint: subscription.endpoint,
+            expirationTime: subscription.expirationTime,
+            keys: {
+              p256dh: subscription.toJSON().keys.p256dh,
+              auth: subscription.toJSON().keys.auth,
+            },
+          };
+
           console.log('🔕 Updating profile with subscription');
-          const updateResult = await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscription });
+          const updateResult = await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscriptionData });
           console.log('🔕 Profile update result:', updateResult);
           setIsPushEnabled(true);
           toast.success('Notifiche push abilitate con successo!');
