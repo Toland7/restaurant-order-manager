@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../supabase';
 
-const AuthPage = ({ setCurrentPage }) => {
+const AuthPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);
@@ -25,7 +25,6 @@ const AuthPage = ({ setCurrentPage }) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success('Accesso effettuato con successo!');
-        setCurrentPage('home');
       } catch (error) {
         toast.error(error.message);
       } finally {
@@ -42,18 +41,24 @@ const AuthPage = ({ setCurrentPage }) => {
           password,
           options: {
             data: {
-              first_name: firstName,
-              last_name: lastName,
-              role: role,
-              company_name: companyName,
-              company_vat_id: companyVatId,
-              headquarters_name: headquartersName,
-              headquarters_address: headquartersAddress,
               is_approved: false,
               is_admin: false,
             }
           }
         });
+
+        // Salva i dati del profilo nella tabella profiles
+        if (data.user && !error) {
+          await supabase.from('profiles').update({
+            first_name: firstName,
+            last_name: lastName,
+            role: role,
+            company_name: companyName,
+            company_vat_id: companyVatId,
+            headquarters_name: headquartersName,
+            headquarters_address: headquartersAddress,
+          }).eq('id', data.user.id);
+        }
         if (error) throw error;
         if (data.user) {
           toast.success('Registrazione completata! Un amministratore approverà il tuo account a breve.');

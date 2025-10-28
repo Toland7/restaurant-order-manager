@@ -16,6 +16,14 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
+// --- ADDED DIAGNOSTIC LOGGING ---
+console.log('DIAGNOSTIC: VAPID_MAILTO:', process.env.VAPID_MAILTO);
+console.log('DIAGNOSTIC: VAPID_PUBLIC_KEY (first 10 chars):', process.env.VAPID_PUBLIC_KEY ? process.env.VAPID_PUBLIC_KEY.substring(0, 10) : 'N/A');
+console.log('DIAGNOSTIC: VAPID_PUBLIC_KEY length:', process.env.VAPID_PUBLIC_KEY ? process.env.VAPID_PUBLIC_KEY.length : 'N/A');
+console.log('DIAGNOSTIC: VAPID_PRIVATE_KEY (first 10 chars):', process.env.VAPID_PRIVATE_KEY ? process.env.VAPID_PRIVATE_KEY.substring(0, 10) : 'N/A');
+console.log('DIAGNOSTIC: VAPID_PRIVATE_KEY length:', process.env.VAPID_PRIVATE_KEY ? process.env.VAPID_PRIVATE_KEY.length : 'N/A');
+// --- END DIAGNOSTIC LOGGING ---
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');

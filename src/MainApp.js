@@ -13,8 +13,7 @@ import ProductHistoryPage from './pages/ProductHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import NotificationsPage from './pages/NotificationsPage';
-import AdminAuthPage from './pages/AdminAuthPage';
-import AdminPanel from './pages/AdminPanel';
+
 import CreateOrderPage from './pages/CreateOrderPage';
 import SchedulePage from './pages/SchedulePage';
 import AuthPage from './pages/AuthPage';
@@ -36,9 +35,9 @@ const MainApp = () => {
   const navigate = useNavigate();
   const [scheduledOrders, setScheduledOrders] = useState([]);
   const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
-  const [batchMode, setBatchMode] = useState(false);
+  const [theme, setTheme] = useState('light');
+
   const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardOrders, setWizardOrders] = useState([]);
@@ -61,6 +60,18 @@ const MainApp = () => {
       sessionStorage.removeItem('wizardState');
     }
   }, [showWizard, wizardOrders, wizardStep]);
+
+  // Theme management
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   const { analytics } = useAnalytics(orders, suppliers);
 
@@ -130,17 +141,15 @@ const MainApp = () => {
       <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
       <Routes>
         <Route path="/" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
-        <Route path="/create-order" element={<CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => loadData(user.id)} batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
+        <Route path="/create-order" element={<CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => loadData(user.id)} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
         <Route path="/suppliers" element={<SuppliersPage suppliers={suppliers} setSuppliers={setSuppliers} user={user} />} />
-        <Route path="/schedule" element={<SchedulePage batchMode={batchMode} setBatchMode={setBatchMode} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
+        <Route path="/schedule" element={<SchedulePage batchMode={false} setBatchMode={() => {}} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
         <Route path="/history" element={<HistoryPage orders={orders} suppliers={suppliers} />} />
         <Route path="/analytics" element={<AnalyticsDashboard orders={orders} suppliers={suppliers} setSelectedProductForHistory={setSelectedProductForHistory} />} />
         <Route path="/product-history" element={<ProductHistoryPage orders={orders} suppliers={suppliers} selectedProductForHistory={selectedProductForHistory} />} />
         <Route path="/notifications" element={<NotificationsPage onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />} />
-        <Route path="/settings" element={<SettingsPage profile={profile} user={user} setIsAdminAuthenticated={setIsAdminAuthenticated} />} />
+        <Route path="/settings" element={<SettingsPage theme={theme} setTheme={setTheme} profile={profile} user={user} />} />
         <Route path="/user-profile" element={<UserProfilePage user={user} profile={profile} setProfile={setProfile} />} />
-        <Route path="/admin-auth" element={<AdminAuthPage setIsAdminAuthenticated={setIsAdminAuthenticated} />} />
-        <Route path="/admin" element={profile?.is_admin && isAdminAuthenticated ? <AdminPanel isAdminAuthenticated={isAdminAuthenticated} /> : <div className="min-h-screen flex items-center justify-center"><p>Accesso negato</p></div>} />
         <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
       </Routes>
       <ModernCookieBanner />

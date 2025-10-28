@@ -16,13 +16,45 @@ Deno.serve(async (req) => {
     )
 
     // Get the user object from the JWT.
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user: caller } } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (!caller) {
       return new Response(JSON.stringify({ error: 'User not authenticated' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       })
+    }
+
+    // Parse the request body to get optional userId
+    let userIdToDelete = caller.id; // Default to self
+    try {
+      const body = await req.json();
+      if (body.userId) {
+        userIdToDelete = body.userId;
+      }
+    } catch (e) {
+      // No body or invalid, use self
+    }
+
+    // If trying to delete someone else, check if caller is admin
+    if (userIdToDelete !== caller.id) {
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', caller.id)
+        .single();
+
+      if (profileError || !profile || !profile.is_admin) {
+        return new Response(JSON.stringify({ error: 'Permission denied: Only admins can delete other users.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        });
+      }
     }
 
     // Create a Supabase admin client to perform the user deletion.
@@ -31,8 +63,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Securely delete the user based on their own JWT.
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+    // Securely delete the user
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userIdToDelete)
 
     if (deleteError) {
       throw deleteError

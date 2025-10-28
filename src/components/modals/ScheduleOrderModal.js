@@ -4,11 +4,11 @@ import { usePrefill } from '../../PrefillContext';
 import { supabaseHelpers } from '../../supabase';
 import { useNavigate } from 'react-router-dom';
 
-const ScheduleOrderModal = ({ onClose = () => {}, batchMode = false, supplierId = '', orderItems = {}, additionalItems = '', multiOrders = [], onSchedule = () => {}, scheduledOrders = [], setScheduledOrders = () => {}, suppliers }) => {
+const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule = () => {}, scheduledOrders = [], setScheduledOrders = () => {}, suppliers }) => {
     const navigate = useNavigate();
     const { setPrefilledData } = usePrefill();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const futureScheduledOrders = batchMode ? scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date()) : scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date() && o.supplier_id === supplierId);
+    const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date());
 
     const linkToScheduledOrder = async (scheduledOrderId) => {
       if (isSubmitting) return;
@@ -25,8 +25,11 @@ const ScheduleOrderModal = ({ onClose = () => {}, batchMode = false, supplierId 
           }
         }
 
+        // For now, use the first order in multiOrders (backward compatibility)
+        const currentOrder = multiOrders[0] || { items: {}, additional: '' };
+
         const mergedItems = { ...existingOrderData.items };
-        Object.entries(orderItems).forEach(([product, quantity]) => {
+        Object.entries(currentOrder.items).forEach(([product, quantity]) => {
           const newQuantity = parseInt(quantity, 10) || 0;
           if (newQuantity > 0) {
             mergedItems[product] = (parseInt(mergedItems[product], 10) || 0) + newQuantity;
@@ -36,8 +39,8 @@ const ScheduleOrderModal = ({ onClose = () => {}, batchMode = false, supplierId 
         });
 
         let mergedAdditionalItems = existingOrderData.additional_items;
-        if (additionalItems.trim()) {
-          mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${additionalItems.trim()}` : additionalItems.trim();
+        if (currentOrder.additional.trim()) {
+          mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${currentOrder.additional.trim()}` : currentOrder.additional.trim();
         }
 
         const updatedOrderData = {
@@ -77,13 +80,15 @@ const ScheduleOrderModal = ({ onClose = () => {}, batchMode = false, supplierId 
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-500 mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
-                <button 
+                <button
                   onClick={() => {
+                    // For now, schedule the first order in multiOrders
+                    const currentOrder = multiOrders[0] || { supplier: '', items: {}, additional: '' };
                     setPrefilledData({
-                      type: 'schedule', 
-                      data: { 
-                        supplier_id: supplierId, 
-                        order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems })
+                      type: 'schedule',
+                      data: {
+                        supplier_id: currentOrder.supplier,
+                        order_data: JSON.stringify({ items: currentOrder.items, additional_items: currentOrder.additional })
                       }
                     });
                     navigate('/schedule');

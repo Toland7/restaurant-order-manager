@@ -6,7 +6,7 @@ import Header from '../components/ui/Header';
 import { useAuth } from '../AuthContext';
 import { supabaseHelpers } from '../supabase';
 
-const SettingsPage = ({ theme, setTheme, profile, user, setIsAdminAuthenticated }) => {
+const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const navigate = useNavigate();
     const { signOut } = useAuth();
 
@@ -18,11 +18,10 @@ const SettingsPage = ({ theme, setTheme, profile, user, setIsAdminAuthenticated 
       }
     }, []);
 
-    const handleLogout = async () => { 
-      setIsAdminAuthenticated(false); // Clear admin auth on logout
-      await signOut(); 
-      toast.success('Logout effettuato'); 
-      navigate('/'); 
+    const handleLogout = async () => {
+      await signOut();
+      toast.success('Logout effettuato');
+      navigate('/');
     };
 
     const [isPushEnabled, setIsPushEnabled] = useState(false);
@@ -41,34 +40,65 @@ const SettingsPage = ({ theme, setTheme, profile, user, setIsAdminAuthenticated 
     }, []);
 
     const handleTogglePush = async (enable) => {
+      console.log('🔕 Toggle push notifications:', enable);
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('🔕 Push not supported');
         toast.error('Le notifiche push non sono supportate da questo browser.');
         return;
       }
 
       try {
+        console.log('🔕 Getting service worker registration');
         const registration = await navigator.serviceWorker.ready;
+        console.log('🔕 Registration ready:', !!registration);
 
         if (enable) {
+          console.log('🔕 Enabling push notifications');
           // Enable push notifications
           const permission = await window.Notification.requestPermission();
+          console.log('🔕 Permission:', permission);
           if (permission !== 'granted') {
             toast.error('Permesso per le notifiche non concesso.');
             return;
           }
           const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+          console.log('🔕 VAPID key present:', !!vapidPublicKey);
           if (!vapidPublicKey) {
             console.error('VAPID public key not found.');
             toast.error('Errore di configurazione: chiave pubblica non trovata.');
             return;
           }
-          const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidPublicKey });
-          await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscription });
+
+          // Convert VAPID key to Uint8Array
+          function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+              .replace(/-/g, '+')
+              .replace(/_/g, '/');
+
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+
+            for (let i = 0; i < rawData.length; ++i) {
+              outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+          }
+
+          const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+          console.log('🔕 Subscribing to push');
+          const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+          console.log('🔕 Subscription:', subscription);
+          console.log('🔕 Updating profile with subscription');
+          const updateResult = await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscription });
+          console.log('🔕 Profile update result:', updateResult);
           setIsPushEnabled(true);
           toast.success('Notifiche push abilitate con successo!');
         } else {
+          console.log('🔕 Disabling push notifications');
           // Disable push notifications
           const subscription = await registration.pushManager.getSubscription();
+          console.log('🔕 Current subscription:', !!subscription);
           if (subscription) {
             await subscription.unsubscribe();
             await supabaseHelpers.updateUserProfile(user.id, { push_subscription: null });
@@ -133,17 +163,7 @@ const SettingsPage = ({ theme, setTheme, profile, user, setIsAdminAuthenticated 
             </div>
           </button>
 
-          {profile?.is_admin && (
-            <button onClick={() => navigate('/admin-auth')} className="w-full bg-yellow-400 rounded-xl p-4 shadow-sm text-left hover:shadow-md transition-all">
-              <div className="flex items-center space-x-4">
-                <div>
-                  <p className="font-medium text-yellow-900">Pannello Admin</p>
-                  <p className="text-sm text-yellow-700">Gestisci utenti e approvazioni</p>
-                </div>
-                <ChevronRight size={20} className="text-yellow-500 ml-auto" />
-              </div>
-            </button>
-          )}
+
 
           <div className="glass-card p-4 flex items-center justify-between">
             <div>

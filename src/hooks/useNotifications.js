@@ -2,27 +2,33 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast';
 
-export const useNotifications = (user, setPrefilledData, setCurrentPage) => {
+export const useNotifications = (user, setPrefilledData, navigate) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     const handleNotificationClick = useCallback(async (notification) => {
+        console.log('🔔 Notification clicked:', notification);
         if (notification.reminder_id) {
+            console.log('🔔 Loading scheduled order for reminder_id:', notification.reminder_id);
             try {
                 const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
+                console.log('🔔 Scheduled order loaded:', scheduledOrder);
                 if (scheduledOrder) {
+                    console.log('🔔 Setting prefilled data and navigating to create-order');
                     setPrefilledData({ type: 'order', data: scheduledOrder });
-                    setCurrentPage('createOrder');
+                    navigate('/create-order');
                 } else {
-                    // Handle case where scheduled order is not found
+                    console.log('🔔 Scheduled order not found');
+                    toast.error("Ordine programmato non trovato.");
                 }
             } catch (error) {
                 console.error("Error loading reminder from notification:", error);
                 toast.error("Impossibile caricare il promemoria.");
             }
         } else {
+            console.log('🔔 Notification has no reminder_id');
             // Handle other notification types if any
         }
-    }, [setPrefilledData, setCurrentPage]);
+    }, [setPrefilledData, navigate]);
 
     useEffect(() => {
         if (user) {
