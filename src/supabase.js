@@ -262,11 +262,27 @@ export const supabaseHelpers = {
     
       
     
-          query = query.order('created_at', { ascending: false });
+              query = query.order('created_at', { ascending: false });
     
       
     
-          const { data, error } = await query;
+          
+    
+      
+    
+              const response = await query;
+    
+      
+    
+              console.log('🔕 Raw response from Supabase query:', response);
+    
+      
+    
+          
+    
+      
+    
+              const { data, error } = response;
     
           if (error) throw error;
     
