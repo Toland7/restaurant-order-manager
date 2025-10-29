@@ -32,41 +32,31 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
     };
 
-    // Helper function to convert single order format to batch format
-    const convertToBatchFormat = (singleOrderData) => {
-      return [{
-        id: Date.now(),
-        supplier: singleOrderData.supplier_id,
-        items: singleOrderData.items || {},
-        additional: singleOrderData.additional_items || '',
-        email_subject: singleOrderData.email_subject || ''
-      }];
-    };
-
     useEffect(() => {
       if (prefilledData && prefilledData.type === 'order') {
         let orderData;
         try {
-          orderData = JSON.parse(prefilledData.data.order_data);
+          if (typeof prefilledData.data.order_data === 'string') {
+            orderData = JSON.parse(prefilledData.data.order_data);
+          } else {
+            orderData = prefilledData.data.order_data;
+          }
         } catch (e) {
           console.error("Failed to parse order_data", e);
           return;
         }
 
-        // Convert single format to batch format if needed
-        let batchOrders;
-        if (typeof orderData.supplier_id === 'string') {
-          // Legacy single format
-          batchOrders = convertToBatchFormat(orderData);
-        } else if (Array.isArray(orderData)) {
-          // Already batch format
-          batchOrders = orderData;
-        } else {
-          // Fallback
-          batchOrders = convertToBatchFormat(orderData);
-        }
-
+        // Always treat as batch format
+        const batchOrder = {
+          id: Date.now(),
+          supplier: prefilledData.data.supplier_id,
+          items: orderData.items || {},
+          additional: orderData.additional_items || '',
+          email_subject: orderData.email_subject || ''
+        };
+        const batchOrders = [batchOrder];
         setMultiOrders(batchOrders);
+        setPrefilledData(null);
 
         if (prefilledData.immediateSend) {
           const messages = batchOrders.map(order => {

@@ -40,29 +40,22 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
     }, []);
 
     const handleTogglePush = async (enable) => {
-      console.log('🔕 Toggle push notifications:', enable);
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.log('🔕 Push not supported');
         toast.error('Le notifiche push non sono supportate da questo browser.');
         return;
       }
 
       try {
-        console.log('🔕 Getting service worker registration');
         const registration = await navigator.serviceWorker.ready;
-        console.log('🔕 Registration ready:', !!registration);
 
         if (enable) {
-          console.log('🔕 Enabling push notifications');
           // Enable push notifications
           const permission = await window.Notification.requestPermission();
-          console.log('🔕 Permission:', permission);
           if (permission !== 'granted') {
             toast.error('Permesso per le notifiche non concesso.');
             return;
           }
           const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
-          console.log('🔕 VAPID key present:', !!vapidPublicKey);
           if (!vapidPublicKey) {
             console.error('VAPID public key not found.');
             toast.error('Errore di configurazione: chiave pubblica non trovata.');
@@ -86,9 +79,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           }
 
           const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-          console.log('🔕 Subscribing to push');
           const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
-          console.log('🔕 Subscription:', subscription);
 
           const subscriptionData = {
             endpoint: subscription.endpoint,
@@ -99,16 +90,12 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
             },
           };
 
-          console.log('🔕 Updating profile with subscription');
-          const updateResult = await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscriptionData });
-          console.log('🔕 Profile update result:', updateResult);
+          await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscriptionData });
           setIsPushEnabled(true);
           toast.success('Notifiche push abilitate con successo!');
         } else {
-          console.log('🔕 Disabling push notifications');
           // Disable push notifications
           const subscription = await registration.pushManager.getSubscription();
-          console.log('🔕 Current subscription:', !!subscription);
           if (subscription) {
             await subscription.unsubscribe();
             await supabaseHelpers.updateUserProfile(user.id, { push_subscription: null });

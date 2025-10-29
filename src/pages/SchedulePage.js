@@ -18,7 +18,7 @@ const groupOrdersByScheduledAt = (orders) => {
     }, {});
 };
 
-const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, suppliers, scheduledOrders, setScheduledOrders, setWizardOrders, showWizard, setShowWizard, wizardOrders, wizardStep, setWizardStep, user }) => {
+const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders, setScheduledOrders, setWizardOrders, showWizard, setShowWizard, wizardOrders, wizardStep, setWizardStep, user }) => {
     const navigate = useNavigate();
     const { prefilledData, setPrefilledData } = usePrefill();
     const getRoundedTime = (date = new Date()) => { const minutes = date.getMinutes(); const roundedMinutes = Math.ceil(minutes / 15) * 15; date.setMinutes(roundedMinutes); return date.toTimeString().slice(0, 5); };
@@ -30,7 +30,7 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
     const [emailSubject, setEmailSubject] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
-    const [showTypeModal, setShowTypeModal] = useState(false);
+    const [editingMultiOrders, setEditingMultiOrders] = useState([]);
     const timeSlots = [];
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
 
@@ -66,6 +66,41 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
         const scheduledAt = new Date(editingOrder.scheduled_at);
         setSelectedDate(scheduledAt.toISOString().split('T')[0]);
         setSelectedTime(scheduledAt.toTimeString().slice(0, 5));
+        
+        // Find all orders with the same scheduled time to support multi-supplier editing
+        const sameTimeOrders = scheduledOrders.filter(order => {
+          const orderScheduledAt = new Date(order.scheduled_at);
+          return orderScheduledAt.getTime() === scheduledAt.getTime();
+        });
+        
+        if (sameTimeOrders.length > 0) {
+          // Initialize editingMultiOrders with all orders at the same time
+          const multiOrdersData = sameTimeOrders.map(order => {
+            let orderItems = {};
+            let additionalItems = '';
+            let emailSubject = '';
+            if (order.order_data) {
+              try {
+                const data = JSON.parse(order.order_data);
+                orderItems = data.items || {};
+                additionalItems = data.additional_items || '';
+                emailSubject = data.email_subject || '';
+              } catch (e) {
+                console.error("Failed to parse order_data", e);
+              }
+            }
+            return {
+              id: order.id,
+              supplier: order.supplier_id.toString(),
+              items: orderItems,
+              additional: additionalItems,
+              email_subject: emailSubject
+            };
+          });
+          setEditingMultiOrders(multiOrdersData);
+        }
+        
+        // For backward compatibility, also set single supplier state
         setSelectedSupplier(editingOrder.supplier_id);
         if (editingOrder.order_data) {
           try {
@@ -77,56 +112,69 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
           }
         }
       }
-    }, [editingOrder]);
+    }, [editingOrder, scheduledOrders]);
 
     const scheduleOrder = async () => {
       if (!selectedDate) { toast.error('Seleziona data'); return; }
-      if (!batchMode && !selectedSupplier) { toast.error('Seleziona fornitore'); return; }
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
       if (scheduledDateTime < new Date() && !editingOrder) { toast.error('Non puoi programmare un ordine nel passato.'); return; }
       setIsSubmitting(true);
       try {
-        if (batchMode) {
-          const validOrders = multiOrders.filter(order => order.supplier && Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0'));
+        if (editingOrder && editingMultiOrders.length > 0) {
+          // Handle multi-supplier editing
+          const validOrders = editingMultiOrders.filter(order => order.supplier && Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0'));
+          if (validOrders.length === 0) { toast.error('Nessun ordine valido da aggiornare'); return; }
+          
+          // Delete existing orders at this time
+          const existingOrdersAtTime = scheduledOrders.filter(order => {
+            const orderScheduledAt = new Date(order.scheduled_at);
+            return orderScheduledAt.getTime() === scheduledDateTime.getTime();
+          });
+          
+          for (const existingOrder of existingOrdersAtTime) {
+            await supabaseHelpers.deleteScheduledOrder(existingOrder.id);
+          }
+          
+          // Create new orders with updated data
+          for (const order of validOrders) {
+            const orderData = {
+              user_id: user.id,
+              supplier_id: order.supplier,
+              scheduled_at: scheduledDateTime.toISOString(),
+              order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject })
+            };
+            const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+            setScheduledOrders(prev => [...prev.filter(o => !existingOrdersAtTime.some(eo => eo.id === o.id)), { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === order.supplier) }]);
+          }
+          toast.success(`${validOrders.length} ordini aggiornati con successo`);
+        } else {
+          // Handle single supplier creation (existing logic)
+          if (!selectedSupplier) { toast.error('Seleziona fornitore'); return; }
+          const currentOrder = { supplier: selectedSupplier, items: orderItems, additional: additionalItems, email_subject: emailSubject };
+          setMultiOrders([currentOrder]);
+          const validOrders = [currentOrder].filter(order => order.supplier && Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0'));
           if (validOrders.length === 0) { toast.error('Nessun ordine valido da programmare'); return; }
           for (const order of validOrders) {
             const orderData = {
               user_id: user.id,
               supplier_id: order.supplier,
               scheduled_at: scheduledDateTime.toISOString(),
-              order_data: JSON.stringify({ items: order.items, additional_items: order.additional })
+              order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject })
             };
             const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
-            setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === order.supplier) }]);
-          }
-          toast.success(`${validOrders.length} ordini programmati con successo`);
-        } else {
-          const orderData = {
-            user_id: user.id,
-            supplier_id: selectedSupplier,
-            scheduled_at: scheduledDateTime.toISOString(),
-            order_data: JSON.stringify({ items: orderItems, additional_items: additionalItems, email_subject: emailSubject })
-          };
-
-          if (editingOrder) {
-            const updatedOrder = await supabaseHelpers.updateScheduledOrder(editingOrder.id, orderData);
-            setScheduledOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updatedOrder } : o));
-            toast.success('Ordine programmato aggiornato con successo');
-          } else {
-            const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
-            setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === selectedSupplier) }]);
-            toast.success(`Ordine programmato creato con successo`);
-          }
+              setScheduledOrders(prev => [...prev, { ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === order.supplier) }]);
+            }
+            toast.success(`${validOrders.length} ordini programmati con successo`);
         }
 
         setEditingOrder(null);
+        setEditingMultiOrders([]);
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedTime(getRoundedTime());
-        if (!batchMode) {
-          setSelectedSupplier('');
-          setOrderItems({});
-          setAdditionalItems('');
-        }
+        setSelectedSupplier('');
+        setOrderItems({});
+        setAdditionalItems('');
+        setEmailSubject('');
         if (!editingOrder) {
           setTimeout(() => { if (!window.confirm('Ordini programmati con successo! Vuoi programmarne altri?')) navigate('/'); }, 1000);
         }
@@ -140,11 +188,28 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
 
     const handleCancelEdit = () => {
       setEditingOrder(null);
+      setEditingMultiOrders([]);
       setSelectedDate(new Date().toISOString().split('T')[0]);
       setSelectedTime(getRoundedTime());
       setSelectedSupplier('');
       setOrderItems({});
       setAdditionalItems('');
+    };
+
+    const removeEditingSupplierOrder = (id) => {
+      if (editingMultiOrders.length > 1) {
+        setEditingMultiOrders(prev => prev.filter(order => order.id !== id));
+      }
+    };
+
+    const updateEditingSupplierOrder = (id, field, value) => {
+      setEditingMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
+    };
+
+    const addEditingSupplierOrder = (supplierId) => {
+      if (supplierId) {
+        setEditingMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '' }]);
+      }
     };
 
     const deleteScheduledOrder = async (id) => {
@@ -226,22 +291,105 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
       <div className="min-h-screen app-background">
         <Header title="Programma Ordini" onBack={() => navigate('/')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-          <div className="glass-card p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">Tipo Ordine</h3>
-              <button onClick={() => setShowTypeModal(true)} className={`btn text-sm ${batchMode ? 'btn-purple' : 'btn-primary'}`}>
-                {batchMode ? 'Più Fornitori' : 'Singolo Fornitore'}
-              </button>
-            </div>
-          </div>
+
           <div className="glass-card p-4"><label htmlFor="schedule-date" className="block text-sm font-medium text-gray-700 mb-2">Data Programmazione</label><input id="schedule-date" name="schedule-date" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input" /></div>
           <div className="glass-card p-4"><label htmlFor="schedule-time" className="block text-sm font-medium text-gray-700 mb-2">Ora Invio</label><select id="schedule-time" name="schedule-time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="select">{timeSlots.map(time => <option key={time} value={time}>{time}</option>)}</select></div>
-          {!batchMode && <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="select"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>}
-          {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="tel" inputMode="decimal" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="input-sm w-16 text-center" /></div>)}</div></div>}
-          {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="schedule-email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="schedule-email-subject" name="schedule-email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
-          {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" /></div>}
+          {editingOrder && editingMultiOrders.length > 0 ? (
+            <div className="space-y-6">
+              {editingMultiOrders.map((order, index) => {
+                const supplierData = suppliers.find(s => s.id.toString() === order.supplier);
+                return (
+                  <div key={order.id} className="glass-card p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Ordine {index + 1}: {supplierData ? supplierData.name : 'Seleziona Fornitore'}</h3>
+                      {editingMultiOrders.length > 1 && (
+                        <button onClick={() => removeEditingSupplierOrder(order.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor={`edit-supplier-select-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
+                        <select id={`edit-supplier-select-${order.id}`} name={`edit-supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateEditingSupplierOrder(order.id, 'supplier', e.target.value)} className="select">
+                          <option value="">Scegli un fornitore...</option>
+                          {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                        </select>
+                      </div>
+                      {supplierData && (
+                        <>
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti Disponibili</h4>
+                            {supplierData.products.length === 0 ? (
+                              <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div>
+                            ) : (
+                              <div className="space-y-3">
+                                {supplierData.products.map(product => (
+                                  <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
+                                    <label className="flex items-center space-x-3 flex-1">
+                                      <input
+                                        type="checkbox"
+                                        id={`edit-product-checkbox-${order.id}-${product}`}
+                                        name={`edit-product-checkbox-${order.id}-${product}`}
+                                        checked={order.items.hasOwnProperty(product)}
+                                        onChange={(e) => {
+                                          const newItems = { ...order.items };
+                                          if (e.target.checked) {
+                                            newItems[product] = '';
+                                          } else {
+                                            delete newItems[product];
+                                          }
+                                          updateEditingSupplierOrder(order.id, 'items', newItems);
+                                        }}
+                                        className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95"
+                                      />
+                                      <span className="text-sm text-gray-700">{product}</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      id={`edit-quantity-${order.id}-${product}`}
+                                      name={`edit-quantity-${order.id}-${product}`}
+                                      placeholder="Qt."
+                                      value={order.items[product] || ''}
+                                      onChange={(e) => updateEditingSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })}
+                                      className="input-sm w-16 text-center"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label htmlFor={`edit-additional-items-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
+                            <textarea id={`edit-additional-items-${order.id}`} name={`edit-additional-items-${order.id}`} value={order.additional} onChange={(e) => updateEditingSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" />
+                          </div>
+                          {supplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor={`edit-email-subject-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id={`edit-email-subject-${order.id}`} name={`edit-email-subject-${order.id}`} type="text" value={order.email_subject} onChange={(e) => updateEditingSupplierOrder(order.id, 'email_subject', e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <label htmlFor="edit-add-supplier-select" className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
+              <select id="edit-add-supplier-select" name="edit-add-supplier-select" onChange={(e) => {
+                const supplierId = e.target.value;
+                if (supplierId) {
+                  addEditingSupplierOrder(supplierId);
+                  e.target.value = '';
+                }
+              }} className="select mb-4">
+                <option value="">Aggiungi Fornitore...</option>
+                {suppliers.filter(s => !editingMultiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+              </select>
+            </div>
+          ) : (
+            <>
+              <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="select"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+              {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="tel" inputMode="decimal" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="input-sm w-16 text-center" /></div>)}</div></div>}
+              {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="schedule-email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="schedule-email-subject" name="schedule-email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
+              {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" /></div>}
+            </>
+          )}
           
-          {scheduledOrders.length > 0 && !batchMode ? (<div className="space-y-4">
+          {scheduledOrders.length > 0 ? (<div className="space-y-4">
             {Object.keys(groupedReadyToSendOrders).length > 0 && (
                 <details className="glass-card group" open>
                     <summary className="font-medium text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
@@ -273,17 +421,31 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
                                         {orders.map(order => {
                                             const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
                                             return (
-                                                <div key={order.id} className="w-full text-left p-3 rounded-lg bg-white dark:bg-green-900/30 mb-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <div>
-                                                            <p className="font-medium text-sm text-green-900 dark:text-green-200">{supplier?.name || 'Fornitore eliminato'}</p>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <button onClick={() => { setPrefilledData({ type: 'order', data: order, immediateSend: true }); navigate('/create-order'); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
-                                                            <button onClick={() => setEditingOrder(order)} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
-                                                            <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
-                                                        </div>
-                                                    </div>
+                                                 <div key={order.id} className="w-full text-left p-3 rounded-lg bg-white dark:bg-green-900/30 mb-2">
+                                                     <div className="flex justify-between items-center">
+                                                         <div>
+                                                             <p className="font-medium text-sm text-green-900 dark:text-green-200">{supplier?.name || 'Fornitore eliminato'}</p>
+                                                         </div>
+                                                         <div className="flex items-center space-x-2">
+                                                             <button onClick={() => {
+                                                               const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                               if (!supplierExists) {
+                                                                 toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
+                                                                 return;
+                                                               }
+                                                               setPrefilledData({ type: 'order', data: order, immediateSend: true });
+                                                               navigate('/create-order');
+                                                             }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                             <button onClick={() => {
+                                                               const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                               if (!supplierExists) {
+                                                                 toast.error("Fornitore non trovato, modifica limitata.");
+                                                               }
+                                                               setEditingOrder(order);
+                                                             }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
+                                                             <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                         </div>
+                                                     </div>
                                                     <ScheduledOrderPreview order={order} suppliers={suppliers} />
                                                 </div>
                                             )
@@ -327,17 +489,31 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
                                         {orders.map(order => {
                                             const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
                                             return (
-                                                <div key={order.id} className={`w-full text-left p-3 rounded-lg ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-white'} dark:bg-purple-900/30 mb-2`}>
-                                                    <div className="flex justify-between items-center">
-                                                        <div>
-                                                            <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <button onClick={() => { setPrefilledData({ type: 'order', data: order, immediateSend: true }); navigate('/create-order'); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
-                                                            <button onClick={() => setEditingOrder(order)} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
-                                                            <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
-                                                        </div>
-                                                    </div>
+                                                 <div key={order.id} className={`w-full text-left p-3 rounded-lg ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-white'} dark:bg-purple-900/30 mb-2`}>
+                                                     <div className="flex justify-between items-center">
+                                                         <div>
+                                                             <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
+                                                         </div>
+                                                         <div className="flex items-center space-x-2">
+                                                             <button onClick={() => {
+                                                               const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                               if (!supplierExists) {
+                                                                 toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
+                                                                 return;
+                                                               }
+                                                               setPrefilledData({ type: 'order', data: order, immediateSend: true });
+                                                               navigate('/create-order');
+                                                             }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                             <button onClick={() => {
+                                                               const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                               if (!supplierExists) {
+                                                                 toast.error("Fornitore non trovato, modifica limitata.");
+                                                               }
+                                                               setEditingOrder(order);
+                                                             }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
+                                                             <button onClick={(e) => { e.stopPropagation(); deleteScheduledOrder(order.id); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                         </div>
+                                                     </div>
                                                     <ScheduledOrderPreview order={order} suppliers={suppliers} />
                                                 </div>
                                             )
@@ -361,20 +537,10 @@ const SchedulePage = ({ batchMode, setBatchMode, multiOrders, setMultiOrders, su
 
            <div className="flex space-x-3">
             {editingOrder && <button onClick={handleCancelEdit} className="w-full py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Annulla</button>}
-            {selectedDate && (batchMode || (selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : (batchMode ? 'Programmando...' : 'Programmando...')) : (editingOrder ? 'Aggiorna Ordine' : (batchMode ? 'Programma Ordini' : 'Programma Ordine'))}</span></button>}
+            {selectedDate && ((editingOrder && editingMultiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim()))) || (!editingOrder && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : 'Programmando...') : (editingOrder ? 'Aggiorna Ordini' : 'Programma Ordini')}</span></button>}
           </div>
         </div>
-        {showTypeModal && (
-          <div className="modal-overlay">
-            <div className="glass-card p-6 max-w-sm w-full">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
-              <div className="space-y-3">
-                <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="btn btn-primary w-full">Singolo Fornitore</button>
-                <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="btn btn-purple w-full">Più Fornitori</button>
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     );
 }

@@ -38,11 +38,6 @@ export function register(config) {
 
         // Add some additional logging to localhost, pointing developers to the
         // service worker/PWA documentation.
-        navigator.serviceWorker.ready.then(() => {
-                    console.log(
-                      'This web app is being served cache-first by a service ' +
-                        'worker. To learn more, visit https://cra.link/PWA'
-                    );        });
       } else {
         // Is not localhost. Just register service worker
         registerValidSW(swUrl, config);
@@ -64,7 +59,6 @@ function registerValidSW(swUrl, config) {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
               // New content is available; activate it immediately and prompt user to refresh.
-              console.log('New content is available. Activating new service worker and prompting for refresh.');
 
               // Send a message to the waiting service worker to activate itself immediately
               installingWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -77,7 +71,6 @@ function registerValidSW(swUrl, config) {
                 // This requires 'toast' to be available in this scope, which it is not.
                 // So, we'll just log for now, or assume the app will handle the refresh.
                 // For a real app, you'd want a UI element here.
-                console.log('Please refresh the page to get the new content.');
                 // A more robust solution would involve a custom UI to prompt the user.
                 // For now, we'll rely on the user refreshing or the app's onUpdate callback.
               }
@@ -85,7 +78,6 @@ function registerValidSW(swUrl, config) {
               // At this point, everything has been precached. 
               // It's the perfect time to display a
               // "Content is cached for offline use." message.
-              console.log('Content is cached for offline use.');
 
               // Execute callback
               if (config && config.onSuccess) {
@@ -125,7 +117,6 @@ function checkValidServiceWorker(swUrl, config) {
       }
     })
     .catch(() => {
-      console.log('No internet connection found. App is running in offline mode.');
     });
 }
 

@@ -17,11 +17,6 @@ webpush.setVapidDetails(
 );
 
 // --- ADDED DIAGNOSTIC LOGGING ---
-console.log('DIAGNOSTIC: VAPID_MAILTO:', process.env.VAPID_MAILTO);
-console.log('DIAGNOSTIC: VAPID_PUBLIC_KEY (first 10 chars):', process.env.VAPID_PUBLIC_KEY ? process.env.VAPID_PUBLIC_KEY.substring(0, 10) : 'N/A');
-console.log('DIAGNOSTIC: VAPID_PUBLIC_KEY length:', process.env.VAPID_PUBLIC_KEY ? process.env.VAPID_PUBLIC_KEY.length : 'N/A');
-console.log('DIAGNOSTIC: VAPID_PRIVATE_KEY (first 10 chars):', process.env.VAPID_PRIVATE_KEY ? process.env.VAPID_PRIVATE_KEY.substring(0, 10) : 'N/A');
-console.log('DIAGNOSTIC: VAPID_PRIVATE_KEY length:', process.env.VAPID_PRIVATE_KEY ? process.env.VAPID_PRIVATE_KEY.length : 'N/A');
 // --- END DIAGNOSTIC LOGGING ---
 
 module.exports = async (req, res) => {
@@ -37,7 +32,6 @@ module.exports = async (req, res) => {
 
   try {
     // DIAGNOSTIC: Test direct fetch to Supabase
-    console.log('DIAGNOSTIC: Attempting direct fetch to Supabase URL...');
     try {
       const testUrl = process.env.SUPABASE_URL + '/rest/v1/suppliers?limit=1'; // Use a public endpoint if possible, or any endpoint
       const testResponse = await fetch(testUrl, {
@@ -46,13 +40,10 @@ module.exports = async (req, res) => {
           'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
         }
       });
-      console.log('DIAGNOSTIC: Fetch response status:', testResponse.status);
       const testData = await testResponse.json();
-      console.log('DIAGNOSTIC: Fetch response data:', testData);
     } catch (fetchError) {
       console.error('DIAGNOSTIC: Direct fetch failed:', fetchError);
     }
-    console.log('DIAGNOSTIC: Direct fetch test complete.');
 
     const now = new Date();
 
@@ -106,7 +97,6 @@ module.exports = async (req, res) => {
 
       return webpush.sendNotification(subscription, payload)
         .then(async () => {
-          console.log('Push notification sent. Inserting into DB:', notificationData);
           const { error } = await supabase.from('notifications').insert([notificationData]);
           if (error) {
             console.error('Error inserting notification:', error);

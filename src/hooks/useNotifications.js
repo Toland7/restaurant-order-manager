@@ -5,30 +5,27 @@ import { toast } from 'react-hot-toast';
 export const useNotifications = (user, setPrefilledData, navigate) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
-    const handleNotificationClick = useCallback(async (notification) => {
-        console.log('🔔 Notification clicked:', notification);
-        if (notification.reminder_id) {
-            console.log('🔔 Loading scheduled order for reminder_id:', notification.reminder_id);
-            try {
-                const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
-                console.log('🔔 Scheduled order loaded:', scheduledOrder);
-                if (scheduledOrder) {
-                    console.log('🔔 Setting prefilled data and navigating to create-order');
-                    setPrefilledData({ type: 'order', data: scheduledOrder });
-                    navigate('/create-order');
-                } else {
-                    console.log('🔔 Scheduled order not found');
-                    toast.error("Ordine programmato non trovato.");
-                }
-            } catch (error) {
-                console.error("Error loading reminder from notification:", error);
-                toast.error("Impossibile caricare il promemoria.");
-            }
+  const handleNotificationClick = useCallback(async (notification) => {
+    if (notification.reminder_id) {
+      try {
+        const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
+        if (scheduledOrder) {
+          setPrefilledData({ type: 'order', data: scheduledOrder });
+          navigate('/create-order');
+          // Auto-mark as read
+          await supabaseHelpers.markNotificationAsRead(notification.id);
+          setUnreadCount(prev => Math.max(0, prev - 1));
         } else {
-            console.log('🔔 Notification has no reminder_id');
-            // Handle other notification types if any
+          toast.error("Ordine programmato non trovato.");
         }
-    }, [setPrefilledData, navigate]);
+      } catch (error) {
+        console.error("Error loading reminder from notification:", error);
+        toast.error("Impossibile caricare il promemoria.");
+      }
+    } else {
+      // Handle other notification types if any
+    }
+  }, [setPrefilledData, navigate, setUnreadCount]);
 
     useEffect(() => {
         if (user) {

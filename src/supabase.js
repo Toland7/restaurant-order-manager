@@ -4,8 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Anon Key (first 5 chars):', supabaseAnonKey ? supabaseAnonKey.substring(0, 5) : 'N/A');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.')
@@ -216,83 +214,36 @@ export const supabaseHelpers = {
     return data;
   },
 
-  async getScheduledOrderById(id) {
-    const { data, error } = await supabase
-      .from('scheduled_orders')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
+   async getScheduledOrderById(id) {
+     const { data, error } = await supabase
+       .from('scheduled_orders')
+       .select('*')
+       .eq('id', id);
 
-      async getAllNotifications(userId) {
-        const { data, error } = await supabase
+     if (error) throw error;
+     return data ? data[0] : null;
+   },
+
+
+    
+      async getNotifications(userId, includeRead = true) {
+        let query = supabase
           .from('notifications')
           .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+          .eq('user_id', userId);
 
-        console.log('🔕 Raw response from Supabase query:', { data, error });
+        if (!includeRead) {
+          query = query.eq('is_read', false);
+        }
+
+        query = query.order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+
 
         if (error) throw error;
         return data;
       },
-    
-        // OLD: getNotifications function (commented out)
-    
-        /*
-    
-        async getNotifications(userId, includeRead = true) {
-    
-          let query = supabase
-    
-            .from('notifications')
-    
-            .select('*')
-    
-            .eq('user_id', userId);
-    
-      
-    
-          if (!includeRead) {
-    
-            query = query.eq('is_read', false);
-    
-          }
-    
-      
-    
-              query = query.order('created_at', { ascending: false });
-    
-      
-    
-          
-    
-      
-    
-              const response = await query;
-    
-      
-    
-              console.log('🔕 Raw response from Supabase query:', response);
-    
-      
-    
-          
-    
-      
-    
-              const { data, error } = response;
-    
-          if (error) throw error;
-    
-          return data;
-    
-        },
-    
-        */
     
       
     
