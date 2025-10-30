@@ -301,11 +301,10 @@ export const supabaseHelpers = {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
-      .single();
+      .eq('id', userId);
 
     if (error) throw error;
-    return data;
+    return data[0] || null;
   },
 
   // Auth helpers
