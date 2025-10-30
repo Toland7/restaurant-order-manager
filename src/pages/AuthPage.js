@@ -35,7 +35,9 @@ const AuthPage = () => {
     const handleSignUp = async (e) => {
       e.preventDefault();
       setIsAuthenticating(true);
+      console.log('Starting signup for email:', email);
       try {
+        console.log('Calling supabase.auth.signUp...');
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -46,9 +48,12 @@ const AuthPage = () => {
             }
           }
         });
+        console.log('Signup response data:', data);
+        console.log('Signup response error:', error);
 
         // Salva i dati del profilo nella tabella profiles
         if (data.user && !error) {
+          console.log('Updating profile for user:', data.user.id);
           await supabase.from('profiles').update({
             first_name: firstName,
             last_name: lastName,
@@ -58,6 +63,7 @@ const AuthPage = () => {
             headquarters_name: headquartersName,
             headquarters_address: headquartersAddress,
           }).eq('id', data.user.id);
+          console.log('Profile updated successfully');
         }
         if (error) throw error;
         if (data.user) {
@@ -65,6 +71,9 @@ const AuthPage = () => {
           setIsLogin(true);
         }
       } catch (error) {
+        console.error('Signup error caught:', error);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error);
         toast.error(error.message);
       } finally {
         setIsAuthenticating(false);

@@ -1,6 +1,6 @@
 # supabase/config.toml
 
-project_id = "gmpifncmfshvsmkvwjgr"
+project_id = "prfsoqztdanhkzyajjhk"
 
 [api]
 # The port to use for the API proxy.
