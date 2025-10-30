@@ -41,12 +41,6 @@ const AuthPage = () => {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: {
-              is_approved: false,
-              is_admin: false,
-            }
-          }
         });
         console.log('Signup response data:', data);
         console.log('Signup response error:', error);
