@@ -77,3 +77,4 @@ supabase_schema_to_apply.sql
 supabase/migrations/8_fix_reminder_id_type.sql
 Liste Faic + Fruttivendolo.pdf
 update_push_subscription.sql
+.gemini/GEMINI.md
