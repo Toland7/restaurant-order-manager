@@ -58,29 +58,7 @@ const AuthPage = () => {
 
         // Salva i dati del profilo nella tabella profiles
         if (data.user && !error) {
-          console.log('Updating profile for user:', data.user.id);
-          console.log('Profile data to update:', {
-            first_name: firstName,
-            last_name: lastName,
-            role: role,
-            company_name: companyName,
-            company_vat_id: companyVatId,
-            headquarters_name: headquartersName,
-            headquarters_address: headquartersAddress,
-          });
-          const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
-            first_name: firstName,
-            last_name: lastName,
-            role: role,
-            company_name: companyName,
-            company_vat_id: companyVatId,
-            headquarters_name: headquartersName,
-            headquarters_address: headquartersAddress,
-          }).eq('id', data.user.id);
-          console.log('Update response data:', updatedProfile);
-          console.log('Update response error:', updateError);
-          if (updateError) throw updateError;
-          console.log('Profile updated successfully');
+          console.log('Profile data will be populated by trigger.');
         }
         if (error) throw error;
         if (data.user) {
