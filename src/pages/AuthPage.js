@@ -41,6 +41,17 @@ const AuthPage = () => {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              role: role,
+              company_name: companyName,
+              company_vat_id: companyVatId,
+              headquarters_name: headquartersName,
+              headquarters_address: headquartersAddress,
+            }
+          }
         });
         console.log('Signup response data:', data);
         console.log('Signup response error:', error);
