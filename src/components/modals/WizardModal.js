@@ -40,7 +40,7 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
                 break;
             }
             case 'email': {
-                contactLink = `mailto:${order.supplier.contact}?subject=${encodeURIComponent(order.emailSubject || `Ordine Fornitore - ${order.supplier.name}`)}&body=${encodedMessage}`;
+                contactLink = `mailto:${order.supplier.contact}?subject=${encodeURIComponent(order.email_subject || `Ordine Fornitore - ${order.supplier.name}`)}&body=${encodedMessage}`;
                 break;
             }
             case 'sms': {

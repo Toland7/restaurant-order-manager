@@ -6,6 +6,7 @@ import { usePrefill } from '../PrefillContext';
 
 import ScheduleOrderModal from '../components/modals/ScheduleOrderModal';
 import ConfirmOrderModal from '../components/modals/ConfirmOrderModal';
+import ExitConfirmationModal from '../components/modals/ExitConfirmationModal';
 
 import WizardModal from '../components/modals/WizardModal';
 
@@ -19,6 +20,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmMessages, setConfirmMessages] = useState(null);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
 
     const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
@@ -95,6 +97,21 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       return message;
     };
 
+    const hasUnsavedChanges = () => {
+      return multiOrders.some(order =>
+        order.supplier &&
+        (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') ||
+         order.additional.trim() ||
+         order.email_subject?.trim())
+      );
+    };
+
+    const onConfirmExit = () => {
+      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
+      setShowExitConfirm(false);
+      navigate(-1);
+    };
+
     const handlePreviewOrder = () => {
         const invalidOrders = [];
         const orderMessages = [];
@@ -155,7 +172,13 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
     return (
       <div className="min-h-screen app-background">
-        <Header title="Crea Ordine" onBack={() => navigate(-1)} />
+        <Header title="Crea Ordine" onBack={() => {
+          if (hasUnsavedChanges()) {
+            setShowExitConfirm(true);
+          } else {
+            navigate(-1);
+          }
+        }} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
 
           {suppliers.length === 0 && <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center"><p className="text-yellow-800 text-sm mb-3">Non hai ancora fornitori configurati</p><button onClick={() => navigate('/suppliers')} className="text-yellow-600 hover:text-yellow-800 font-medium text-sm">Aggiungi il primo fornitore →</button></div>}
@@ -272,20 +295,25 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             generateOrderMessage={generateOrderMessage}
         />
 
-                <WizardModal
-            showWizard={showWizard}
-            wizardOrders={wizardOrders}
-            wizardStep={wizardStep}
-            setWizardStep={setWizardStep}
-            user={user}
-            setNewlyCreatedOrders={setNewlyCreatedOrders}
-            setOrders={setOrders}
-            newlyCreatedOrders={newlyCreatedOrders}
-            setShowWizard={setShowWizard}
-            setWizardOrders={setWizardOrders}
-            onOrderSent={onOrderSent}
-            setMultiOrders={setMultiOrders}
-        />
+                 <WizardModal
+             showWizard={showWizard}
+             wizardOrders={wizardOrders}
+             wizardStep={wizardStep}
+             setWizardStep={setWizardStep}
+             user={user}
+             setNewlyCreatedOrders={setNewlyCreatedOrders}
+             setOrders={setOrders}
+             newlyCreatedOrders={newlyCreatedOrders}
+             setShowWizard={setShowWizard}
+             setWizardOrders={setWizardOrders}
+             onOrderSent={onOrderSent}
+             setMultiOrders={setMultiOrders}
+         />
+         <ExitConfirmationModal
+             showExitConfirm={showExitConfirm}
+             setShowExitConfirm={setShowExitConfirm}
+             onConfirmExit={onConfirmExit}
+         />
         {showScheduleModal && <ScheduleOrderModal
             onClose={() => setShowScheduleModal(false)}
             multiOrders={multiOrders}
