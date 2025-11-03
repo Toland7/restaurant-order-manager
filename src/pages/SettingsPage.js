@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { User, Download, ChevronRight } from 'lucide-react';
+import { User, Download, ChevronRight, Users } from 'lucide-react';
 import Header from '../components/ui/Header';
 import { useAuth } from '../AuthContext';
+import { useProfileContext } from '../ProfileContext';
 import { supabaseHelpers } from '../supabase';
 
 const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const navigate = useNavigate();
     const { signOut } = useAuth();
+    const { selectedProfile, setSelectedProfile, hasPermission } = useProfileContext();
 
     useEffect(() => {
       const isIos = () => { const userAgent = window.navigator.userAgent.toLowerCase(); return /iphone|ipad|ipod/.test(userAgent); };
@@ -19,6 +21,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
     }, []);
 
     const handleLogout = async () => {
+      setSelectedProfile(null); // Clear the selected profile
       await signOut();
       toast.success('Logout effettuato');
       navigate('/');
@@ -125,6 +128,19 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
               <ChevronRight size={20} className="text-gray-300 ml-auto" />
             </div>
           </button>
+
+          {selectedProfile && hasPermission('profiles:manage') && (
+            <button onClick={() => navigate('/profile-manager')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><Users size={24} className="text-gray-500" /></div>
+                <div>
+                  <p className="font-medium text-gray-900">Gestione Profili</p>
+                  <p className="text-sm text-gray-500">Aggiungi, modifica o elimina profili</p>
+                </div>
+                <ChevronRight size={20} className="text-gray-300 ml-auto" />
+              </div>
+            </button>
+          )}
 
           <button 
             onClick={async () => {

@@ -8,6 +8,7 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './AuthContext.js';
 import { PrefillProvider } from './PrefillContext.js';
+import { ProfileProvider } from './ProfileContext.js';
 import './i18n';
 
 // Inizializza Sentry per monitoraggio errori
@@ -25,7 +26,9 @@ root.render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <PrefillProvider>
-            <App />
+            <ProfileProvider>
+              <App />
+            </ProfileProvider>
           </PrefillProvider>
         </AuthProvider>
       </BrowserRouter>

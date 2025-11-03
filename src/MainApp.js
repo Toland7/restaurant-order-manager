@@ -13,6 +13,7 @@ import ProductHistoryPage from './pages/ProductHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import NotificationsPage from './pages/NotificationsPage';
+import ProfileManagerPage from './pages/ProfileManagerPage';
 
 import CreateOrderPage from './pages/CreateOrderPage';
 import SchedulePage from './pages/SchedulePage';
@@ -24,9 +25,14 @@ import { useOrders } from './hooks/useOrders';
 import { useAnalytics } from './hooks/useAnalytics';
 import { useNotifications } from './hooks/useNotifications';
 import { supabaseHelpers } from './supabase.js';
+import useSubscriptionStatus from './hooks/useSubscriptionStatus';
+import ProfileSelectionPage from './pages/ProfileSelectionPage';
+import { useProfileContext } from './ProfileContext';
 
 const MainApp = () => {
   const { user } = useAuth();
+  const { isProUser } = useSubscriptionStatus();
+  const { selectedProfile, loadingProfile } = useProfileContext();
 
   const { profile, setProfile } = useProfile(user);
   const { suppliers, setSuppliers } = useSuppliers(user);
@@ -136,6 +142,10 @@ const MainApp = () => {
 
   if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
 
+  if (isProUser && !selectedProfile && !loadingProfile) {
+    return <ProfileSelectionPage />;
+  }
+
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
@@ -150,6 +160,7 @@ const MainApp = () => {
         <Route path="/notifications" element={<NotificationsPage user={user} onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />} />
         <Route path="/settings" element={<SettingsPage theme={theme} setTheme={setTheme} profile={profile} user={user} />} />
         <Route path="/user-profile" element={<UserProfilePage user={user} profile={profile} setProfile={setProfile} />} />
+        <Route path="/profile-manager" element={<ProfileManagerPage />} />
         <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
       </Routes>
       <ModernCookieBanner />

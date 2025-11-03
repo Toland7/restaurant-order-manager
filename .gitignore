@@ -66,6 +66,8 @@ temp/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging
+
 
 # macOS
 .DS_Store
@@ -78,3 +80,8 @@ supabase/migrations/8_fix_reminder_id_type.sql
 Liste Faic + Fruttivendolo.pdf
 update_push_subscription.sql
 .gemini/GEMINI.md
+.env.staging
+
+# Supabase manual backups
+remote_schema_backup.sql
+remote_data_backup.sql
