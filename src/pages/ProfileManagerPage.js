@@ -131,22 +131,17 @@ const ProfileManagerPage = () => {
         if (error) throw error;
         savedProfile = data;
 
-        console.log('Updating permissions for profile_id:', savedProfile.id);
-        console.log('Current user ID (auth.uid()):', user.id);
-
         // Update permissions for existing profile
         const { error: deleteError } = await supabase.from('profile_permissions').delete().eq('profile_id', savedProfile.id);
         if (deleteError) {
           console.error('Error deleting existing permissions:', deleteError);
           throw deleteError;
         }
-        console.log('Existing permissions deleted for profile_id:', savedProfile.id);
 
         const permissionsToInsert = profilePermissions.map(permName => {
           const permission = availablePermissions.find(ap => ap.name === permName);
           return { profile_id: savedProfile.id, permission_id: permission.id };
         });
-        console.log('Permissions to insert:', permissionsToInsert);
 
         if (permissionsToInsert.length > 0) {
           const { error: insertPermError } = await supabase.from('profile_permissions').insert(permissionsToInsert);
@@ -155,7 +150,6 @@ const ProfileManagerPage = () => {
             throw insertPermError;
           }
         }
-        console.log('New permissions inserted.');
 
       } else {
         // Create new profile

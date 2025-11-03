@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInAppProfiles } from '../hooks/useInAppProfiles';
 import { supabase } from '../supabase';
@@ -15,6 +15,12 @@ const ProfileSelectionPage = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinError, setPinError] = useState('');
   const [isSettingPin, setIsSettingPin] = useState(false);
+
+  // Clear selected profile from context and localStorage on mount
+  useEffect(() => {
+    setSelectedProfile(null);
+    localStorage.removeItem('selectedProfile');
+  }, [setSelectedProfile]);
 
   const handleProfileClick = (profile) => {
     setSelectedProfileData(profile);
@@ -89,25 +95,27 @@ const ProfileSelectionPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
-      <h1 className="text-4xl font-bold mb-8">Chi sta usando l'app?</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="min-h-screen flex flex-col items-center justify-center app-background text-gray-900 dark:text-gray-100 p-6">
+      <h1 className="text-5xl font-light mb-12 text-gray-800 dark:text-gray-100">Chi sta usando l'app?</h1>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
         {profiles.map(profile => (
           <button 
             key={profile.id} 
-            className="flex flex-col items-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out transform hover:-translate-y-1"
+            className="flex flex-col items-center justify-center p-8 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-2 cursor-pointer border border-gray-200 dark:border-gray-700"
             onClick={() => handleProfileClick(profile)}
           >
-            <div className="text-5xl mb-4">👤</div> {/* Placeholder for avatar */}
-            <span className="text-xl font-semibold">{profile.profile_name}</span>
+            <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-semibold mb-4">
+              {profile.profile_name.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-2xl font-medium text-gray-900 dark:text-gray-100">{profile.profile_name}</span>
           </button>
         ))}
       </div>
 
       {showPinModal && selectedProfileData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4 text-center">
+          <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full max-w-md border border-gray-200 dark:border-gray-700">
+            <h2 className="text-3xl font-medium mb-6 text-center text-gray-800 dark:text-gray-100">
               {isSettingPin ? `Crea un PIN per ${selectedProfileData.profile_name}` : `Inserisci PIN per ${selectedProfileData.profile_name}`}
             </h2>
             {pinError && <p className="text-red-500 text-center mb-4">{pinError}</p>}
@@ -117,7 +125,7 @@ const ProfileSelectionPage = () => {
             />
             <button 
               onClick={() => setShowPinModal(false)}
-              className="mt-6 w-full py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="mt-8 w-full py-3 text-lg font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Annulla
             </button>

@@ -85,3 +85,4 @@ update_push_subscription.sql
 # Supabase manual backups
 remote_schema_backup.sql
 remote_data_backup.sql
+sql_backups/

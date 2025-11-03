@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X, ArrowLeft } from 'lucide-react';
 
 const PinPad = ({ pinLength = 4, onPinComplete, onPinChange }) => {
   const [pin, setPin] = useState('');
@@ -26,42 +27,43 @@ const PinPad = ({ pinLength = 4, onPinComplete, onPinChange }) => {
   };
 
   return (
-    <div className="pin-pad-container p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-lg">
-      <div className="pin-display text-center text-3xl font-bold mb-4 tracking-widest">
-        {pin.split('').map((char, index) => (
-          <span key={index} className="inline-block mx-1">●</span>
-        ))}
-        {Array(pinLength - pin.length).fill('').map((_, index) => (
-          <span key={index + pin.length} className="inline-block mx-1 text-gray-400 dark:text-gray-600">○</span>
+    <div className="pin-pad-container p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+      <div className="pin-display flex justify-center items-center h-12 mb-6 space-x-3">
+        {Array(pinLength).fill('').map((_, index) => (
+          <div
+            key={index}
+            className={`w-4 h-4 rounded-full transition-all duration-200 ease-in-out
+              ${pin.length > index ? 'bg-blue-500 scale-100' : 'border-2 border-gray-400 dark:border-gray-600 scale-75'}`}
+          ></div>
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
           <button
             key={digit}
             onClick={() => handleDigitClick(digit.toString())}
-            className="p-4 text-2xl font-semibold bg-white dark:bg-gray-700 rounded-lg shadow hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="p-5 text-3xl font-normal bg-gray-100 dark:bg-gray-700 rounded-full shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 ease-in-out active:scale-95"
           >
             {digit}
           </button>
         ))}
         <button
           onClick={handleClear}
-          className="p-4 text-2xl font-semibold bg-red-100 dark:bg-red-700 rounded-lg shadow hover:bg-red-200 dark:hover:bg-red-600 transition-colors"
+          className="p-5 text-3xl font-normal bg-gray-100 dark:bg-gray-700 rounded-full shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 ease-in-out active:scale-95 text-gray-700 dark:text-gray-200 flex items-center justify-center"
         >
-          Clear
+          <X size={30} />
         </button>
         <button
           onClick={() => handleDigitClick('0')}
-          className="p-4 text-2xl font-semibold bg-white dark:bg-gray-700 rounded-lg shadow hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="p-5 text-3xl font-normal bg-gray-100 dark:bg-gray-700 rounded-full shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 ease-in-out active:scale-95"
         >
           0
         </button>
         <button
           onClick={handleBackspace}
-          className="p-4 text-2xl font-semibold bg-yellow-100 dark:bg-yellow-700 rounded-lg shadow hover:bg-yellow-200 dark:hover:bg-yellow-600 transition-colors"
+          className="p-5 text-3xl font-normal bg-gray-100 dark:bg-gray-700 rounded-full shadow-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 ease-in-out active:scale-95 text-gray-700 dark:text-gray-200 flex items-center justify-center"
         >
-          ←
+          <ArrowLeft size={30} />
         </button>
       </div>
     </div>

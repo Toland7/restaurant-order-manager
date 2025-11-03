@@ -13,7 +13,6 @@ export const ProfileProvider = ({ children }) => {
     const storedProfile = localStorage.getItem('selectedProfile');
     if (storedProfile) {
       setSelectedProfile(JSON.parse(storedProfile));
-      console.log('Loaded selectedProfile from localStorage:', JSON.parse(storedProfile));
     }
     setLoadingProfile(false);
   }, []);
@@ -22,7 +21,6 @@ export const ProfileProvider = ({ children }) => {
   useEffect(() => {
     const fetchPermissions = async () => {
       if (selectedProfile?.id) {
-        console.log('Fetching permissions for profile:', selectedProfile.id);
         const { data, error } = await supabase
           .from('profile_permissions')
           .select('permissions(name)')
@@ -34,11 +32,9 @@ export const ProfileProvider = ({ children }) => {
         } else {
           const fetchedPermissions = data.map(pp => pp.permissions.name);
           setProfilePermissions(fetchedPermissions);
-          console.log('Fetched profile permissions:', fetchedPermissions);
         }
       } else {
         setProfilePermissions([]);
-        console.log('No selected profile, clearing permissions.');
       }
     };
 
