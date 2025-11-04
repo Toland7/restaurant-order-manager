@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { supabaseHelpers } from '../supabase';
 import { useNavigate } from 'react-router-dom';
+import DeleteAccountModal from '../components/modals/DeleteAccountModal'; // Import the new modal
 
 const UserProfilePage = ({ user, profile, setProfile }) => {
     const navigate = useNavigate();
@@ -14,6 +15,8 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
     const [headquartersName, setHeadquartersName] = useState('');
     const [headquartersAddress, setHeadquartersAddress] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State for modal visibility
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for dropdown visibility
 
     useEffect(() => {
         if (profile) {
@@ -50,10 +53,45 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
         }
     };
 
+    const handleDeleteAccountClick = () => {
+        setIsDeleteModalOpen(true);
+        setIsDropdownOpen(false); // Close dropdown when modal opens
+    };
+
+    const handleConfirmDelete = async (email, password) => {
+        if (!user) {
+            toast.error('Sessione utente non valida.');
+            return;
+        }
+
+        // Re-authenticate user before deleting
+        const { data: { user: reauthenticatedUser }, error: reauthError } = await supabaseHelpers.signInWithPassword(email, password);
+
+        if (reauthError || !reauthenticatedUser || reauthenticatedUser.id !== user.id) {
+            toast.error('Credenziali non valide. Impossibile eliminare l\'account.');
+            return;
+        }
+
+        try {
+            const { success, error } = await supabaseHelpers.deleteCurrentUser();
+            if (success) {
+                toast.success('Account eliminato con successo. Verrai reindirizzato alla pagina di autenticazione.');
+                navigate('/auth'); // Redirect to auth page after deletion
+            } else {
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            toast.error('Errore durante l\'eliminazione dell\'account.');
+        } finally {
+            setIsDeleteModalOpen(false); // Close modal
+        }
+    };
+
     return (
-        <div className="min-h-screen app-background">
+        <div className="min-h-screen app-background"> {/* Removed flex flex-col */}
             <Header title="Profilo Utente" onBack={() => navigate('/settings')} />
-            <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
+            <div className="max-w-sm mx-auto px-6 py-6 space-y-4"> {/* Removed flex-grow overflow-y-auto */}
                 <div className="glass-card p-4">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                     <input id="email" type="email" value={user?.email || ''} className="input bg-gray-100 dark:bg-gray-700" disabled />
@@ -101,7 +139,48 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
                 <button onClick={handleSaveProfile} disabled={isSubmitting} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors">
                     {isSubmitting ? 'Salvataggio...' : 'Salva Modifiche'}
                 </button>
+
+                {/* Dropdown for Delete Account button */}
+                <div className="relative inline-block text-center w-full mt-4">
+                    <div>
+                        <button
+                            type="button"
+                            className="text-red-600 dark:text-red-400 hover:underline font-medium text-sm px-4 py-2"
+                            id="options-menu"
+                            aria-haspopup="true"
+                            aria-expanded="true"
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        >
+                            Altre Azioni
+                        </button>
+                    </div>
+
+                    {isDropdownOpen && (
+                        <div
+                            className="origin-top-right absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none"
+                            role="menu"
+                            aria-orientation="vertical"
+                            aria-labelledby="options-menu"
+                        >
+                            <div className="py-1" role="none">
+                                <button
+                                    onClick={handleDeleteAccountClick}
+                                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100 dark:hover:bg-red-700"
+                                    role="menuitem"
+                                >
+                                    Elimina Account
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
+
+            <DeleteAccountModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+            />
         </div>
     );
 };
