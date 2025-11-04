@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Check, Users, Download, Upload } from 'lucide-react';
+import { Plus, Edit3, Trash2, Check, Users, Download } from 'lucide-react';
 import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
@@ -16,7 +16,6 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const [newProduct, setNewProduct] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isProductImportModalOpen, setIsProductImportModalOpen] = useState(false);
-    const fileInputRef = React.useRef(null);
 
     const handleFileSelectedForImport = (file) => {
         if (!file) return;
