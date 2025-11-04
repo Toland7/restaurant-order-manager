@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Check, Users } from 'lucide-react';
+import { Plus, Edit3, Trash2, Check, Users, Download, Upload } from 'lucide-react';
 import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
+import Papa from 'papaparse';
+import ProductImportModal from '../components/modals/ProductImportModal';
 
 const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const navigate = useNavigate();
@@ -12,9 +15,81 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const [newSupplier, setNewSupplier] = useState({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '' });
     const [newProduct, setNewProduct] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isProductImportModalOpen, setIsProductImportModalOpen] = useState(false);
+    const fileInputRef = React.useRef(null);
+
+    const handleFileSelectedForImport = (file) => {
+        if (!file) return;
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                const importedProducts = results.data
+                    .map(row => row.product_name ? String(row.product_name).trim() : null)
+                    .filter(Boolean);
+
+                if (importedProducts.length > 0) {
+                    setNewSupplier(prev => ({ ...prev, products: [...prev.products, ...importedProducts] }));
+                    toast.success(`${importedProducts.length} prodotti importati con successo!`);
+                } else {
+                    toast.error('Nessun prodotto valido trovato nel file CSV.');
+                }
+                setIsProductImportModalOpen(false); // Close modal on complete
+            },
+            error: (err) => {
+                toast.error('Errore nella lettura del file CSV.');
+                console.error('PapaParse error:', err);
+                setIsProductImportModalOpen(false); // Close modal on error
+            }
+        });
+    };
+
+
+    const handleDownloadTemplate = () => {
+        const headers = "product_name";
+        const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'template_prodotti.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const addProduct = () => { if (newProduct.trim()) { setNewSupplier(prev => ({ ...prev, products: [...prev.products, newProduct.trim()] })); setNewProduct(''); } };
     const removeProduct = (index) => { setNewSupplier(prev => ({ ...prev, products: prev.products.filter((_, i) => i !== index) })); };
+
+    const handleExportSupplierCSV = async (supplierId, supplierName) => {
+      try {
+        const products = await supabaseHelpers.getProductsBySupplier(supplierId);
+
+        if (products.length === 0) {
+          toast.success(`Nessun prodotto da esportare per ${supplierName}.`);
+          return;
+        }
+
+        const headers = "product_name";
+        const csvRows = [headers];
+
+        products.forEach(product => {
+          csvRows.push(`"${product.name}"`);
+        });
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `${supplierName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_products.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success(`Prodotti di ${supplierName} esportati con successo!`);
+      } catch (error) {
+        console.error('Error exporting supplier products:', error);
+        toast.error(`Errore durante l'esportazione dei prodotti.`);
+      }
+    };
 
     const saveSupplier = async () => {
       if (!newSupplier.name || !newSupplier.contact) { toast.error('Nome e contatto sono obbligatori'); return; }
@@ -79,6 +154,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-medium text-gray-900">{supplier.name}</h3>
                       <div className="flex space-x-2">
+                        <button onClick={() => handleExportSupplierCSV(supplier.id, supplier.name)} className="p-1 text-green-500 hover:bg-green-50 rounded"><Download size={16} /></button>
                         <button onClick={() => editSupplier(supplier)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Edit3 size={16} /></button>
                         <button onClick={() => deleteSupplier(supplier.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
                       </div>
@@ -98,6 +174,13 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
               {newSupplier.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" /></div>}
               <div className="glass-card p-4">
                 <span className="block text-sm font-medium text-gray-700 mb-2">Prodotti</span>
+                
+                <div className="mb-4">
+                  <button type="button" onClick={() => setIsProductImportModalOpen(true)} className="btn btn-outline text-sm py-1 px-2">
+                    Importa Prodotti da CSV
+                  </button>
+                </div>
+
                 <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">Nuovo Prodotto</label>
                 <div className="flex space-x-2 mb-3"><input id="new-product" name="new-product" type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="btn btn-primary"><Plus size={16} /></button></div>
                 <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button></div>)}</div>
@@ -106,6 +189,22 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
               <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' }); }} className="btn btn-outline flex-1" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="btn btn-primary flex-1">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
             </div>
           )}
+
+          <Dialog open={isProductImportModalOpen} onOpenChange={setIsProductImportModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Importa Prodotti da CSV</DialogTitle>
+                <DialogDescription>
+                  Carica un file CSV con una singola colonna "product_name" per aggiungere rapidamente più prodotti a questo fornitore.
+                </DialogDescription>
+              </DialogHeader>
+              <ProductImportModal 
+                onDownloadTemplate={handleDownloadTemplate}
+                onFileSelect={handleFileSelectedForImport}
+              />
+            </DialogContent>
+          </Dialog>
+
         </div>
       </div>
     );

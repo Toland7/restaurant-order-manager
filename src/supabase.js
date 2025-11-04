@@ -71,7 +71,29 @@ export const supabaseHelpers = {
     if (error) throw error;
   },
 
+  async getSupplierByName(userId, supplierName) {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('id, name')
+      .eq('user_id', userId)
+      .eq('name', supplierName)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no rows found, which is fine
+    return data;
+  },
+
   // Products
+  async getProductsBySupplier(supplierId) {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, unit')
+      .eq('supplier_id', supplierId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
   async createProducts(supplierId, products) {
     if (!products || products.length === 0) return [];
     
