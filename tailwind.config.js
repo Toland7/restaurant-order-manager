@@ -14,7 +14,12 @@ module.exports = {
           50: '#eff6ff',
           500: '#3b82f6',
           600: '#2563eb',
-        }
+        },
+        'primary-blue': '#38b2ac', // A teal-like blue
+        'secondary-blue': '#319795', // A darker teal
+        'light-gray': '#f7fafc', // A very light gray
+        'medium-gray': '#e2e8f0', // A slightly darker gray for borders
+        'dark-gray': '#2d3748', // Dark gray for text
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

@@ -82,16 +82,16 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
     return (
         <div className="modal-overlay">
             <div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Invio Ordine {wizardStep + 1} di {wizardOrders.length}</h3>
-                <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                    <h4 className="font-medium text-gray-800 mb-2">{wizardOrders[wizardStep].supplier?.name || 'Fornitore sconosciuto'}</h4>
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap">{wizardOrders[wizardStep].message}</pre>
+                <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Invio Ordine {wizardStep + 1} di {wizardOrders.length}</h3>
+                <div className="bg-light-gray p-3 rounded-lg mb-4">
+                    <h4 className="font-medium text-dark-gray mb-2">{wizardOrders[wizardStep].supplier?.name || 'Fornitore sconosciuto'}</h4>
+                    <pre className="text-sm text-dark-gray whitespace-pre-wrap">{wizardOrders[wizardStep].message}</pre>
                 </div>
                 <div className="flex items-center justify-between space-x-3">
-                    <button onClick={() => setWizardStep(prev => Math.max(0, prev - 1))} disabled={wizardStep === 0} className="p-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"><ChevronLeft size={20} /></button>
-                    <button onClick={handleSendOrder} className="flex-1 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Invia</button>
+                    <button onClick={() => setWizardStep(prev => Math.max(0, prev - 1))} disabled={wizardStep === 0} className="p-2 border border-medium-gray text-dark-gray rounded-lg hover:bg-light-gray"><ChevronLeft size={20} /></button>
+                    <button onClick={handleSendOrder} className="flex-1 py-2 px-4 bg-primary-blue text-white rounded-lg hover:bg-secondary-blue">Invia</button>
                 </div>
-                <p onClick={handleExit} className="text-sm text-gray-500 mt-4 text-center cursor-pointer hover:underline">Esci</p>
+                <p onClick={handleExit} className="text-sm text-dark-gray mt-4 text-center cursor-pointer hover:underline">Esci</p>
             </div>
         </div>
     );

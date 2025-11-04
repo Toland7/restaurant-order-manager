@@ -63,7 +63,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
     return (
       <div className="modal-overlay">
         <div className="glass-card p-6 max-w-sm w-full max-h-[80vh] flex flex-col">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Associa a un ordine programmato</h3>
+          <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Associa a un ordine programmato</h3>
           <div className="overflow-y-auto space-y-3">
             {futureScheduledOrders.length > 0 ? (
               futureScheduledOrders.map(order => (
@@ -71,15 +71,15 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
                   key={order.id} 
                   onClick={() => linkToScheduledOrder(order.id)}
                   disabled={isSubmitting}
-                  className="w-full text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:bg-gray-200"
+                  className="w-full text-left p-3 bg-light-gray rounded-lg hover:bg-medium-gray disabled:bg-medium-gray"
                 >
-                  <p className="font-medium text-sm text-purple-900">{suppliers.find(s => s.id === order.supplier_id)?.name || 'Fornitore eliminato'}</p>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                  <p className="font-medium text-sm text-primary-blue">{suppliers.find(s => s.id === order.supplier_id)?.name || 'Fornitore eliminato'}</p>
+                  <p className="text-xs text-dark-gray dark:text-gray-300">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 </button>
               ))
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
+                <p className="text-dark-gray mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
                 <button
                   onClick={() => {
                     // For now, schedule the first order in multiOrders
@@ -93,7 +93,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
                     });
                     navigate('/schedule');
                   }}
-                  className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors"
+                  className="w-full bg-primary-blue text-white py-3 rounded-lg font-medium hover:bg-secondary-blue transition-colors"
                 >
                   Crea un nuovo ordine programmato
                 </button>
@@ -101,7 +101,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
             )}
           </div>
           <div className="mt-4 flex justify-end">
-            <button onClick={onClose} className="py-2 px-4 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Chiudi</button>
+            <button onClick={onClose} className="py-2 px-4 border border-medium-gray text-dark-gray rounded-lg hover:bg-light-gray">Chiudi</button>
           </div>
         </div>
       </div>

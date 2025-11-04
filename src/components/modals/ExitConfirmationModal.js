@@ -9,9 +9,9 @@ const ExitConfirmationModal = ({ showExitConfirm, setShowExitConfirm, onConfirmE
             <div className="glass-card p-6 max-w-sm w-full">
                 <div className="flex items-center mb-4">
                     <AlertTriangle className="text-yellow-500 mr-3" size={24} />
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">Uscire senza salvare?</h3>
+                    <h3 className="font-medium text-dark-gray dark:text-gray-100">Uscire senza salvare?</h3>
                 </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-6">
+                <p className="text-sm text-dark-gray dark:text-gray-300 mb-6">
                     L'ordine in corso verrà perso. Sei sicuro di voler uscire?
                 </p>
                 <div className="flex space-x-3">

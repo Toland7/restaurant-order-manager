@@ -6,7 +6,7 @@ const OrderTypeModal = ({ showTypeModal, setBatchMode, setShowTypeModal }) => {
     return (
         <div className="modal-overlay">
             <div className="glass-card p-6 max-w-sm w-full">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
+              <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Scegli Tipo Ordine</h3>
               <div className="space-y-3">
                 <button onClick={() => { setBatchMode(false); setShowTypeModal(false); }} className="btn btn-primary w-full">Singolo Fornitore</button>
                 <button onClick={() => { setBatchMode(true); setShowTypeModal(false); }} className="btn btn-purple w-full">Più Fornitori</button>
