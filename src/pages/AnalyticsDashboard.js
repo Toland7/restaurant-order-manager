@@ -1,21 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, LineElement, PointElement } from 'chart.js';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Filter, ChevronDown } from 'lucide-react';
 import Header from '../components/ui/Header';
 import { useNavigate } from 'react-router-dom';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  LineElement,
-  PointElement
-);
 
 const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory }) => {
     const navigate = useNavigate();
@@ -25,9 +12,8 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
       supplierId: '',
       productName: '',
     });
-    const [productSearchTerm, setProductSearchTerm] = useState('');
-    const [productFilterSupplierId, setProductFilterSupplierId] = useState('');
-    const [productSortOrder, setProductSortOrder] = useState('name-asc');
+    const [pendingProductFilters, setPendingProductFilters] = useState({ searchTerm: '', supplierId: '', sortOrder: 'name-asc' });
+    const [activeProductFilters, setActiveProductFilters] = useState({ searchTerm: '', supplierId: '', sortOrder: 'name-asc' });
     const [showFilters, setShowFilters] = useState(false);
 
     const filteredOrders = useMemo(() => {
@@ -65,17 +51,10 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
         monthlyCounts[monthYear] = (monthlyCounts[monthYear] || 0) + 1;
       });
 
-      const sortedMonths = Object.keys(monthlyCounts).sort();
-      return {
-        labels: sortedMonths,
-        datasets: [{
-          label: 'Numero di Ordini',
-          data: sortedMonths.map(month => monthlyCounts[month]),
-          backgroundColor: 'rgba(75, 192, 192, 0.6)',
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 1,
-        }],
-      };
+      return Object.keys(monthlyCounts).sort().map(month => ({
+        name: month,
+        'Numero di Ordini': monthlyCounts[month],
+      }));
     }, [filteredOrders]);
 
     const ordersBySupplierData = useMemo(() => {
@@ -86,18 +65,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
         supplierCounts[supplierName] = (supplierCounts[supplierName] || 0) + 1;
       });
 
-      const labels = Object.keys(supplierCounts);
-      const data = Object.values(supplierCounts);
-      const backgroundColors = labels.map((_, i) => `hsl(${i * 60}, 70%, 60%)`);
-
-      return {
-        labels: labels,
-        datasets: [{
-          data: data,
-          backgroundColor: backgroundColors,
-          hoverOffset: 4,
-        }],
-      };
+      return Object.entries(supplierCounts).map(([name, value]) => ({ name, value }));
     }, [filteredOrders, suppliers]);
 
     const mostOrderedProductsData = useMemo(() => {
@@ -110,20 +78,10 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
         }
       });
 
-      const sortedProducts = Object.entries(productQuantities)
+      return Object.entries(productQuantities)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 10);
-
-      return {
-        labels: sortedProducts.map(([name]) => name),
-        datasets: [{
-          label: 'Quantità Ordinata',
-          data: sortedProducts.map(([, quantity]) => quantity),
-          backgroundColor: 'rgba(153, 102, 255, 0.6)',
-          borderColor: 'rgba(153, 102, 255, 1)',
-          borderWidth: 1,
-        }],
-      };
+        .slice(0, 10)
+        .map(([name, quantity]) => ({ name, 'Quantità Ordinata': quantity }));
     }, [filteredOrders]);
 
     const allOrderedProductsData = useMemo(() => {
@@ -143,55 +101,54 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
         }
       });
 
-      let products = Object.entries(productDetails).map(([productName, details]) => [
-        productName,
-        details.totalQuantity,
-        Array.from(details.suppliers).sort().join(', ') // Convert set to sorted array and join
-      ]);
+      let productEntries = Object.entries(productDetails);
 
-      // Apply search filter
-      if (productSearchTerm) {
-        const lowercasedSearchTerm = productSearchTerm.toLowerCase();
-        products = products.filter(([productName]) =>
+      // **EXCLUSIVE** supplier filter
+      if (activeProductFilters.supplierId) {
+        const selectedSupplier = suppliers.find(s => s.id === activeProductFilters.supplierId);
+        if (selectedSupplier) {
+          productEntries = productEntries.filter(([, details]) => details.suppliers.has(selectedSupplier.name));
+        }
+      }
+
+      // Search term filter
+      if (activeProductFilters.searchTerm) {
+        const lowercasedSearchTerm = activeProductFilters.searchTerm.toLowerCase();
+        productEntries = productEntries.filter(([productName]) =>
           productName.toLowerCase().includes(lowercasedSearchTerm)
         );
       }
 
-      // Apply sorting
+      // Map to final format for sorting and rendering
+      let products = productEntries.map(([productName, details]) => [
+        productName,
+        details.totalQuantity,
+        Array.from(details.suppliers).sort().join(', ')
+      ]);
+
+      // Sorting
       products.sort((a, b) => {
         const [nameA, quantityA] = a;
         const [nameB, quantityB] = b;
 
-        if (productSortOrder === 'name-asc') {
+        if (activeProductFilters.sortOrder === 'name-asc') {
           return nameA.localeCompare(nameB);
-        } else if (productSortOrder === 'name-desc') {
+        } else if (activeProductFilters.sortOrder === 'name-desc') {
           return nameB.localeCompare(nameA);
-        } else if (productSortOrder === 'quantity-desc') {
+        } else if (activeProductFilters.sortOrder === 'quantity-desc') {
           return quantityB - quantityA;
         }
         return 0;
       });
 
       return products;
-    }, [filteredOrders, productSearchTerm, productSortOrder, suppliers]);
+    }, [filteredOrders, activeProductFilters, suppliers]);
 
     const clearFilters = () => {
       setFilters({ dateFrom: '', dateTo: '', supplierId: '', productName: '' });
     };
 
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-        },
-      },
-    };
+    const PIE_CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57', '#ffc0cb'];
 
     return (
       <div className="min-h-screen app-background">
@@ -208,7 +165,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
 
           {showFilters && (
             <div className="glass-card p-5 mt-6 mb-7 pb-0.5 space-y-4">
-              <div className="flex items-center justify-between"><h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Filtra Dati</h3><div className="flex items-center gap-2"><span className="px-2 py-1 text-xs rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300">Ordini: {filteredOrders.length}</span><span className="px-2 py-1 text-xs rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300">Fornitori: {ordersBySupplierData.labels.length}</span></div></div>
+              <div className="flex items-center justify-between"><h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Filtra Dati</h3><div className="flex items-center gap-2"><span className="px-2 py-1 text-xs rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300">Ordini: {filteredOrders.length}</span><span className="px-2 py-1 text-xs rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300">Fornitori: {ordersBySupplierData.length}</span></div></div>
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   <button onClick={() => { const d=new Date(); const f=new Date(d.getTime()-24*60*60*1000); setFilters(prev=>({ ...prev, dateFrom: f.toISOString().split('T')[0], dateTo: d.toISOString().split('T')[0] })); }} className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Ultime 24h</button>
@@ -243,29 +200,57 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
             </div>
           )}
 
-
           <div className="glass-card p-4">
             <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Ordini nel Tempo</h3>
-            <div style={{ height: '250px' }}>
-              <Line data={ordersOverTimeData} options={chartOptions} />
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={ordersOverTimeData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <XAxis dataKey="name" stroke="#666" fontSize={12} />
+                <YAxis stroke="#666" fontSize={12} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="Numero di Ordini" stroke="#8884d8" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
 
           <div className="glass-card p-4">
             <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Ordini per Fornitore</h3>
-            <div style={{ height: '250px' }}>
-              <Pie data={ordersBySupplierData} options={chartOptions} />
-            </div>
+            <ResponsiveContainer width="100%" height={400}>
+              <PieChart>
+                <Pie 
+                  data={ordersBySupplierData} 
+                  dataKey="value" 
+                  nameKey="name" 
+                  cx="50%" 
+                  cy="45%" 
+                  outerRadius={110} 
+                  label
+                >
+                  {ordersBySupplierData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
 
           <div className="glass-card p-4">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti più Ordinati (Quantit)</h3>
-            <div style={{ height: '250px' }}>
-              <Bar data={mostOrderedProductsData} options={chartOptions} />
-            </div>
+            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti più Ordinati (Quantità)</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={mostOrderedProductsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                <XAxis dataKey="name" stroke="#666" fontSize={12} tick={false} />
+                <YAxis stroke="#666" fontSize={12} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Quantità Ordinata" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
-          {/* New section: All Ordered Products */} 
           {allOrderedProductsData.length > 0 && (
             <details className="glass-card group">
               <summary className="font-medium text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-800/60 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
@@ -273,14 +258,13 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                 <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
               </summary>
               <div className="p-4 border-t border-gray-100">
-                <div className="mb-4 space-y-3">
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label htmlFor="analytics-product-filter-supplier" className="block text-xs font-medium text-gray-700 mb-1">Filtra per Fornitore</label>
                     <select
                       id="analytics-product-filter-supplier"
-                      name="analytics-product-filter-supplier"
-                      value={productFilterSupplierId}
-                      onChange={(e) => setProductFilterSupplierId(e.target.value)}
+                      value={pendingProductFilters.supplierId}
+                      onChange={(e) => setPendingProductFilters(p => ({ ...p, supplierId: e.target.value }))}
                       className="input input-sm"
                     >
                       <option value="">Tutti i fornitori</option>
@@ -291,9 +275,8 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                     <label htmlFor="analytics-product-sort-order" className="block text-xs font-medium text-gray-700 mb-1">Ordina per</label>
                     <select
                       id="analytics-product-sort-order"
-                      name="analytics-product-sort-order"
-                      value={productSortOrder}
-                      onChange={(e) => setProductSortOrder(e.target.value)}
+                      value={pendingProductFilters.sortOrder}
+                      onChange={(e) => setPendingProductFilters(p => ({ ...p, sortOrder: e.target.value }))}
                       className="input input-sm"
                     >
                       <option value="name-asc">Nome (A-Z)</option>
@@ -302,16 +285,22 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                     </select>
                   </div>
                 </div>
-                <label htmlFor="analytics-product-search" className="block text-xs font-medium text-gray-700 mb-1">Cerca Prodotto</label>
-                <input
-                  id="analytics-product-search"
-                  name="analytics-product-search"
-                  type="search"
-                  placeholder="Cerca prodotto..."
-                  value={productSearchTerm}
-                  onChange={(e) => setProductSearchTerm(e.target.value)}
-                  className="w-full p-2 mb-4 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
-                />
+                <div className="mb-4">
+                  <label htmlFor="analytics-product-search" className="block text-xs font-medium text-gray-700 mb-1">Cerca Prodotto</label>
+                  <input
+                    id="analytics-product-search"
+                    type="search"
+                    placeholder="Cerca prodotto..."
+                    value={pendingProductFilters.searchTerm}
+                    onChange={(e) => setPendingProductFilters(p => ({ ...p, searchTerm: e.target.value }))}
+                    className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="mb-4">
+                    <button onClick={() => setActiveProductFilters(pendingProductFilters)} className="btn btn-primary w-full">
+                        Applica Filtri
+                    </button>
+                </div>
                 <div className="space-y-2">
                   {allOrderedProductsData.map(([productName, quantity, suppliersList]) => (
                     <button
