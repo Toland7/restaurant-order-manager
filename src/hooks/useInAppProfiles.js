@@ -17,10 +17,26 @@ export const useInAppProfiles = () => {
 
       try {
         setLoading(true);
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (!profileData || !profileData.company_id) {
+          setError('Company ID non trovato per l\'utente.');
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('in_app_profiles')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('company_id', profileData.company_id); // Filter by company_id
 
         if (error) {
           throw error;

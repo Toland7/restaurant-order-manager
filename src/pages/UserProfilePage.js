@@ -23,10 +23,11 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
             setFirstName(profile.first_name || '');
             setLastName(profile.last_name || '');
             setRole(profile.role || '');
-            setCompanyName(profile.company_name || '');
-            setCompanyVatId(profile.company_vat_id || '');
-            setHeadquartersName(profile.headquarters_name || '');
-            setHeadquartersAddress(profile.headquarters_address || '');
+            // Populate company fields from the nested companies object
+            setCompanyName(profile.companies?.name || '');
+            setCompanyVatId(profile.companies?.vat_id || '');
+            setHeadquartersName(profile.companies?.name || ''); // Assuming headquartersName is company name
+            setHeadquartersAddress(profile.companies?.address || '');
         }
     }, [profile]);
 
@@ -34,16 +35,26 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
         if (!user) { toast.error('Sessione utente non valida.'); return; }
         setIsSubmitting(true);
         try {
-            const updatedProfile = await supabaseHelpers.updateUserProfile(user.id, {
+            const profileUpdates = {
                 first_name: firstName,
                 last_name: lastName,
                 role: role,
-                company_name: companyName,
-                company_vat_id: companyVatId,
-                headquarters_name: headquartersName,
-                headquarters_address: headquartersAddress
-            });
-            setProfile(prev => ({ ...prev, ...updatedProfile }));
+            };
+
+            const companyUpdates = {
+                name: companyName,
+                vat_id: companyVatId,
+                address: headquartersAddress,
+            };
+
+            const { updatedProfileData, updatedCompanyData } = await supabaseHelpers.updateUserProfile(user.id, profileUpdates, companyUpdates);
+            
+            // Update the local profile state with combined data
+            setProfile(prev => ({
+                ...prev,
+                ...updatedProfileData,
+                companies: updatedCompanyData || prev.companies // Merge updated company data
+            }));
             toast.success('Profilo aggiornato con successo!');
         } catch (error) {
             console.error('Error updating profile:', error);

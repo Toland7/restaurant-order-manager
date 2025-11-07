@@ -156,12 +156,23 @@ const ProfileManagerPage = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Utente non autenticato');
 
+        // Fetch the company_id for the current user
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        if (!profileData || !profileData.company_id) throw new Error('Company ID non trovato per l\'utente.');
+
         const { data, error } = await supabase
           .from('in_app_profiles')
           .insert({
             user_id: user.id,
             profile_name: editingProfile.profile_name,
             position: editingProfile.position,
+            company_id: profileData.company_id, // Add company_id here
           })
           .select()
           .single();

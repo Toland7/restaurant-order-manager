@@ -30,121 +30,116 @@ import ProfileSelectionPage from './pages/ProfileSelectionPage';
 import { useProfileContext } from './ProfileContext';
 
 const MainApp = () => {
-  const { user } = useAuth();
-  const { isProUser } = useSubscriptionStatus();
-  const { selectedProfile, loadingProfile } = useProfileContext();
-
-  const { profile, setProfile } = useProfile(user);
-  const { suppliers, setSuppliers } = useSuppliers(user);
-  const { orders, setOrders } = useOrders(user);
-  const { setPrefilledData } = usePrefill();
-  const navigate = useNavigate();
-  const [scheduledOrders, setScheduledOrders] = useState([]);
-  const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
-  const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
-  const [theme, setTheme] = useState('light');
-
-  const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
-  const [showWizard, setShowWizard] = useState(false);
-  const [wizardOrders, setWizardOrders] = useState([]);
-  const [wizardStep, setWizardStep] = useState(0);
-
-  useEffect(() => {
-    const savedWizardState = sessionStorage.getItem('wizardState');
-    if (savedWizardState) {
-      const { wizardOrders: savedOrders, wizardStep: savedStep } = JSON.parse(savedWizardState);
-      setWizardOrders(savedOrders);
-      setWizardStep(savedStep);
-      setShowWizard(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showWizard) {
-      sessionStorage.setItem('wizardState', JSON.stringify({ wizardOrders, wizardStep }));
-    } else {
-      sessionStorage.removeItem('wizardState');
-    }
-  }, [showWizard, wizardOrders, wizardStep]);
-
-  // Theme management
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('theme', theme);
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
-  const { analytics } = useAnalytics(orders, suppliers);
-
-  const loadData = useCallback(async (userId) => {
-    if (!userId) return;
-    try {
-      const scheduled = await supabaseHelpers.getScheduledOrders(userId);
-      setScheduledOrders(scheduled);
-    } catch (error) {
-      console.error('Error loading scheduled orders:', error);
-      toast.error('Errore durante il caricamento degli ordini programmati.');
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      loadData(user.id);
-    } else {
-      setScheduledOrders([]);
-    }
-  }, [user, loadData]);
-
-
-
-
-
-
-
-
-
+    const { user } = useAuth();
+    const { isProUser } = useSubscriptionStatus();
+    const { selectedProfile, loadingProfile, setSelectedProfile } = useProfileContext();
+    const [showPinVerification, setShowPinVerification] = useState(false);
   
-
-
-
-
-
-
+    useEffect(() => {
+      if (isProUser && !loadingProfile && !selectedProfile) {
+        const storedProfile = localStorage.getItem('selectedProfile');
+        if (storedProfile) {
+          const parsedProfile = JSON.parse(storedProfile);
+          // Temporarily set the profile to trigger PIN verification
+          setSelectedProfile(parsedProfile);
+          setShowPinVerification(true);
+        }
+      }
+    }, [isProUser, loadingProfile, selectedProfile, setSelectedProfile]);
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    const handlePinVerificationSuccess = () => {
+      setShowPinVerification(false);
+      navigate('/'); // Navigate to main app after successful PIN verification
+    };
   
-
-
-
-
-
-
-
-  if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
-
-  if (isProUser && !selectedProfile && !loadingProfile) {
-    return <ProfileSelectionPage />;
-  }
+    const handlePinVerificationFailure = () => {
+      setSelectedProfile(null);
+      localStorage.removeItem('selectedProfile');
+      setShowPinVerification(false);
+      // ProfileSelectionPage will be rendered automatically due to !selectedProfile
+    };
+  
+    const { profile, setProfile } = useProfile(user);
+    const { suppliers, setSuppliers } = useSuppliers(user);
+    const { orders, setOrders } = useOrders(user);
+    const { setPrefilledData } = usePrefill();
+    const navigate = useNavigate();
+    const [scheduledOrders, setScheduledOrders] = useState([]);
+    const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
+    const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
+    const [theme, setTheme] = useState('light');
+  
+    const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
+    const [showWizard, setShowWizard] = useState(false);
+    const [wizardOrders, setWizardOrders] = useState([]);
+    const [wizardStep, setWizardStep] = useState(0);
+  
+    useEffect(() => {
+      const savedWizardState = sessionStorage.getItem('wizardState');
+      if (savedWizardState) {
+        const { wizardOrders: savedOrders, wizardStep: savedStep } = JSON.parse(savedWizardState);
+        setWizardOrders(savedOrders);
+        setWizardStep(savedStep);
+        setShowWizard(true);
+      }
+    }, []);
+  
+    useEffect(() => {
+      if (showWizard) {
+        sessionStorage.setItem('wizardState', JSON.stringify({ wizardOrders, wizardStep }));
+      } else {
+        sessionStorage.removeItem('wizardState');
+      }
+    }, [showWizard, wizardOrders, wizardStep]);
+  
+    // Theme management
+    useEffect(() => {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    }, []);
+  
+    useEffect(() => {
+      localStorage.setItem('theme', theme);
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    }, [theme]);
+  
+    const { analytics } = useAnalytics(orders, suppliers);
+  
+    const loadData = useCallback(async (userId) => {
+      if (!userId) return;
+      try {
+        const scheduled = await supabaseHelpers.getScheduledOrders(userId);
+        setScheduledOrders(scheduled);
+      } catch (error) {
+        console.error('Error loading scheduled orders:', error);
+        toast.error('Errore durante il caricamento degli ordini programmati.');
+      }
+    }, []);
+  
+    useEffect(() => {
+      if (user) {
+        loadData(user.id);
+      } else {
+        setScheduledOrders([]);
+      }
+    }, [user, loadData]);
+  
+    if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
+  
+    if (isProUser && (showPinVerification || (!selectedProfile && !loadingProfile))) {
+      return (
+        <ProfileSelectionPage 
+          preSelectedProfile={showPinVerification ? selectedProfile : null}
+          onPinVerificationSuccess={handlePinVerificationSuccess}
+          onPinVerificationFailure={handlePinVerificationFailure}
+        />
+      );
+    }
+  
+    if (isProUser && !selectedProfile && !loadingProfile) {
+      return <ProfileSelectionPage />;
+    }
 
   return (
     <>

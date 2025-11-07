@@ -306,22 +306,46 @@ export const supabaseHelpers = {
     if (error) throw error;
   },
 
-  async updateUserProfile(userId, profileData) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(profileData)
-      .eq('id', userId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+  async updateUserProfile(userId, profileUpdates, companyUpdates) {
+    let updatedProfileData = null;
+    let updatedCompanyData = null;
+
+    // Update profiles table
+    if (profileUpdates && Object.keys(profileUpdates).length > 0) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', userId)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      updatedProfileData = data;
+    }
+
+    // Update companies table
+    if (companyUpdates && Object.keys(companyUpdates).length > 0 && updatedProfileData?.company_id) {
+      const { data, error } = await supabase
+        .from('companies')
+        .update(companyUpdates)
+        .eq('id', updatedProfileData.company_id)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      updatedCompanyData = data;
+    }
+
+    return { ...updatedProfileData, companies: updatedCompanyData };
   },
 
   async getUserProfile(userId) {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(`
+        *,
+        companies (*)
+      `)
       .eq('id', userId);
 
     if (error) throw error;

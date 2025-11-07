@@ -7,23 +7,20 @@ AS $function$
 DECLARE
     v_profile_id UUID;
     v_profiles_manage_permission_id UUID;
+    v_company_id UUID; -- Moved here
 BEGIN
   RAISE NOTICE 'Attempting to insert profile for user: %', NEW.id;
 
-  -- Declare company_id variable
-  DECLARE
-    v_company_id UUID;
-  BEGIN
-    -- Create a new company entry
-    INSERT INTO public.companies (owner_id, name, vat_id, address)
-    VALUES (
-      NEW.id,
-      NEW.raw_user_meta_data->>'company_name',
-      NEW.raw_user_meta_data->>'company_vat_id',
-      NEW.raw_user_meta_data->>'headquarters_address'
-    )
-    RETURNING id INTO v_company_id;
-    RAISE NOTICE 'Company created with ID: % for user: %', v_company_id, NEW.id;
+  -- Create a new company entry
+  INSERT INTO public.companies (owner_id, name, vat_id, address)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'company_name',
+    NEW.raw_user_meta_data->>'company_vat_id',
+    NEW.raw_user_meta_data->>'headquarters_address'
+  )
+  RETURNING id INTO v_company_id;
+  RAISE NOTICE 'Company created with ID: % for user: %', v_company_id, NEW.id;
 
     -- Insert into public.profiles (existing logic, now linked to company)
     INSERT INTO public.profiles (

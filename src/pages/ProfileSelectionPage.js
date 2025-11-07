@@ -6,7 +6,7 @@ import PinPad from '../components/ui/PinPad';
 import { toast } from 'react-hot-toast';
 import { useProfileContext } from '../ProfileContext';
 
-const ProfileSelectionPage = () => {
+const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, onPinVerificationFailure }) => {
   const { profiles, loading, error } = useInAppProfiles();
   const navigate = useNavigate();
   const { setSelectedProfile } = useProfileContext();
@@ -16,11 +16,16 @@ const ProfileSelectionPage = () => {
   const [pinError, setPinError] = useState('');
   const [isSettingPin, setIsSettingPin] = useState(false);
 
-  // Clear selected profile from context and localStorage on mount
   useEffect(() => {
-    setSelectedProfile(null);
-    localStorage.removeItem('selectedProfile');
-  }, [setSelectedProfile]);
+    if (preSelectedProfile) {
+      setSelectedProfileData(preSelectedProfile);
+      setShowPinModal(true);
+    } else {
+      // Clear selected profile from context and localStorage on mount
+      setSelectedProfile(null);
+      localStorage.removeItem('selectedProfile');
+    }
+  }, [preSelectedProfile, setSelectedProfile]);
 
   const handleProfileClick = (profile) => {
     setSelectedProfileData(profile);
@@ -49,15 +54,26 @@ const ProfileSelectionPage = () => {
       if (data.is_valid) {
         toast.success(`Benvenuto, ${selectedProfileData.profile_name}!`);
         setSelectedProfile(selectedProfileData); // Store selected profile in context
-        navigate('/'); // Navigate to main app
+        localStorage.setItem('selectedProfile', JSON.stringify(selectedProfileData)); // Save to localStorage
+        if (onPinVerificationSuccess) {
+          onPinVerificationSuccess();
+        } else {
+          navigate('/'); // Navigate to main app
+        }
       } else {
         setPinError('PIN errato. Riprova.');
         toast.error('PIN errato.');
+        if (onPinVerificationFailure) {
+          onPinVerificationFailure();
+        }
       }
     } catch (err) {
       console.error('Error verifying PIN:', err);
       setPinError('Errore durante la verifica del PIN.');
       toast.error('Errore di sistema.');
+      if (onPinVerificationFailure) {
+        onPinVerificationFailure();
+      }
     }
   };
 
@@ -77,7 +93,12 @@ const ProfileSelectionPage = () => {
       // Log the user in with the newly created profile
       const updatedProfile = { ...selectedProfileData, pin_hash: 'set' }; // Mock hash to prevent re-triggering setup
       setSelectedProfile(updatedProfile);
-      navigate('/');
+      localStorage.setItem('selectedProfile', JSON.stringify(updatedProfile)); // Save to localStorage
+      if (onPinVerificationSuccess) {
+        onPinVerificationSuccess();
+      } else {
+        navigate('/');
+      }
 
     } catch (err) {
       console.error('Error setting PIN:', err);
