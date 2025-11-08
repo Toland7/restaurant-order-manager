@@ -10,11 +10,32 @@ module.exports = {
         'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'sans-serif'],
       },
       colors: {
+        border: "var(--border)",
+        input: "var(--border)",
+        ring: "var(--primary)",
+        background: "var(--bg)",
+        foreground: "var(--text)",
+        surface: "var(--surface)",
         primary: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-        }
+          DEFAULT: "var(--primary)",
+          foreground: "#fff",
+        },
+        secondary: {
+          DEFAULT: "var(--surface-2)",
+          foreground: "var(--text)",
+        },
+        destructive: {
+          DEFAULT: "var(--danger)",
+          foreground: "#fff",
+        },
+        muted: {
+          DEFAULT: "var(--surface-2)",
+          foreground: "var(--muted)",
+        },
+        accent: {
+          DEFAULT: "var(--surface-2)",
+          foreground: "var(--text)",
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -32,5 +53,5 @@ module.exports = {
       }
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }

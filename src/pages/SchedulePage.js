@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, Send, Edit3, Trash2 } from 'lucide-react';
+import { Calendar, ChevronDown, Send, Edit3, Trash2, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
 import { supabaseHelpers } from '../supabase';
 import ScheduledOrderPreview from '../components/ui/ScheduledOrderPreview';
 import { useNavigate } from 'react-router-dom';
+import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import the hook
 
 const groupOrdersByScheduledAt = (orders) => {
     return orders.reduce((acc, order) => {
@@ -20,6 +21,7 @@ const groupOrdersByScheduledAt = (orders) => {
 
 const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders, setScheduledOrders, setWizardOrders, showWizard, setShowWizard, wizardOrders, wizardStep, setWizardStep, user }) => {
     const navigate = useNavigate();
+    const { isProUser, loadingSubscription } = useSubscriptionStatus(); // Use the hook
     const { prefilledData, setPrefilledData } = usePrefill();
     const getRoundedTime = (date = new Date()) => { const minutes = date.getMinutes(); const roundedMinutes = Math.ceil(minutes / 15) * 15; date.setMinutes(roundedMinutes); return date.toTimeString().slice(0, 5); };
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -45,6 +47,16 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
 
     const groupedReadyToSendOrders = groupOrdersByScheduledAt(readyToSendOrders);
     const groupedFutureOrders = groupOrdersByScheduledAt(futureOrders);
+
+    const isLimitReached = !isProUser && !editingOrder && scheduledOrders.length >= 3;
+
+    const handleScheduleOrderClick = () => {
+      if (isLimitReached) {
+        toast.error('Hai raggiunto il limite di 3 ordini programmati per il piano Base. Esegui l\'upgrade a PRO per programmarne altri.');
+      } else {
+        scheduleOrder();
+      }
+    };
 
     useEffect(() => {
       if (prefilledData && prefilledData.type === 'schedule') {
@@ -537,8 +549,22 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
 
            <div className="flex space-x-3">
             {editingOrder && <button onClick={handleCancelEdit} className="w-full py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Annulla</button>}
-            {selectedDate && ((editingOrder && editingMultiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim()))) || (!editingOrder && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && <button onClick={scheduleOrder} disabled={isSubmitting} className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Calendar size={20} />}<span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : 'Programmando...') : (editingOrder ? 'Aggiorna Ordini' : 'Programma Ordini')}</span></button>}
+            {selectedDate && ((editingOrder && editingMultiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim()))) || (!editingOrder && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && (
+              <button 
+                onClick={handleScheduleOrderClick} 
+                disabled={isSubmitting || isLimitReached || loadingSubscription} 
+                className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (isLimitReached ? <Lock size={20} /> : <Calendar size={20} />)}
+                <span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : 'Programmando...') : (editingOrder ? 'Aggiorna Ordini' : 'Programma Ordini')}</span>
+              </button>
+            )}
           </div>
+          {isLimitReached && (
+            <div className="text-center text-xs text-red-600 dark:text-red-400 mt-2 p-2 bg-red-100 dark:bg-red-900/20 rounded-md">
+              Limite di 3 ordini programmati raggiunto per il piano Base. <button className="font-bold underline" onClick={() => { /* TODO: Upgrade logic */ }}>Upgrade a PRO</button>
+            </div>
+          )}
         </div>
 
       </div>

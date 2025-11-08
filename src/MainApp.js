@@ -28,10 +28,11 @@ import { supabaseHelpers } from './supabase.js';
 import useSubscriptionStatus from './hooks/useSubscriptionStatus';
 import ProfileSelectionPage from './pages/ProfileSelectionPage';
 import { useProfileContext } from './ProfileContext';
+import UpgradeToProBanner from './components/ui/UpgradeToProBanner.js';
 
 const MainApp = () => {
     const { user } = useAuth();
-    const { isProUser } = useSubscriptionStatus();
+    const { isProUser, loadingSubscription } = useSubscriptionStatus();
     const { selectedProfile, loadingProfile, setSelectedProfile } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
@@ -124,6 +125,14 @@ const MainApp = () => {
         setScheduledOrders([]);
       }
     }, [user, loadData]);
+
+    // Helper component for PRO features
+    const ProRoute = ({ element, featureName }) => {
+      if (loadingSubscription) {
+        return <div className="flex justify-center items-center h-screen">Caricamento...</div>;
+      }
+      return isProUser ? element : <UpgradeToProBanner featureName={featureName} />;
+    };
   
     if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
   
@@ -150,12 +159,12 @@ const MainApp = () => {
         <Route path="/suppliers" element={<SuppliersPage suppliers={suppliers} setSuppliers={setSuppliers} user={user} />} />
         <Route path="/schedule" element={<SchedulePage multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
         <Route path="/history" element={<HistoryPage orders={orders} suppliers={suppliers} />} />
-        <Route path="/analytics" element={<AnalyticsDashboard orders={orders} suppliers={suppliers} setSelectedProductForHistory={setSelectedProductForHistory} />} />
+        <Route path="/analytics" element={<ProRoute element={<AnalyticsDashboard orders={orders} suppliers={suppliers} setSelectedProductForHistory={setSelectedProductForHistory} />} featureName="Analisi" />} />
         <Route path="/product-history" element={<ProductHistoryPage orders={orders} suppliers={suppliers} selectedProductForHistory={selectedProductForHistory} />} />
         <Route path="/notifications" element={<NotificationsPage user={user} onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />} />
         <Route path="/settings" element={<SettingsPage theme={theme} setTheme={setTheme} profile={profile} user={user} />} />
         <Route path="/user-profile" element={<UserProfilePage user={user} profile={profile} setProfile={setProfile} />} />
-        <Route path="/profile-manager" element={<ProfileManagerPage />} />
+        <Route path="/profile-manager" element={<ProRoute element={<ProfileManagerPage />} featureName="Gestione Profili" />} />
         <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
       </Routes>
       <ModernCookieBanner />

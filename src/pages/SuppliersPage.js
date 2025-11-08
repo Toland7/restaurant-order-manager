@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Check, Users, Download } from 'lucide-react';
+import { Plus, Edit3, Trash2, Check, Users, Download, Lock } from 'lucide-react';
 import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
@@ -7,15 +7,36 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import ProductImportModal from '../components/modals/ProductImportModal';
+import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import the hook
 
 const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const navigate = useNavigate();
+    const { isProUser, loadingSubscription } = useSubscriptionStatus(); // Use the hook
+
     const [isAdding, setIsAdding] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [newSupplier, setNewSupplier] = useState({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '' });
     const [newProduct, setNewProduct] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isProductImportModalOpen, setIsProductImportModalOpen] = useState(false);
+
+    const isLimitReached = !isProUser && suppliers.length >= 10;
+
+    const handleAddSupplierClick = () => {
+      if (isLimitReached) {
+        toast.error('Hai raggiunto il limite di 10 fornitori per il piano Base. Esegui l\'upgrade a PRO per aggiungerne altri.');
+      } else {
+        setIsAdding(true);
+      }
+    };
+
+    const handleImportClick = () => {
+      if (isProUser) {
+        setIsProductImportModalOpen(true);
+      } else {
+        toast.error('L\'importazione di prodotti da CSV è una funzionalità PRO. Esegui l\'upgrade per usarla.');
+      }
+    };
 
     const handleFileSelectedForImport = (file) => {
         if (!file) return;
@@ -112,7 +133,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' });
         setIsAdding(false);
         setEditingSupplier(null);
-        if (!editingSupplier) { setTimeout(() => { if (window.confirm('Fornitore aggiunto! Vuoi aggiungerne un altro?')) setIsAdding(true); }, 1000); }
+        if (!editingSupplier) { setTimeout(() => { if (window.confirm('Fornitore aggiunto! Vuoi aggiungerne un altro?')) handleAddSupplierClick(); }, 1000); }
       } catch (error) {
         console.error('Error saving supplier:', error);
         toast.error('Errore durante il salvataggio');
@@ -146,8 +167,20 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         <div className="max-w-sm mx-auto px-6 py-6">
           {!isAdding ? (
             <>
-              <button onClick={() => setIsAdding(true)} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-6 flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors"><Plus size={20} /><span>Aggiungi Fornitore</span></button>
-              <div className="space-y-4">
+              <button 
+                onClick={handleAddSupplierClick} 
+                disabled={isLimitReached || loadingSubscription}
+                className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                <Plus size={20} />
+                <span>Aggiungi Fornitore</span>
+              </button>
+              {isLimitReached && (
+                <div className="text-center text-xs text-red-600 dark:text-red-400 mb-4 p-2 bg-red-100 dark:bg-red-900/20 rounded-md">
+                  Limite di 10 fornitori raggiunto. <button className="font-bold underline" onClick={() => { /* TODO: Upgrade logic */ }}>Upgrade a PRO</button>
+                </div>
+              )}
+              <div className="space-y-4 mt-4">
                 {suppliers.map(supplier => (
                   <div key={supplier.id} className="glass-card p-4">
                     <div className="flex justify-between items-start mb-2">
@@ -162,7 +195,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                     <p className="text-sm text-gray-600"><span className="font-medium">Prodotti:</span> {supplier.products ? supplier.products.join(', ') : 'Nessun prodotto'}</p>
                   </div>
                 ))}
-                {suppliers.length === 0 && <div className="text-center py-12"><Users size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-4">Nessun fornitore ancora aggiunto</p><button onClick={() => setIsAdding(true)} className="text-blue-500 hover:text-blue-600 font-medium">Aggiungi il primo fornitore</button></div>}
+                {suppliers.length === 0 && !loadingSubscription && <div className="text-center py-12"><Users size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-4">Nessun fornitore ancora aggiunto</p><button onClick={handleAddSupplierClick} className="text-blue-500 hover:text-blue-600 font-medium">Aggiungi il primo fornitore</button></div>}
               </div>
             </>
           ) : (
@@ -172,11 +205,16 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
               <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="input" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' || newSupplier.contact_method === 'whatsapp_group' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
               {newSupplier.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" /></div>}
               <div className="glass-card p-4">
-                <span className="block text-sm font-medium text-gray-700 mb-2">Prodotti</span>
-                
-                <div className="mb-4">
-                  <button type="button" onClick={() => setIsProductImportModalOpen(true)} className="btn btn-outline text-sm py-1 px-2">
-                    Importa Prodotti da CSV
+                <div className="flex justify-between items-center mb-4">
+                  <span className="block text-sm font-medium text-gray-700">Prodotti</span>
+                  <button 
+                    type="button" 
+                    onClick={handleImportClick} 
+                    disabled={!isProUser || loadingSubscription}
+                    className="btn btn-outline text-sm py-1 px-2 flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {!isProUser && <Lock size={12} />}
+                    <span>Importa da CSV</span>
                   </button>
                 </div>
 

@@ -1,8 +1,8 @@
 -- Drop the existing policies
-DROP POLICY "Users can delete own scheduled orders" ON "public"."scheduled_orders";
-DROP POLICY "Users can insert own scheduled orders" ON "public"."scheduled_orders";
-DROP POLICY "Users can update own scheduled orders" ON "public"."scheduled_orders";
-DROP POLICY "Users can manage their own scheduled orders" ON "public"."scheduled_orders";
+DROP POLICY IF EXISTS "Users can delete own scheduled orders" ON "public"."scheduled_orders";
+DROP POLICY IF EXISTS "Users can insert own scheduled orders" ON "public"."scheduled_orders";
+DROP POLICY IF EXISTS "Users can update own scheduled orders" ON "public"."scheduled_orders";
+DROP POLICY IF EXISTS "Users can manage their own scheduled orders" ON "public"."scheduled_orders";
 
 -- Create the new policy with the fix
 CREATE POLICY "Users can manage their own scheduled orders"

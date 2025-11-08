@@ -1,24 +1,6 @@
 
 
--- RLS POLICIES FOR EXISTING TABLES
-ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their own profile" ON "public"."profiles" FOR SELECT USING (("auth"."uid"() = "id"));
-CREATE POLICY "Users can insert their own profile" ON "public"."profiles" FOR INSERT WITH CHECK (("auth"."uid"() = "id"));
-CREATE POLICY "Users can update their own profile" ON "public"."profiles" FOR UPDATE USING (("auth"."uid"() = "id"));
 
-ALTER TABLE "public"."suppliers" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own suppliers" ON "public"."suppliers" FOR SELECT USING (("auth"."uid"() = "user_id"));
-CREATE POLICY "Users can insert own suppliers" ON "public"."suppliers" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-ALTER TABLE "public"."orders" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own orders" ON "public"."orders" FOR SELECT USING (("auth"."uid"() = "user_id"));
-CREATE POLICY "Users can insert own orders" ON "public"."orders" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
-
-ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own notifications" ON "public"."notifications" FOR SELECT USING (("auth"."uid"() = "user_id"));
-
-ALTER TABLE "public"."scheduled_orders" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own scheduled orders" ON "public"."scheduled_orders" FOR SELECT USING (("auth"."uid"() = "user_id"));
 
 -- SEED DATA
 SET session_replication_role = replica;
@@ -30,21 +12,7 @@ VALUES
 INSERT INTO "public"."profiles" ("id", "updated_at", "first_name", "last_name", "is_approved", "is_admin") VALUES
 ('c23a8c58-925a-47ce-9491-9e0db8b5c16a', '2025-09-22 12:17:07.138552+00', 'Ruben', 'Ouazana', true, true);
 
--- NEW FEATURE SCHEMA
 
-
-CREATE TABLE public.in_app_profiles (
-    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    profile_name TEXT NOT NULL,
-
-    pin_hash TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-ALTER TABLE public.in_app_profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow users to read their own in-app profiles" ON public.in_app_profiles FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Allow owners to manage their in-app profiles" ON public.in_app_profiles FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- NEW FEATURE DATA
 INSERT INTO public.in_app_profiles (user_id, profile_name)

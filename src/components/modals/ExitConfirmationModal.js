@@ -6,7 +6,7 @@ const ExitConfirmationModal = ({ showExitConfirm, setShowExitConfirm, onConfirmE
 
     return (
         <div className="modal-overlay">
-            <div className="glass-card p-6 max-w-sm w-full">
+            <div className="bg-surface p-6 max-w-sm w-full rounded-xl shadow-lg border border-border">
                 <div className="flex items-center mb-4">
                     <AlertTriangle className="text-yellow-500 mr-3" size={24} />
                     <h3 className="font-medium text-dark-gray dark:text-gray-100">Uscire senza salvare?</h3>

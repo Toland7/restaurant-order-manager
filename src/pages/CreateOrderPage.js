@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
+import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
 
 import ScheduleOrderModal from '../components/modals/ScheduleOrderModal';
 import ConfirmOrderModal from '../components/modals/ConfirmOrderModal';
@@ -16,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 
 const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, multiOrders, setMultiOrders, suppliers, setOrders, showWizard, setShowWizard, wizardOrders, setWizardOrders, wizardStep, setWizardStep, user }) => {
     const navigate = useNavigate();
+    const { isProUser } = useSubscriptionStatus();
     const { prefilledData, setPrefilledData } = usePrefill();
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmMessages, setConfirmMessages] = useState(null);
@@ -32,6 +34,20 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
     const updateSupplierOrder = (id, field, value) => {
       setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
+    };
+
+    const handleAddSupplier = (supplierId) => {
+      if (!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) {
+        toast.error("Aggiungere più fornitori in un unico ordine è una funzionalità PRO.");
+        return;
+      }
+      if (supplierId) {
+        if (multiOrders.length === 1 && !multiOrders[0].supplier) {
+          updateSupplierOrder(multiOrders[0].id, 'supplier', supplierId);
+        } else {
+          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '' }]);
+        }
+      }
     };
 
     useEffect(() => {
@@ -190,7 +206,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                   <div key={order.id} className="glass-card p-4">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="font-medium text-gray-900 dark:text-gray-100">Ordine {index + 1}: {supplierData ? supplierData.name : 'Seleziona Fornitore'}</h3>
-                      {multiOrders.length > 1 && (
+                      {isProUser && multiOrders.length > 1 && (
                         <button onClick={() => removeSupplierOrder(order.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
                       )}
                     </div>
@@ -256,17 +272,27 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                   </div>
                 );
               })}
-              <label htmlFor="add-supplier-select" className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
-              <select id="add-supplier-select" name="add-supplier-select" onChange={(e) => {
-                const supplierId = e.target.value;
-                if (supplierId) {
-                  setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '' }]);
-                  e.target.value = '';
-                }
-              }} className="select mb-4">
-                <option value="">Aggiungi Fornitore...</option>
-                {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-              </select>
+              <div className="relative">
+                <label htmlFor="add-supplier-select" className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
+                <select 
+                  id="add-supplier-select" 
+                  name="add-supplier-select" 
+                  onChange={(e) => {
+                    handleAddSupplier(e.target.value);
+                    e.target.value = '';
+                  }} 
+                  disabled={!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)}
+                  className="select mb-4 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                >
+                  <option value="">Aggiungi Fornitore...</option>
+                  {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                </select>
+                {!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier) && (
+                  <div className="absolute inset-0 bg-white/70 dark:bg-gray-800/70 flex items-center justify-center rounded-lg cursor-pointer" onClick={() => toast.error('Aggiungere più fornitori in un unico ordine è una funzionalità PRO.')}>
+                    <span className="text-center text-xs font-bold text-yellow-600 p-2"><Lock className="inline-block mr-1" size={12}/>Funzionalità PRO</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {multiOrders.some(order =>

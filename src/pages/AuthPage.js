@@ -93,8 +93,8 @@ const AuthPage = () => {
                   <div><label htmlFor="headquarters-address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label><input id="headquarters-address" name="headquarters-address" type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} required className="input" placeholder="Via Roma, 1" /></div>
                 </>
               )}
-              <div><label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="auth-email" name="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input" placeholder="mario.rossi@email.com" /></div>
-              <div><label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label><input id="auth-password" name="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input" placeholder="••••••••" /></div>
+              <div><label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label><input id="auth-email" name="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input" placeholder="mario.rossi@email.com" autoComplete="email" /></div>
+              <div><label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label><input id="auth-password" name="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="input" placeholder="••••••••" autoComplete="current-password" /></div>
               <button type="submit" disabled={isAuthenticating} className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center">
                 {isAuthenticating ? (isLogin ? 'Accesso in corso...' : 'Registrazione in corso...') : (isLogin ? 'Accedi' : 'Registrati')}
               </button>

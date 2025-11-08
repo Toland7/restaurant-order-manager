@@ -9,6 +9,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './AuthContext.js';
 import { PrefillProvider } from './PrefillContext.js';
 import { ProfileProvider } from './ProfileContext.js';
+import { SubscriptionProvider } from './hooks/useSubscriptionStatus.js';
 import './i18n';
 
 // Inizializza Sentry per monitoraggio errori
@@ -25,11 +26,13 @@ root.render(
     <Sentry.ErrorBoundary fallback={<p>Si è verificato un errore. Ricarica la pagina.</p>}>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <PrefillProvider>
-            <ProfileProvider>
-              <App />
-            </ProfileProvider>
-          </PrefillProvider>
+          <ProfileProvider>
+            <SubscriptionProvider>
+              <PrefillProvider>
+                <App />
+              </PrefillProvider>
+            </SubscriptionProvider>
+          </ProfileProvider>
         </AuthProvider>
       </BrowserRouter>
     </Sentry.ErrorBoundary>

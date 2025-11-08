@@ -1,9 +1,9 @@
 -- Drop the existing policies
-DROP POLICY "Users can view own orders" ON "public"."orders";
-DROP POLICY "Users can insert own orders" ON "public"."orders";
-DROP POLICY "Users can update own orders" ON "public"."orders";
-DROP POLICY "Users can delete own orders" ON "public"."orders";
-DROP POLICY "Users can manage their own orders" ON "public"."orders";
+DROP POLICY IF EXISTS "Users can view own orders" ON "public"."orders";
+DROP POLICY IF EXISTS "Users can insert own orders" ON "public"."orders";
+DROP POLICY IF EXISTS "Users can update own orders" ON "public"."orders";
+DROP POLICY IF EXISTS "Users can delete own orders" ON "public"."orders";
+DROP POLICY IF EXISTS "Users can manage their own orders" ON "public"."orders";
 
 -- Create the new policy with the fix
 CREATE POLICY "Users can manage their own orders"

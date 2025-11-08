@@ -6,16 +6,16 @@ const ConfirmOrderModal = ({ showConfirm, confirmMessages, isSubmitting, setShow
 
     return (
         <div className="modal-overlay">
-            <div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto">
+            <div className="bg-surface p-6 max-w-sm w-full max-h-96 overflow-y-auto rounded-xl shadow-lg border border-border">
                 <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">{confirmMessages ? 'Conferma Ordini' : 'Conferma Ordine'}</h3>
                 <div className="space-y-4 mb-4">
                     {confirmMessages ? confirmMessages.map((msg, index) => (
-                        <div key={index} className="bg-light-gray p-3 rounded-lg">
+                        <div key={index} className="bg-surface p-3 rounded-lg shadow-sm border border-border">
                             <h4 className="font-medium text-dark-gray mb-2">{msg.supplier}</h4>
                             <pre className="text-sm text-dark-gray whitespace-pre-wrap">{msg.message}</pre>
                         </div>
                     )) : (
-                        <div className="bg-light-gray p-3 rounded-lg">
+                        <div className="bg-surface p-3 rounded-lg shadow-sm border border-border">
                             <pre className="text-sm text-dark-gray whitespace-pre-wrap">{generateOrderMessage()}</pre>
                         </div>
                     )}
