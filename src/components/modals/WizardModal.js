@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Send } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabaseHelpers } from '../../supabase';
 
@@ -11,10 +11,12 @@ const openLinkInNewTab = (url) => {
 };
 
 const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user, setNewlyCreatedOrders, setOrders, newlyCreatedOrders, setShowWizard, setWizardOrders, onOrderSent, setMultiOrders }) => {
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
     const navigate = useNavigate();
     if (!showWizard || wizardOrders.length === 0) return null;
 
     const handleSendOrder = async () => {
+        setIsSubmitting(true);
         const order = wizardOrders[wizardStep];
 
         try {
@@ -25,6 +27,8 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
         } catch (error) {
             console.error('Error saving order from wizard:', error);
             toast.error('Errore durante il salvataggio dell\'ordine.');
+        } finally {
+            setIsSubmitting(false);
         }
 
         const encodedMessage = encodeURIComponent(order.message);
@@ -81,17 +85,19 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
 
     return (
         <div className="modal-overlay">
-            <div className="glass-card p-6 max-w-sm w-full max-h-96 overflow-y-auto">
+            <div className="bg-surface p-6 max-w-sm w-full max-h-96 overflow-y-auto rounded-xl shadow-lg border border-border">
                 <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Invio Ordine {wizardStep + 1} di {wizardOrders.length}</h3>
-                <div className="bg-light-gray p-3 rounded-lg mb-4">
+                <div className="bg-surface p-3 rounded-lg shadow-sm border border-border mb-4">
                     <h4 className="font-medium text-dark-gray mb-2">{wizardOrders[wizardStep].supplier?.name || 'Fornitore sconosciuto'}</h4>
                     <pre className="text-sm text-dark-gray whitespace-pre-wrap">{wizardOrders[wizardStep].message}</pre>
                 </div>
-                <div className="flex items-center justify-between space-x-3">
-                    <button onClick={() => setWizardStep(prev => Math.max(0, prev - 1))} disabled={wizardStep === 0} className="p-2 border border-medium-gray text-dark-gray rounded-lg hover:bg-light-gray"><ChevronLeft size={20} /></button>
-                    <button onClick={handleSendOrder} className="flex-1 py-2 px-4 bg-primary-blue text-white rounded-lg hover:bg-secondary-blue">Invia</button>
+                <div className="flex space-x-3">
+                    <button onClick={() => setWizardStep(prev => Math.max(0, prev - 1))} disabled={wizardStep === 0} className="btn btn-outline flex-1"><ChevronLeft size={16} /></button>
+                    <button onClick={handleSendOrder} disabled={isSubmitting} className="btn btn-primary flex-1">
+                        {isSubmitting ? <div className="w-4 h-4 border-2 border-primary-blue border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : 'Invia'}</span>
+                    </button>
                 </div>
-                <p onClick={handleExit} className="text-sm text-dark-gray mt-4 text-center cursor-pointer hover:underline">Esci</p>
+                <button onClick={handleExit} className="btn btn-outline w-full mt-4">Esci</button>
             </div>
         </div>
     );

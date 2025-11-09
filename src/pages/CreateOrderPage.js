@@ -247,15 +247,15 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                                       />
                                       <span className="text-sm text-gray-700">{product}</span>
                                     </label>
-                                    <input
-                                      type="text"
-                                      id={`quantity-${order.id}-${product}`}
-                                      name={`quantity-${order.id}-${product}`}
-                                      placeholder="Qt."
-                                      defaultValue={order.items[product] || ''}
-                                      onBlur={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })}
-                                      className="input-sm w-16 text-center"
-                                    />
+                                     <input
+                                       type="text"
+                                       id={`quantity-${order.id}-${product}`}
+                                       name={`quantity-${order.id}-${product}`}
+                                       placeholder="Qt."
+                                       defaultValue={order.items[product] || ''}
+                                       onBlur={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })}
+                                       className="input-sm w-16 text-center"
+                                     />
                                   </div>
                                 ))}
                               </div>
