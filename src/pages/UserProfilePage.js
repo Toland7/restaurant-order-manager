@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { supabaseHelpers } from '../supabase';
+import { supabase } from '../supabase'; // Import supabase client
 import { useNavigate } from 'react-router-dom';
 import DeleteAccountModal from '../components/modals/DeleteAccountModal'; // Import the new modal
+import { useAuth } from '../AuthContext'; // Import useAuth
+
 
 const UserProfilePage = ({ user, profile, setProfile }) => {
     const navigate = useNavigate();
+    const { setIsLoggingOut } = useAuth(); // Get setter from AuthContext
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [role, setRole] = useState('');
@@ -17,6 +21,7 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State for modal visibility
     const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for dropdown visibility
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false); // New state to prevent rendering during deletion
 
     useEffect(() => {
         if (profile) {
@@ -76,28 +81,57 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
         }
 
         // Re-authenticate user before deleting
-        const { data: { user: reauthenticatedUser }, error: reauthError } = await supabaseHelpers.signInWithPassword(email, password);
+        const { data: { user: reauthenticatedUser }, error: reauthError } = await supabase.auth.signInWithPassword({ email, password });
 
         if (reauthError || !reauthenticatedUser || reauthenticatedUser.id !== user.id) {
             toast.error('Credenziali non valide. Impossibile eliminare l\'account.');
             return;
         }
 
+        setIsDeletingAccount(true); // Set state to prevent further rendering
+        setIsLoggingOut(true); // Set global logging out state
+        setIsLoggingOut(true); // Set global logging out state
+
         try {
-            const { success, error } = await supabaseHelpers.deleteCurrentUser();
-            if (success) {
-                toast.success('Account eliminato con successo. Verrai reindirizzato alla pagina di autenticazione.');
-                navigate('/auth'); // Redirect to auth page after deletion
-            } else {
-                throw error;
+            const responseData = await supabaseHelpers.deleteCurrentUser(); // Get the response data
+            if (responseData && responseData.message) { // Check for success message
+                setIsDeleteModalOpen(false); // Close modal immediately after successful deletion
+                toast.dismiss(); // Dismiss any active toasts to prevent DOM conflicts
+                setIsDeletingAccount(true); // Set loading state after modal is closed
+                // Delay the signOut to allow React to finish unmounting and DOM to stabilize
+                setTimeout(async () => {
+                    try {
+                        await supabase.auth.signOut(); // Explicitly sign out the user
+                    } catch (signOutError) {
+                        console.warn('Error during signOut after user deletion:', signOutError.message);
+                        // Continue even if signOut fails, as the user is already deleted from backend
+                    } finally {
+                        setIsLoggingOut(false); // Reset global logging out state
+                    }
+                    // The MainApp component will handle navigation to AuthPage when user becomes null
+                }, 500); // Increased delay for DOM stability
+            } else if (responseData && responseData.error) { // Check for error message from Edge Function
+                throw new Error(responseData.error); // Throw it as a proper error
+            }
+            else {
+                throw new Error('Errore sconosciuto durante l\'eliminazione dell\'account.');
             }
         } catch (error) {
             console.error('Error deleting account:', error);
-            toast.error('Errore durante l\'eliminazione dell\'account.');
-        } finally {
-            setIsDeleteModalOpen(false); // Close modal
+            toast.error('Errore durante l\'eliminazione dell\'account: ' + (error.message || 'Sconosciuto'));
+            setIsDeleteModalOpen(false); // Close modal on error too
+            setIsDeletingAccount(false); // Reset state on error
+            setIsLoggingOut(false); // Reset global logging out state on error
         }
     };
+
+    if (isDeletingAccount) {
+        return (
+            <div className="min-h-screen app-background flex items-center justify-center">
+                <p className="text-gray-700 dark:text-gray-300">Eliminazione account in corso...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen app-background"> {/* Removed flex flex-col */}
@@ -113,11 +147,11 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label>
-                            <input id="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="input" placeholder="Il tuo nome" />
+                            <input id="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="input" placeholder="Mario" />
                         </div>
                         <div>
                             <label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label>
-                            <input id="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="input" placeholder="Il tuo cognome" />
+                            <input id="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="input" placeholder="Rossi" />
                         </div>
                         <div>
                             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label>

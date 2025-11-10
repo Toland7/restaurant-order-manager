@@ -2,43 +2,64 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useProfile } from './useProfile';
 
-// 1. Create the context
 const SubscriptionContext = createContext({
   tier: 'base',
   isPro: false,
+  isDemo: false, // New
+  isTrialActive: false, // New
+  daysRemainingInTrial: 0, // New
   loading: true,
 });
 
-// 2. Create the provider component
 export const SubscriptionProvider = ({ children }) => {
   const { user } = useAuth();
   const { profile } = useProfile(user);
   const [subscription, setSubscription] = useState({
     tier: 'base',
     isPro: false,
+    isDemo: false,
+    isTrialActive: false,
+    daysRemainingInTrial: 0,
     loading: true,
   });
 
   useEffect(() => {
-    // The 'profile' object is null while loading or if there's no user
     if (profile) {
-      // The 'companies' object is nested inside the 'profile' object from our query
       const tier = profile.companies?.subscription_tier || 'base';
+      const trialStartDate = profile.companies?.trial_start_date ? new Date(profile.companies.trial_start_date) : null;
+      const trialEndDate = profile.companies?.trial_end_date ? new Date(profile.companies.trial_end_date) : null;
+
+      let isTrialActive = false;
+      let daysRemainingInTrial = 0;
+
+      if (tier === 'demo' && trialStartDate && trialEndDate) {
+        const now = new Date();
+        if (now >= trialStartDate && now <= trialEndDate) {
+          isTrialActive = true;
+          const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
+          daysRemainingInTrial = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+      }
+
       setSubscription({
         tier: tier,
         isPro: tier === 'pro',
+        isDemo: tier === 'demo',
+        isTrialActive: isTrialActive,
+        daysRemainingInTrial: daysRemainingInTrial,
         loading: false,
       });
     } else if (!user) {
-        // If there is no user, they are definitely not pro and not loading
-        setSubscription({
-            tier: 'base',
-            isPro: false,
-            loading: false,
-        });
+      setSubscription({
+        tier: 'base',
+        isPro: false,
+        isDemo: false,
+        isTrialActive: false,
+        daysRemainingInTrial: 0,
+        loading: false,
+      });
     } else {
-        // If there is a user but no profile yet, we are loading
-        setSubscription(sub => ({ ...sub, loading: true }));
+      setSubscription(sub => ({ ...sub, loading: true }));
     }
   }, [profile, user]);
 
@@ -49,19 +70,18 @@ export const SubscriptionProvider = ({ children }) => {
   );
 };
 
-// 3. Create the custom hook to consume the context
 const useSubscriptionStatus = () => {
   const context = useContext(SubscriptionContext);
   if (context === undefined) {
     throw new Error('useSubscriptionStatus must be used within a SubscriptionProvider');
   }
-  
-  // The existing code in MainApp.js expects an object with `isProUser`.
-  // We provide that and add the other values for future flexibility.
-  return { 
-    isProUser: context.isPro, 
+  return {
+    isProUser: context.isPro,
     subscriptionTier: context.tier,
-    loadingSubscription: context.loading 
+    loadingSubscription: context.loading,
+    isDemoUser: context.isDemo, // New
+    isTrialActive: context.isTrialActive, // New
+    daysRemainingInTrial: context.daysRemainingInTrial, // New
   };
 };
 

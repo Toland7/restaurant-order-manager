@@ -343,13 +343,29 @@ export const supabaseHelpers = {
     const { data, error } = await supabase
       .from('profiles')
       .select(`
-        *,
-        companies (*)
+        id,
+        first_name,
+        last_name,
+        role,
+        company_id
       `)
       .eq('id', userId);
 
     if (error) throw error;
-    return data[0] || null;
+    const profileData = data[0] || null;
+
+    if (profileData && profileData.company_id) {
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', profileData.company_id)
+        .single();
+
+      if (companyError) throw companyError;
+      return { ...profileData, companies: companyData };
+    }
+
+    return profileData;
   },
 
   // Auth helpers

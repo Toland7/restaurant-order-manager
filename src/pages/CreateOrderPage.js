@@ -334,6 +334,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
              setWizardOrders={setWizardOrders}
              onOrderSent={onOrderSent}
              setMultiOrders={setMultiOrders}
+             onBackToEdit={() => setShowWizard(false)}
          />
          <ExitConfirmationModal
              showExitConfirm={showExitConfirm}

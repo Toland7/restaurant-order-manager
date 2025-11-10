@@ -63,7 +63,55 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Securely delete the user
+    // --- START: Add cascade deletion logic here ---
+
+    // 1. Get the company_id associated with the user
+    const { data: userProfile, error: profileFetchError } = await supabaseAdmin
+      .from('profiles')
+      .select('company_id')
+      .eq('id', userIdToDelete)
+      .single();
+
+    if (profileFetchError) {
+      throw new Error(`Failed to fetch profile for user ${userIdToDelete}: ${profileFetchError.message}`);
+    }
+    
+    const companyId = userProfile?.company_id;
+
+    if (companyId) {
+      // 2. Delete all in_app_profiles associated with the company
+      const { error: inAppProfilesDeleteError } = await supabaseAdmin
+        .from('in_app_profiles')
+        .delete()
+        .eq('company_id', companyId);
+      if (inAppProfilesDeleteError) {
+        throw new Error(`Failed to delete in_app_profiles for company ${companyId}: ${inAppProfilesDeleteError.message}`);
+      }
+
+      // 3. Delete all profiles associated with the company
+      // Note: The main profile (id = userIdToDelete) will be deleted by auth.admin.deleteUser
+      // but other profiles linked to the company might exist.
+      const { error: profilesDeleteError } = await supabaseAdmin
+        .from('profiles')
+        .delete()
+        .eq('company_id', companyId);
+      if (profilesDeleteError) {
+        throw new Error(`Failed to delete profiles for company ${companyId}: ${profilesDeleteError.message}`);
+      }
+
+      // 4. Delete the company itself
+      const { error: companyDeleteError } = await supabaseAdmin
+        .from('companies')
+        .delete()
+        .eq('id', companyId);
+      if (companyDeleteError) {
+        throw new Error(`Failed to delete company ${companyId}: ${companyDeleteError.message}`);
+      }
+    }
+
+    // --- END: Add cascade deletion logic here ---
+
+    // Securely delete the user from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userIdToDelete)
 
     if (deleteError) {

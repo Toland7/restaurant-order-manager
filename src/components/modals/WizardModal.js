@@ -10,10 +10,18 @@ const openLinkInNewTab = (url) => {
     if (newWindow) newWindow.opener = null;
 };
 
-const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user, setNewlyCreatedOrders, setOrders, newlyCreatedOrders, setShowWizard, setWizardOrders, onOrderSent, setMultiOrders }) => {
+const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user, setNewlyCreatedOrders, setOrders, newlyCreatedOrders, setShowWizard, setWizardOrders, onOrderSent, setMultiOrders, onBackToEdit }) => {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const navigate = useNavigate();
     if (!showWizard || wizardOrders.length === 0) return null;
+
+    const handleBack = () => {
+        if (wizardStep > 0) {
+            setWizardStep(prev => prev - 1);
+        } else {
+            onBackToEdit();
+        }
+    };
 
     const handleSendOrder = async () => {
         setIsSubmitting(true);
@@ -92,8 +100,10 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
                     <pre className="text-sm text-dark-gray whitespace-pre-wrap">{wizardOrders[wizardStep].message}</pre>
                 </div>
                 <div className="flex space-x-3">
-                    <button onClick={() => setWizardStep(prev => Math.max(0, prev - 1))} disabled={wizardStep === 0} className="btn btn-outline flex-1"><ChevronLeft size={16} /></button>
-                    <button onClick={handleSendOrder} disabled={isSubmitting} className="btn btn-primary flex-1">
+                    {wizardStep === 0 && (
+                        <button onClick={handleBack} className="btn btn-outline flex-1"><ChevronLeft size={16} /></button>
+                    )}
+                    <button onClick={handleSendOrder} disabled={isSubmitting} className={`btn btn-primary ${wizardStep === 0 ? 'flex-1' : 'w-full'}`}>
                         {isSubmitting ? <div className="w-4 h-4 border-2 border-primary-blue border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}<span>{isSubmitting ? 'Invio...' : 'Invia'}</span>
                     </button>
                 </div>

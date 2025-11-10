@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Routes, Route } from 'react-router-dom';
+import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import { toast, Toaster } from 'react-hot-toast';
 import { useAuth } from './AuthContext.js';
 import { usePrefill } from './PrefillContext.js';
@@ -29,9 +29,11 @@ import useSubscriptionStatus from './hooks/useSubscriptionStatus';
 import ProfileSelectionPage from './pages/ProfileSelectionPage';
 import { useProfileContext } from './ProfileContext';
 import UpgradeToProBanner from './components/ui/UpgradeToProBanner.js';
+import DemoTrialBanner from './components/ui/DemoTrialBanner';
 
 const MainApp = () => {
-    const { user } = useAuth();
+    const location = useLocation();
+    const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription } = useSubscriptionStatus();
     const { selectedProfile, loadingProfile, setSelectedProfile } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
@@ -167,6 +169,7 @@ const MainApp = () => {
         <Route path="/profile-manager" element={<ProRoute element={<ProfileManagerPage />} featureName="Gestione Profili" />} />
         <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
       </Routes>
+      {!isLoggingOut && location.pathname === '/' && <DemoTrialBanner />} {/* Render only on homepage */}
       <ModernCookieBanner />
     </>
   );
