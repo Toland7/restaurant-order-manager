@@ -18,7 +18,9 @@ export const AuthProvider = ({ children }) => {
     fetchSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      if (event !== 'PASSWORD_RECOVERY') {
+        setUser(session?.user ?? null);
+      }
     });
 
     return () => {
