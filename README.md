@@ -1,157 +1,135 @@
-# 🍽️ Gestione Ordini Ristorante
+# 🍽️ Gestore Ordini Ristorante
 
-Una piattaforma moderna e intuitiva per gestire gli ordini dai fornitori, progettata specificamente per ristoratori che vogliono semplificare il processo di ordinazione.
+Un'applicazione web moderna, intuitiva e progressiva progettata per aiutare i ristoratori a ottimizzare il processo di gestione degli ordini ai fornitori.
 
-## ✨ Caratteristiche
+![App Screenshot](placeholder.png) <!-- TODO: Aggiungere uno screenshot dell'applicazione -->
 
-### 📱 **Mobile-First Design**
-- Design ottimizzato per smartphone
-- Interfaccia elegante in stile Apple
-- Responsive e touch-friendly
+## ✨ Caratteristiche Principali
 
-### 🛒 **Gestione Ordini**
-- Creazione rapida degli ordini
-- Selezione fornitori e prodotti
-- Invio automatico via WhatsApp, Email o SMS
-- Cronologia completa degli ordini
+- **📱 Design Mobile-First:** Ottimizzato per smartphone con un'interfaccia elegante, ispirata ad Apple, reattiva e touch-friendly.
+- **🛒 Gestione Ordini Semplificata:**
+    - Crea rapidamente ordini per uno o più fornitori contemporaneamente.
+    - Seleziona fornitori e prodotti dal tuo database personalizzato.
+    - Invia automaticamente gli ordini tramite WhatsApp, Email o SMS.
+    - Mantieni una cronologia completa di tutti i tuoi ordini passati.
+- **👥 Gestione Fornitori e Prodotti:**
+    - Crea e gestisci un database personalizzato dei tuoi fornitori.
+    - Per ogni fornitore, puoi definire un elenco di prodotti, un modello di messaggio personalizzato e più metodi di contatto.
+- **📅 Programmazione Ordini:**
+    - Utilizza il calendario per programmare gli ordini per una data e un'ora future.
+    - L'applicazione invierà automaticamente gli ordini all'ora programmata.
+- **📊 Analisi e Report:**
+    - Una dashboard completa fornisce statistiche sui tuoi ordini.
+    - Esporta i tuoi dati per ulteriori analisi.
+    - Filtri avanzati nella cronologia degli ordini per trovare ciò di cui hai bisogno.
+- **👥 Gestione Multi-Profilo/Team (PRO):**
+    - Crea più profili per i membri del tuo team.
+    - Imposta diverse autorizzazioni per ogni profilo.
+    - Accesso sicuro con un PIN per ogni profilo.
+- **📱 Progressive Web App (PWA):**
+    - Installa l'applicazione direttamente dal tuo browser su qualsiasi dispositivo.
+    - Utilizza l'app anche quando sei offline, grazie alla cache locale.
+    - Aggiornamenti automatici all'ultima versione.
 
-### 👥 **Gestione Fornitori**
-- Database fornitori personalizzato
-- Gestione prodotti per fornitore
-- Template messaggi personalizzabili
-- Metodi di contatto multipli
+## 👑 Gratuito vs. PRO
 
-### 📅 **Programmazione Ordini**
-- Calendario per ordini futuri
-- Promemoria automatici
-- Orari di invio personalizzabili
+Questa applicazione offre due livelli: una versione gratuita per l'uso di base e una versione PRO con funzionalità avanzate.
 
-### 📊 **Analytics & Reports**
-- Dashboard con statistiche
-- Esportazione dati
-- Filtri avanzati nella cronologia
+| Funzionalità                 | Gratuito   | PRO        |
+| ---------------------------- | ---------- | ---------- |
+| Fornitori Illimitati         | ✅         | ✅         |
+| Prodotti Illimitati          | ✅         | ✅         |
+| Ordini Illimitati            | ✅         | ✅         |
+| Singolo Fornitore per Ordine | ✅         | ✅         |
+| **Ordini Multi-Fornitore**   | ❌         | ✅         |
+| **Programmazione Ordini**    | ✅         | ✅         |
+| **Dashboard Analitica**      | ❌         | ✅         |
+| **Gestione Team**            | ❌         | ✅         |
+| **Esportazione Dati**        | ❌         | ✅         |
 
-## 🚀 Deploy Rapido
+## 🛠️ Stack Tecnologico
 
-### 1. **Clona il Repository**
-```bash
-git clone https://github.com/tuo-username/restaurant-order-manager.git
-cd restaurant-order-manager
-npm install
-```
+- **Frontend:** [React](https://reactjs.org/)
+- **Backend e Database:** [Supabase](https://supabase.com/)
+- **Stilizzazione:** [Tailwind CSS](https://tailwindcss.com/)
+- **Componenti UI:** Componenti personalizzati, con alcune ispirazioni da [shadcn/ui](https://ui.shadcn.com/).
+- **Deployment:** [Vercel](https://vercel.com/)
 
-### 2. **Configura Supabase**
+## 🚀 Per Iniziare
 
-1. Crea un nuovo progetto su [Supabase](https://supabase.com)
-2. Vai in Settings > API per ottenere le tue chiavi
-3. Esegui il file SQL `supabase/migrations/001_initial_schema.sql` nell'SQL Editor
-4. Copia `.env.example` in `.env` e compila:
+Per avere una copia locale funzionante, segui questi semplici passaggi.
 
-```bash
-cp .env.example .env
-```
+### Prerequisiti
 
-Modifica `.env`:
-```env
-REACT_APP_SUPABASE_URL=https://your-project.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=your-anon-key
-```
+- [Node.js](https://nodejs.org/) (v16 o successiva)
+- [npm](https://www.npmjs.com/)
 
-### 3. **Deploy su Vercel**
+### Installazione
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/tuo-username/restaurant-order-manager)
+1.  **Clona il repository**
+    ```sh
+    git clone https://github.com/your-username/restaurant-order-manager.git
+    cd restaurant-order-manager
+    ```
+2.  **Installa i pacchetti NPM**
+    ```sh
+    npm install
+    ```
+3.  **Configura Supabase**
+    1.  Crea un nuovo progetto su [Supabase](https://supabase.com).
+    2.  Vai all'**Editor SQL** nella dashboard del tuo progetto Supabase.
+    3.  Esegui il contenuto del file `supabase/migrations/20251014163000_current_remote_schema.sql` per creare lo schema del database.
+    4.  Vai su **Settings > API** per ottenere l'URL del tuo progetto e la chiave anonima.
+    5.  Crea un file `.env` nella root del progetto e aggiungi le tue credenziali Supabase:
+        ```env
+        REACT_APP_SUPABASE_URL=https://your-project-url.supabase.co
+        REACT_APP_SUPABASE_ANON_KEY=your-anon-key
+        ```
+4.  **Avvia l'applicazione**
+    ```sh
+    npm start
+    ```
 
-**Oppure manualmente:**
+## 🗃️ Schema del Database
 
-```bash
-npm install -g vercel
-npm run build
-vercel --prod
-```
+Il database è costruito su Supabase (PostgreSQL) e utilizza la Row Level Security (RLS) per garantire la privacy dei dati. Ecco le tabelle principali:
 
-## 🛠️ Sviluppo Locale
-
-```bash
-# Installa dipendenze
-npm install
-
-# Avvia in modalità sviluppo
-npm start
-
-# Build per produzione
-npm run build
-
-# Test
-npm test
-```
-
-## 📁 Struttura del Progetto
-
-```
-restaurant-order-manager/
-├── public/                 # File statici
-├── src/
-│   ├── lib/               # Configurazione Supabase
-│   ├── App.js            # Componente principale
-│   ├── App.css           # Stili personalizzati
-│   └── index.js          # Entry point
-├── supabase/
-│   └── migrations/       # Script SQL database
-├── .env.example          # Template variabili ambiente
-├── package.json          # Dipendenze e script
-└── README.md            # Documentazione
-```
-
-## 🔐 Sicurezza
-
-- **Row Level Security (RLS)** abilitato su tutte le tabelle
-- **Autenticazione** gestita da Supabase Auth
-- **Autorizzazione** basata su utente
-- **Validazione** sia client che server-side
+-   `profiles`: Memorizza le informazioni del profilo utente.
+-   `suppliers`: Contiene l'elenco dei fornitori, i loro dettagli di contatto e i modelli di messaggio.
+-   `products`: Un elenco di prodotti associati a ciascun fornitore.
+-   `orders`: Registra tutti gli ordini inviati, inclusi il messaggio dell'ordine e lo stato.
+-   `order_items`: Una tabella di giunzione che collega gli ordini ai prodotti inclusi in essi.
+-   `scheduled_orders`: Memorizza gli ordini che devono essere inviati in futuro.
+-   `companies`: Gestisce le aziende per account multi-utente.
+-   `in_app_profiles`: Gestisce i profili all'interno di un'azienda per la gestione del team.
 
 ## 🌟 Funzionalità Future
 
 - [ ] Integrazione API WhatsApp Business
-- [ ] Notifiche push native
-- [ ] Backup automatici
-- [ ] Multi-lingua
-- [ ] App mobile nativa
-- [ ] Gestione team
-- [ ] Integrazioni con POS
-
-## 📱 Progressive Web App (PWA)
-
-L'applicazione è configurata come PWA e può essere:
-- **Installata** direttamente da browser
-- **Utilizzata offline** (cache locale)
-- **Aggiornata automaticamente**
+- [ ] Notifiche Push Native
+- [ ] Backup Automatici
+- [ ] Supporto Multi-lingua
+- [ ] App Mobile Nativa (React Native o Flutter)
+- [ ] Integrazioni POS
 
 ## 🤝 Contribuire
 
-1. Fork il progetto
-2. Crea il tuo feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit le modifiche (`git commit -m 'Add some AmazingFeature'`)
-4. Push al branch (`git push origin feature/AmazingFeature`)
-5. Apri una Pull Request
+I contributi sono ciò che rende la comunità open source un luogo così straordinario per imparare, ispirare e creare. Qualsiasi contributo tu dia è **molto apprezzato**.
+
+1.  Forka il Progetto
+2.  Crea il tuo Branch di Funzionalità (`git checkout -b feature/AmazingFeature`)
+3.  Commit le tue Modifiche (`git commit -m 'Aggiungi qualche AmazingFeature'`)
+4.  Push al Branch (`git push origin feature/AmazingFeature`)
+5.  Apri una Pull Request
 
 ## 📄 Licenza
 
-Distribuito sotto licenza MIT. Vedi `LICENSE` per maggiori informazioni.
+Distribuito sotto Licenza MIT. Vedi `LICENSE` per maggiori informazioni.
 
-## 📞 Supporto
+## 📞 Contatti
 
-- **Email**: support@tuodominio.com
-- **Issues**: [GitHub Issues](https://github.com/tuo-username/restaurant-order-manager/issues)
-- **Documentazione**: [Wiki](https://github.com/tuo-username/restaurant-order-manager/wiki)
-
-## 🎯 Target
-
-Perfetto per:
-- **Ristoratori** che vogliono digitalizzare gli ordini
-- **Piccole catene** di ristorazione  
-- **Trattorie** e **pizzerie**
-- **Bar** e **caffetterie**
+Link del Progetto: [https://github.com/your-username/restaurant-order-manager](https://github.com/your-username/restaurant-order-manager)
 
 ---
 
-**Sviluppato con ❤️ per semplificare la vita dei ristoratori italiani**
+**Sviluppato con ❤️ per semplificare la vita dei ristoratori.**
