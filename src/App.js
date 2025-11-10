@@ -5,7 +5,7 @@ import PrivacyPolicy from './PrivacyPolicy';
 import CookiePolicy from './CookiePolicy';
 import TermsOfService from './TermsOfService';
 import LegalPageLayout from './LegalPageLayout';
-import ModernCookieBanner from './ModernCookieBanner';
+import ModernCookieBanner from './components/ui/ModernCookieBanner';
 
 function App() {
   return (

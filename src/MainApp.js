@@ -18,7 +18,7 @@ import ProfileManagerPage from './pages/ProfileManagerPage';
 import CreateOrderPage from './pages/CreateOrderPage';
 import SchedulePage from './pages/SchedulePage';
 import AuthPage from './pages/AuthPage';
-import ModernCookieBanner from './components/ui/ModernCookieBanner';
+
 import { useProfile } from './hooks/useProfile';
 import { useSuppliers } from './hooks/useSuppliers';
 import { useOrders } from './hooks/useOrders';
@@ -170,7 +170,7 @@ const MainApp = () => {
         <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
       </Routes>
       {!isLoggingOut && location.pathname === '/' && <DemoTrialBanner />} {/* Render only on homepage */}
-      <ModernCookieBanner />
+      
     </>
   );
 };

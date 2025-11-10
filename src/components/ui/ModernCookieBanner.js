@@ -1,44 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { Cookie } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Cookies from 'js-cookie';
+import { Cookie, X, Check } from 'lucide-react';
 
-const ModernCookieBanner = () => {
-    const [isVisible, setIsVisible] = useState(false);
+function ModernCookieBanner() {
+  const [showBanner, setShowBanner] = useState(false);
 
-    useEffect(() => {
-        const consent = localStorage.getItem('cookie_consent');
-        if (!consent) {
-            setIsVisible(true);
-        }
-    }, []);
+  useEffect(() => {
+    const consent = Cookies.get('restaurantOrderManagerConsent');
+    if (!consent) {
+      setShowBanner(true);
+    }
+  }, []);
 
-    const handleAccept = () => {
-        localStorage.setItem('cookie_consent', 'accepted');
-        setIsVisible(false);
-    };
+  const handleAccept = () => {
+    Cookies.set('restaurantOrderManagerConsent', 'accepted', { expires: 150 });
+    setShowBanner(false);
+  };
 
-    const handleDecline = () => {
-        localStorage.setItem('cookie_consent', 'declined');
-        setIsVisible(false);
-    };
+  const handleDecline = () => {
+    Cookies.set('restaurantOrderManagerConsent', 'declined', { expires: 150 });
+    setShowBanner(false);
+  };
 
-    if (!isVisible) return null;
+  if (!showBanner) return null;
 
-    return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-lg border-t border-gray-200 dark:border-gray-700">
-            <div className="max-w-sm mx-auto flex items-center space-x-3">
-                <Cookie size={24} className="text-gray-500 dark:text-gray-400" />
-                <div className="flex-1">
-                    <p className="text-sm text-gray-800 dark:text-gray-100 mb-1">Utilizziamo i cookie per migliorare la tua esperienza.</p>
-                    <Link to="/cookie-policy" className="text-xs text-blue-600 hover:underline">Leggi la nostra Cookie Policy</Link>
-                </div>
-                <div className="flex space-x-2">
-                    <button onClick={handleDecline} className="btn btn-outline-sm">Rifiuta</button>
-                    <button onClick={handleAccept} className="btn btn-primary-sm">Accetta</button>
-                </div>
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+      <div className="max-w-sm mx-auto glass-card border border-white/60 dark:border-white/10 p-4 rounded-2xl shadow-lg">
+        <div className="flex items-start space-x-3">
+          <div className="flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <Cookie size={20} className="text-white" />
             </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+              🍪 Cookie per una migliore esperienza
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
+              Utilizziamo cookie tecnici e di analisi per migliorare il servizio. Puoi gestire le preferenze in qualsiasi momento.
+              <a href="/cookie-policy" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
+                Maggiori info
+              </a>
+            </p>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleAccept}
+                className="btn btn-primary text-xs px-3 py-1.5 flex items-center space-x-1"
+              >
+                <Check size={14} />
+                <span>Accetto</span>
+              </button>
+              <button
+                onClick={handleDecline}
+                className="btn btn-outline text-xs px-3 py-1.5 flex items-center space-x-1"
+              >
+                <X size={14} />
+                <span>Rifiuto</span>
+              </button>
+            </div>
+          </div>
         </div>
-    );
-};
+      </div>
+    </div>
+  );
+}
 
 export default ModernCookieBanner;
