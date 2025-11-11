@@ -45,7 +45,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         if (multiOrders.length === 1 && !multiOrders[0].supplier) {
           updateSupplierOrder(multiOrders[0].id, 'supplier', supplierId);
         } else {
-          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '' }]);
+          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', searchTerm: '' }]);
         }
       }
     };
@@ -70,7 +70,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
           supplier: prefilledData.data.supplier_id,
           items: orderData.items || {},
           additional: orderData.additional_items || '',
-          email_subject: orderData.email_subject || ''
+          email_subject: orderData.email_subject || '',
+          searchTerm: ''
         };
         const batchOrders = [batchOrder];
         setMultiOrders(batchOrders);
@@ -123,7 +124,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     };
 
     const onConfirmExit = () => {
-      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
+      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
       setShowExitConfirm(false);
       navigate(-1);
     };
@@ -225,8 +226,22 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                             {supplierData.products.length === 0 ? (
                               <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div>
                             ) : (
-                              <div className="space-y-3">
-                                {supplierData.products.map(product => (
+                              <>
+                                {isProUser && (
+                                  <div className="mb-4">
+                                    <input
+                                      type="text"
+                                      placeholder="Cerca prodotto..."
+                                      value={order.searchTerm || ''}
+                                      onChange={(e) => updateSupplierOrder(order.id, 'searchTerm', e.target.value)}
+                                      className="input"
+                                    />
+                                  </div>
+                                )}
+                                <div className="space-y-3">
+                                  {supplierData.products
+                                    .filter(product => !isProUser || product.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
+                                    .map(product => (
                                   <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
                                     <label className="flex items-center space-x-3 flex-1">
                                       <input
@@ -258,7 +273,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                                      />
                                   </div>
                                 ))}
-                              </div>
+                                </div>
+                              </>
                             )}
                           </div>
                           <div>
@@ -347,7 +363,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             scheduledOrders={scheduledOrders}
             setScheduledOrders={setScheduledOrders}
             onSchedule={() => {
-              setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
+              setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
               setShowScheduleModal(false);
               navigate('/');
             }}

@@ -30,6 +30,7 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
     const [orderItems, setOrderItems] = useState({});
     const [additionalItems, setAdditionalItems] = useState('');
     const [emailSubject, setEmailSubject] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
     const [editingMultiOrders, setEditingMultiOrders] = useState([]);
@@ -106,7 +107,8 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
               supplier: order.supplier_id.toString(),
               items: orderItems,
               additional: additionalItems,
-              email_subject: emailSubject
+              email_subject: emailSubject,
+              searchTerm: ''
             };
           });
           setEditingMultiOrders(multiOrdersData);
@@ -220,7 +222,7 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
 
     const addEditingSupplierOrder = (supplierId) => {
       if (supplierId) {
-        setEditingMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '' }]);
+        setEditingMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' }]);
       }
     };
 
@@ -333,8 +335,22 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
                             {supplierData.products.length === 0 ? (
                               <div className="text-center py-4"><p className="text-gray-500 text-sm">Nessun prodotto configurato</p></div>
                             ) : (
-                              <div className="space-y-3">
-                                {supplierData.products.map(product => (
+                              <>
+                                {isProUser && (
+                                  <div className="mb-4">
+                                    <input
+                                      type="text"
+                                      placeholder="Cerca prodotto..."
+                                      value={order.searchTerm || ''}
+                                      onChange={(e) => updateEditingSupplierOrder(order.id, 'searchTerm', e.target.value)}
+                                      className="input"
+                                    />
+                                  </div>
+                                )}
+                                <div className="space-y-3">
+                                  {supplierData.products
+                                    .filter(product => !isProUser || product.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
+                                    .map(product => (
                                   <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
                                     <label className="flex items-center space-x-3 flex-1">
                                       <input
@@ -366,7 +382,8 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
                                     />
                                   </div>
                                 ))}
-                              </div>
+                                </div>
+                              </>
                             )}
                           </div>
                           <div>
@@ -394,8 +411,51 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
             </div>
           ) : (
             <>
-              <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} className="select"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
-               {selectedSupplierData && selectedSupplierData.products && <div className="glass-card p-4"><h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3><div className="space-y-3">{selectedSupplierData.products.map(product => <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg"><label className="flex items-center space-x-3 flex-1"><input type="checkbox" id={`schedule-product-checkbox-${product}`} name={`schedule-product-checkbox-${product}`} checked={!!(orderItems[product] && orderItems[product] !== '0')} onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95" /><span className="text-sm text-gray-700">{product}</span></label><input type="text" id={`scheduled-quantity-${product}`} name={`scheduled-quantity-${product}`} placeholder="Qt." value={orderItems[product] || ''} onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))} className="input-sm w-16 text-center" /></div>)}</div></div>}
+              <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => { setSelectedSupplier(e.target.value); setSearchTerm(''); }} className="select"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+               {selectedSupplierData && selectedSupplierData.products && (
+                <div className="glass-card p-4">
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3>
+                  {isProUser && (
+                    <div className="mb-4">
+                      <input
+                        type="text"
+                        placeholder="Cerca prodotto..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {selectedSupplierData.products
+                      .filter(product => !isProUser || product.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(product => (
+                        <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
+                          <label className="flex items-center space-x-3 flex-1">
+                            <input
+                              type="checkbox"
+                              id={`schedule-product-checkbox-${product}`}
+                              name={`schedule-product-checkbox-${product}`}
+                              checked={!!(orderItems[product] && orderItems[product] !== '0')}
+                              onChange={(e) => { if (!e.target.checked) setOrderItems(prev => ({ ...prev, [product]: '0' })); }}
+                              className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 accent-blue-600 dark:accent-blue-400 transition-transform active:scale-95"
+                            />
+                            <span className="text-sm text-gray-700">{product}</span>
+                          </label>
+                          <input
+                            type="text"
+                            id={`scheduled-quantity-${product}`}
+                            name={`scheduled-quantity-${product}`}
+                            placeholder="Qt."
+                            value={orderItems[product] || ''}
+                            onChange={(e) => setOrderItems(prev => ({ ...prev, [product]: e.target.value }))}
+                            className="input-sm w-16 text-center"
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
               {selectedSupplierData && selectedSupplierData.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="schedule-email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="schedule-email-subject" name="schedule-email-subject" type="text" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="input" placeholder="Oggetto dell'email" /></div>}
               {selectedSupplierData && <div className="glass-card p-4"><label htmlFor="schedule-additional-items" className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label><textarea id="schedule-additional-items" name="schedule-additional-items" value={additionalItems} onChange={(e) => setAdditionalItems(e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" /></div>}
             </>

@@ -95,7 +95,7 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
             setWizardOrders([]);
             setWizardStep(0);
             toast.success('Tutti gli ordini inviati!');
-            setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
+            setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', searchTerm: '' }]);
             if (onOrderSent) onOrderSent();
             else navigate('/');
         }
@@ -106,7 +106,7 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
         setShowWizard(false);
         setWizardOrders([]);
         setWizardStep(0);
-        setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '' }]);
+        setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', searchTerm: '' }]);
         if (onOrderSent) onOrderSent();
         else navigate('/');
     };

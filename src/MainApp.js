@@ -72,7 +72,7 @@ const MainApp = () => {
     const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
     const [theme, setTheme] = useState('light');
   
-    const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '' }]);
+    const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
     const [showWizard, setShowWizard] = useState(false);
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
