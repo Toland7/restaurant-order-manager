@@ -22,6 +22,10 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
 
     const isLimitReached = !isProUser && suppliers.length >= 10;
 
+    const resetNewSupplier = () => {
+      setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '' });
+    };
+
     const handleAddSupplierClick = () => {
       if (isLimitReached) {
         toast.error('Hai raggiunto il limite di 10 fornitori per il piano Base. Esegui l\'upgrade a PRO per aggiungerne altri.');
@@ -130,7 +134,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
           setSuppliers(prev => [...prev, { ...savedSupplier, products: newSupplier.products }]);
           toast.success('Fornitore aggiunto con successo');
         }
-        setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' });
+        resetNewSupplier();
         setIsAdding(false);
         setEditingSupplier(null);
         if (!editingSupplier) { setTimeout(() => { if (window.confirm('Fornitore aggiunto! Vuoi aggiungerne un altro?')) handleAddSupplierClick(); }, 1000); }
@@ -192,6 +196,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Contatto:</span> {supplier.contact_method} - {supplier.contact}</p>
+                    {supplier.contact_method === 'email' && supplier.email_subject && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Oggetto Email:</span> {supplier.email_subject}</p>}
                     <p className="text-sm text-gray-600"><span className="font-medium">Prodotti:</span> {supplier.products ? supplier.products.join(', ') : 'Nessun prodotto'}</p>
                   </div>
                 ))}
@@ -223,7 +228,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                 <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button></div>)}</div>
               </div>
               <div className="glass-card p-4"><label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea id="message-template" name="message-template" value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="input" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
-              <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:' }); }} className="btn btn-outline flex-1" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="btn btn-primary flex-1">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
+              <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); resetNewSupplier(); }} className="btn btn-outline flex-1" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="btn btn-primary flex-1">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
             </div>
           )}
 

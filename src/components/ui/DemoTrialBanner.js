@@ -1,6 +1,5 @@
 import React from 'react';
 import useSubscriptionStatus from '../../hooks/useSubscriptionStatus';
-import { toast } from 'react-hot-toast';
 
 const DemoTrialBanner = () => {
   const { isDemoUser, isTrialActive, daysRemainingInTrial } = useSubscriptionStatus();
