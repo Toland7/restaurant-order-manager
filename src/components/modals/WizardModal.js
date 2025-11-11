@@ -10,6 +10,21 @@ const openLinkInNewTab = (url) => {
     if (newWindow) newWindow.opener = null;
 };
 
+const generateEmailLink = (to, subject, body, preferredClient) => {
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(body);
+
+    switch (preferredClient) {
+        case 'gmail':
+            return `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${encodedSubject}&body=${encodedBody}`;
+        case 'outlook':
+            return `https://outlook.live.com/owa/?path=/mail/action/compose&to=${to}&subject=${encodedSubject}&body=${encodedBody}`;
+        case 'default':
+        default:
+            return `mailto:${to}?subject=${encodedSubject}&body=${encodedBody}`;
+    }
+};
+
 const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user, setNewlyCreatedOrders, setOrders, newlyCreatedOrders, setShowWizard, setWizardOrders, onOrderSent, setMultiOrders, onBackToEdit }) => {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const navigate = useNavigate();
@@ -52,7 +67,12 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
                 break;
             }
             case 'email': {
-                contactLink = `mailto:${order.supplier.contact}?subject=${encodeURIComponent(order.email_subject || order.supplier.email_subject || `Ordine Fornitore - ${order.supplier.name}`)}&body=${encodedMessage}`;
+                contactLink = generateEmailLink(
+                    order.supplier.contact,
+                    order.email_subject || order.supplier.email_subject || `Ordine Fornitore - ${order.supplier.name}`,
+                    order.message,
+                    order.supplier.preferred_email_client
+                );
                 break;
             }
             case 'sms': {

@@ -15,7 +15,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
-    const [newSupplier, setNewSupplier] = useState({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '' });
+    const [newSupplier, setNewSupplier] = useState({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '', preferred_email_client: 'default' });
     const [newProduct, setNewProduct] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isProductImportModalOpen, setIsProductImportModalOpen] = useState(false);
@@ -23,7 +23,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const isLimitReached = !isProUser && suppliers.length >= 10;
 
     const resetNewSupplier = () => {
-      setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '' });
+      setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '', preferred_email_client: 'default' });
     };
 
     const handleAddSupplierClick = () => {
@@ -120,7 +120,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
       if (!user) { toast.error('Sessione utente non valida. Effettua nuovamente il login.'); navigate('/auth'); return; }
       setIsSubmitting(true);
       try {
-        const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template, email_subject: newSupplier.email_subject };
+        const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template, email_subject: newSupplier.email_subject, preferred_email_client: newSupplier.preferred_email_client };
         let savedSupplier;
         if (editingSupplier) {
           savedSupplier = await supabaseHelpers.updateSupplier(editingSupplier.id, supplierData);
@@ -148,7 +148,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     };
 
     const editSupplier = (supplier) => {
-      setNewSupplier({ name: supplier.name, contact_method: supplier.contact_method, contact: supplier.contact, products: supplier.products || [], message_template: supplier.message_template, email_subject: supplier.email_subject || '' });
+      setNewSupplier({ name: supplier.name, contact_method: supplier.contact_method, contact: supplier.contact, products: supplier.products || [], message_template: supplier.message_template, email_subject: supplier.email_subject || '', preferred_email_client: supplier.preferred_email_client || 'default' });
       setEditingSupplier(supplier);
       setIsAdding(true);
     };
@@ -197,6 +197,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                     </div>
                     <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Contatto:</span> {supplier.contact_method} - {supplier.contact}</p>
                     {supplier.contact_method === 'email' && supplier.email_subject && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Oggetto Email:</span> {supplier.email_subject}</p>}
+                    {supplier.contact_method === 'email' && supplier.preferred_email_client && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Client Email:</span> {supplier.preferred_email_client}</p>}
                     <p className="text-sm text-gray-600"><span className="font-medium">Prodotti:</span> {supplier.products ? supplier.products.join(', ') : 'Nessun prodotto'}</p>
                   </div>
                 ))}
@@ -208,7 +209,28 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
               <div className="glass-card p-4"><label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input id="supplier-name" name="supplier-name" type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="input" placeholder="Es. Fornitore Verdure Bio" /></div>
               <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="select"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
               <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="input" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' || newSupplier.contact_method === 'whatsapp_group' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
-              {newSupplier.contact_method === 'email' && <div className="glass-card p-4"><label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label><input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" /></div>}
+              {newSupplier.contact_method === 'email' && (
+                <>
+                  <div className="glass-card p-4">
+                    <label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label>
+                    <input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" />
+                  </div>
+                  <div className="glass-card p-4">
+                    <label htmlFor="preferred-email-client" className="block text-sm font-medium text-gray-700 mb-2">Client Email Preferito</label>
+                    <select
+                      id="preferred-email-client"
+                      name="preferred-email-client"
+                      value={newSupplier.preferred_email_client}
+                      onChange={(e) => setNewSupplier(prev => ({ ...prev, preferred_email_client: e.target.value }))}
+                      className="select"
+                    >
+                      <option value="default">Client predefinito</option>
+                      <option value="gmail">Gmail</option>
+                      <option value="outlook">Outlook</option>
+                    </select>
+                  </div>
+                </>
+              )}
               <div className="glass-card p-4">
                 <div className="flex justify-between items-center mb-4">
                   <span className="block text-sm font-medium text-gray-700">Prodotti</span>
