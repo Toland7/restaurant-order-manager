@@ -14,47 +14,45 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
       if (isSubmitting) return;
       setIsSubmitting(true);
       try {
-        const existingScheduledOrder = await supabaseHelpers.getScheduledOrderById(scheduledOrderId);
+        // Find the selected scheduled order to get its scheduled_at time
+        const targetScheduledOrder = scheduledOrders.find(o => o.id === scheduledOrderId);
+        if (!targetScheduledOrder) {
+          toast.error("L'ordine programmato selezionato non è stato trovato.");
+          setIsSubmitting(false);
+          return;
+        }
+        const scheduledDateTime = new Date(targetScheduledOrder.scheduled_at);
 
-        let existingOrderData = { items: {}, additional_items: '' };
-        if (existingScheduledOrder.order_data) {
-          try {
-            existingOrderData = JSON.parse(existingScheduledOrder.order_data);
-          } catch (e) {
-            console.error("Failed to parse existing order_data from scheduled order", e);
-          }
+        const newScheduledOrders = [];
+        for (const order of multiOrders) {
+          if (!order.supplier) continue; // Skip orders without a supplier
+
+          const orderData = {
+            user_id: targetScheduledOrder.user_id, // Assuming the user is the same
+            supplier_id: order.supplier,
+            scheduled_at: scheduledDateTime.toISOString(),
+            order_data: JSON.stringify({ 
+              items: order.items, 
+              additional_items: order.additional, 
+              email_subject: order.email_subject 
+            })
+          };
+          
+          const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+          newScheduledOrders.push({ ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === order.supplier) });
         }
 
-        // For now, use the first order in multiOrders (backward compatibility)
-        const currentOrder = multiOrders[0] || { items: {}, additional: '' };
-
-        const mergedItems = { ...existingOrderData.items };
-        Object.entries(currentOrder.items).forEach(([product, quantity]) => {
-          const newQuantity = parseInt(quantity, 10) || 0;
-          if (newQuantity > 0) {
-            mergedItems[product] = (parseInt(mergedItems[product], 10) || 0) + newQuantity;
-          } else if (mergedItems[product]) {
-            delete mergedItems[product];
-          }
-        });
-
-        let mergedAdditionalItems = existingOrderData.additional_items;
-        if (currentOrder.additional.trim()) {
-          mergedAdditionalItems = mergedAdditionalItems ? `${mergedAdditionalItems}\n${currentOrder.additional.trim()}` : currentOrder.additional.trim();
+        if (newScheduledOrders.length > 0) {
+          setScheduledOrders(prev => [...prev, ...newScheduledOrders]);
+          toast.success(`${newScheduledOrders.length} nuovi ordini aggiunti alla programmazione.`);
+        } else {
+          toast.warn("Nessun nuovo ordine valido da aggiungere.");
         }
-
-        const updatedOrderData = {
-          order_data: JSON.stringify({ items: mergedItems, additional_items: mergedAdditionalItems })
-        };
-
-        const updatedOrder = await supabaseHelpers.updateScheduledOrder(scheduledOrderId, updatedOrderData);
-        setScheduledOrders(prev => prev.map(o => o.id === scheduledOrderId ? { ...o, ...updatedOrder } : o));
-
-        toast.success('Ordine programmato aggiornato con successo!');
+        
         onSchedule();
       } catch (error) {
         console.error('Error linking to scheduled order:', error);
-        toast.error("Errore durante l'aggiornamento dell'ordine programmato");
+        toast.error("Errore durante l'aggiunta alla programmazione");
       } finally {
         setIsSubmitting(false);
       }
@@ -62,7 +60,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
 
     return (
       <div className="modal-overlay">
-        <div className="glass-card p-6 max-w-sm w-full max-h-[80vh] flex flex-col">
+        <div className="bg-surface p-6 max-w-sm w-full max-h-96 overflow-y-auto rounded-xl shadow-lg border border-border flex flex-col">
           <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Associa a un ordine programmato</h3>
           <div className="overflow-y-auto space-y-3">
             {futureScheduledOrders.length > 0 ? (
@@ -93,7 +91,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
                     });
                     navigate('/schedule');
                   }}
-                  className="w-full bg-primary-blue text-white py-3 rounded-lg font-medium hover:bg-secondary-blue transition-colors"
+                  className="btn btn-primary w-full"
                 >
                   Crea un nuovo ordine programmato
                 </button>
@@ -101,7 +99,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
             )}
           </div>
           <div className="mt-4 flex justify-end">
-            <button onClick={onClose} className="py-2 px-4 border border-medium-gray text-dark-gray rounded-lg hover:bg-light-gray">Chiudi</button>
+            <button onClick={onClose} className="btn btn-outline">Chiudi</button>
           </div>
         </div>
       </div>

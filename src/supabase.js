@@ -26,6 +26,7 @@ export const supabaseHelpers = {
       .from('suppliers')
       .select(`
         *,
+        preferred_email_client,
         products (
           id,
           name,

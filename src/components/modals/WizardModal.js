@@ -58,7 +58,7 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
         let contactLink = '';
         switch (order.supplier.contact_method) {
             case 'whatsapp': {
-                const sanitizedContact = order.supplier.contact.replace(/\D/g, '');
+                const sanitizedContact = order.supplier?.contact?.replace(/\D/g, '') || '';
                 contactLink = `https://wa.me/${sanitizedContact}?text=${encodedMessage}`;
                 break;
             }
@@ -68,15 +68,15 @@ const WizardModal = ({ showWizard, wizardOrders, wizardStep, setWizardStep, user
             }
             case 'email': {
                 contactLink = generateEmailLink(
-                    order.supplier.contact,
-                    order.email_subject || order.supplier.email_subject || `Ordine Fornitore - ${order.supplier.name}`,
+                    order.supplier?.contact || '',
+                    order.email_subject || order.supplier?.email_subject || `Ordine Fornitore - ${order.supplier?.name || 'Sconosciuto'}`,
                     order.message,
-                    order.supplier.preferred_email_client
+                    order.supplier?.preferred_email_client
                 );
                 break;
             }
             case 'sms': {
-                const sanitizedContact = order.supplier.contact.replace(/\D/g, '');
+                const sanitizedContact = order.supplier?.contact?.replace(/\D/g, '') || '';
                 contactLink = `sms:${sanitizedContact}?body=${encodedMessage}`;
                 break;
             }

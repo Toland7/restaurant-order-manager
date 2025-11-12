@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, ChevronDown, Send, Edit3, Trash2, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
@@ -34,6 +34,26 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
     const [editingMultiOrders, setEditingMultiOrders] = useState([]);
+
+    const resetForm = useCallback(() => {
+      setSelectedDate(new Date().toISOString().split('T')[0]);
+      setSelectedTime(getRoundedTime());
+      setSelectedSupplier('');
+      setOrderItems({});
+      setAdditionalItems('');
+      setEmailSubject('');
+      setSearchTerm('');
+      setEditingOrder(null);
+      setEditingMultiOrders([]);
+    }, []);
+
+    useEffect(() => {
+      // On mount, reset the form state, unless there's prefilled data
+      if (!prefilledData) {
+        resetForm();
+      }
+    }, [prefilledData, resetForm]);
+
     const timeSlots = [];
     for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 15) { const hour = h.toString().padStart(2, '0'); const minute = m.toString().padStart(2, '0'); timeSlots.push(`${hour}:${minute}`); } }
 
@@ -325,7 +345,7 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
                         <label htmlFor={`edit-supplier-select-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
                         <select id={`edit-supplier-select-${order.id}`} name={`edit-supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateEditingSupplierOrder(order.id, 'supplier', e.target.value)} className="select">
                           <option value="">Scegli un fornitore...</option>
-                          {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                          {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}
                         </select>
                       </div>
                       {supplierData && (
@@ -406,12 +426,12 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
                 }
               }} className="select mb-4">
                 <option value="">Aggiungi Fornitore...</option>
-                {suppliers.filter(s => !editingMultiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                {suppliers.filter(s => !editingMultiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}
               </select>
             </div>
           ) : (
             <>
-              <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => { setSelectedSupplier(e.target.value); setSearchTerm(''); }} className="select"><option value="">Scegli un fornitore...</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+              <div className="glass-card p-4"><label htmlFor="schedule-supplier" className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label><select id="schedule-supplier" name="schedule-supplier" value={selectedSupplier} onChange={(e) => { setSelectedSupplier(e.target.value); setSearchTerm(''); }} className="select"><option value="">Scegli un fornitore...</option>                  {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}</select></div>
                {selectedSupplierData && selectedSupplierData.products && (
                 <div className="glass-card p-4">
                   <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h3>

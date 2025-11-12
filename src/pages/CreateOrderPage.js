@@ -26,6 +26,14 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
     const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
+    useEffect(() => {
+      // On mount, reset the order form, unless there's prefilled data
+      // This ensures a clean state when navigating back to the page
+      if (!prefilledData) {
+        setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
+      }
+    }, [setMultiOrders, prefilledData]); // Run on mount and if prefilledData changes
+
     const removeSupplierOrder = (id) => {
       if (multiOrders.length > 1) {
         setMultiOrders(prev => prev.filter(order => order.id !== id));
@@ -45,7 +53,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         if (multiOrders.length === 1 && !multiOrders[0].supplier) {
           updateSupplierOrder(multiOrders[0].id, 'supplier', supplierId);
         } else {
-          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', searchTerm: '' }]);
+          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' }]);
         }
       }
     };
@@ -214,10 +222,10 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                     <div className="space-y-4">
                       <div>
                         <label htmlFor={`supplier-select-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Seleziona Fornitore</label>
-                        <select id={`supplier-select-${order.id}`} name={`supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="select">
-                          <option value="">Scegli un fornitore...</option>
-                          {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
-                        </select>
+                         <select id={`supplier-select-${order.id}`} name={`supplier-select-${order.id}`} value={order.supplier} onChange={(e) => updateSupplierOrder(order.id, 'supplier', e.target.value)} className="select">
+                           <option value="">Scegli un fornitore...</option>
+                           {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}
+                         </select>
                       </div>
                       {supplierData && (
                         <>
@@ -301,7 +309,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                   className="select mb-4 disabled:bg-gray-200 disabled:cursor-not-allowed"
                 >
                   <option value="">Aggiungi Fornitore...</option>
-                  {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                  {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}
                 </select>
                 {!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier) && (
                   <div className="absolute inset-0 bg-white/70 dark:bg-gray-800/70 flex items-center justify-center rounded-lg cursor-pointer" onClick={() => toast.error('Aggiungere più fornitori in un unico ordine è una funzionalità PRO.')}>

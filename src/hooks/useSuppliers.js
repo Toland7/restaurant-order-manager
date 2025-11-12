@@ -9,7 +9,7 @@ export const useSuppliers = (user) => {
             if (user) {
                 try {
                     const suppliersData = await supabaseHelpers.getSuppliers(user.id);
-                    const formattedSuppliers = suppliersData.map(supplier => ({ ...supplier, products: supplier.products ? supplier.products.map(p => p.name) : [] }));
+                    const formattedSuppliers = suppliersData.filter(supplier => supplier && supplier.id).map(supplier => ({ ...supplier, products: supplier.products ? supplier.products.map(p => p.name) : [] }));
                     setSuppliers(formattedSuppliers);
                 } catch (error) {
                     console.error('Error fetching suppliers:', error);

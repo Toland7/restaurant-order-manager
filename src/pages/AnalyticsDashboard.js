@@ -190,7 +190,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                 <label htmlFor="analytics-supplier" className="block text-xs font-medium text-gray-700 mb-1">Fornitore</label>
                 <select id="analytics-supplier" name="analytics-supplier" value={filters.supplierId} onChange={(e) => setFilters(prev => ({ ...prev, supplierId: e.target.value }))} className="input input-sm">
                   <option value="">Tutti i fornitori</option>
-                  {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                  {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}
                 </select>
               </div>
               <div>
@@ -268,7 +268,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                       className="input input-sm"
                     >
                       <option value="">Tutti i fornitori</option>
-                      {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                  {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier?.name || 'Fornitore senza nome'}</option>)}
                     </select>
                   </div>
                   <div>
