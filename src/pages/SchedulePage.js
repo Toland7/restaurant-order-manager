@@ -253,6 +253,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, setWizar
         }
 
         resetForm();
+        setPrefilledData(null); // Clear prefilled data after successful scheduling
         if (!editingOrder) {
           setTimeout(() => { if (!window.confirm('Ordini programmati con successo! Vuoi programmarne altri?')) navigate('/'); }, 1000);
         }
