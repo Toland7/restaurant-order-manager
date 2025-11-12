@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import { toast, Toaster } from 'react-hot-toast';
@@ -18,6 +17,7 @@ import ProfileManagerPage from './pages/ProfileManagerPage';
 import CreateOrderPage from './pages/CreateOrderPage';
 import SchedulePage from './pages/SchedulePage';
 import AuthPage from './pages/AuthPage';
+import ProfileSelectionPage from './pages/ProfileSelectionPage';
 
 import { useProfile } from './hooks/useProfile';
 import { useSuppliers } from './hooks/useSuppliers';
@@ -26,8 +26,8 @@ import { useAnalytics } from './hooks/useAnalytics';
 import { useNotifications } from './hooks/useNotifications';
 import { supabaseHelpers } from './supabase.js';
 import useSubscriptionStatus from './hooks/useSubscriptionStatus';
-import ProfileSelectionPage from './pages/ProfileSelectionPage';
 import { useProfileContext } from './ProfileContext';
+import PinVerificationModal from './components/modals/PinVerificationModal';
 import UpgradeToProBanner from './components/ui/UpgradeToProBanner.js';
 import DemoTrialBanner from './components/ui/DemoTrialBanner';
 
@@ -35,7 +35,7 @@ const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -57,7 +57,6 @@ const MainApp = () => {
   
     const handlePinVerificationFailure = () => {
       setSelectedProfile(null);
-      localStorage.removeItem('selectedProfile');
       setShowPinVerification(false);
       // ProfileSelectionPage will be rendered automatically due to !selectedProfile
     };
@@ -128,6 +127,11 @@ const MainApp = () => {
       }
     }, [user, loadData]);
 
+    const handlePinSuccessFromDropdown = () => {
+      closePinModal();
+      navigate('/');
+    };
+
     // Helper component for PRO features
     const ProRoute = ({ element, featureName }) => {
       if (loadingSubscription) {
@@ -140,21 +144,30 @@ const MainApp = () => {
   
     if (isProUser && (showPinVerification || (!selectedProfile && !loadingProfile))) {
       return (
-        <ProfileSelectionPage 
-          preSelectedProfile={showPinVerification ? selectedProfile : null}
-          onPinVerificationSuccess={handlePinVerificationSuccess}
-          onPinVerificationFailure={handlePinVerificationFailure}
-        />
+        <>
+          <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
+          <ProfileSelectionPage 
+            preSelectedProfile={showPinVerification ? selectedProfile : null}
+            onPinVerificationSuccess={handlePinVerificationSuccess}
+            onPinVerificationFailure={handlePinVerificationFailure}
+          />
+        </>
       );
     }
   
     if (isProUser && !selectedProfile && !loadingProfile) {
-      return <ProfileSelectionPage />;
+      return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><ProfileSelectionPage /></>;
     }
 
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
+      <PinVerificationModal
+        show={isPinModalOpen}
+        onClose={closePinModal}
+        profile={profileToVerify}
+        onSuccess={handlePinSuccessFromDropdown}
+      />
       <Routes>
         <Route path="/" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
         <Route path="/create-order" element={<CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => loadData(user.id)} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />

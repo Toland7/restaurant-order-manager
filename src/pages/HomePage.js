@@ -1,23 +1,10 @@
 import { BarChart3, Bell, Settings, ShoppingCart, Users, Calendar, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MenuButton from '../components/ui/MenuButton';
-import { useProfileContext } from '../ProfileContext';
-import { useInAppProfiles } from '../hooks/useInAppProfiles';
+import ProfileSwitcherDropdown from '../components/ui/ProfileSwitcherDropdown';
 
 const HomePage = ({ profile, user, unreadCount, analytics }) => {
     const navigate = useNavigate();
-    const { selectedProfile, setSelectedProfile } = useProfileContext();
-    const { profiles } = useInAppProfiles();
-
-    const profileName = selectedProfile?.profile_name || profile?.first_name || user?.email?.split('@')[0];
-    const isSwitchable = profiles && profiles.length > 1;
-
-    const handleProfileClick = () => {
-      if (isSwitchable) {
-        setSelectedProfile(null);
-        navigate('/profile-selection');
-      }
-    };
 
     return (
     <div className="min-h-screen app-background">
@@ -27,14 +14,7 @@ const HomePage = ({ profile, user, unreadCount, analytics }) => {
           <div className="flex justify-between items-center mb-4"><div className="text-center">
             <h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1>
             <p className="text-gray-500 text-sm">
-              Benvenuto,{' '}
-              {isSwitchable ? (
-                <button onClick={handleProfileClick} className="underline font-medium text-blue-600 hover:text-blue-800">
-                  {profileName}
-                </button>
-              ) : (
-                <span>{profileName}</span>
-              )}
+              Benvenuto, <ProfileSwitcherDropdown />
             </p>
           </div>
             <div className="flex space-x-2">

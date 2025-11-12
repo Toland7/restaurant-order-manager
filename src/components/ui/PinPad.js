@@ -27,7 +27,7 @@ const PinPad = ({ pinLength = 4, onPinComplete, onPinChange }) => {
   };
 
   return (
-    <div className="pin-pad-container p-6 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+    <>
       <div className="pin-display flex justify-center items-center h-12 mb-6 space-x-3">
         {Array(pinLength).fill('').map((_, index) => (
           <div
@@ -66,7 +66,7 @@ const PinPad = ({ pinLength = 4, onPinComplete, onPinChange }) => {
           <ArrowLeft size={30} />
         </button>
       </div>
-    </div>
+    </>
   );
 };
 

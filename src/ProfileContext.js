@@ -6,7 +6,9 @@ const ProfileContext = createContext(null);
 export const ProfileProvider = ({ children }) => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [profilePermissions, setProfilePermissions] = useState([]); // New state for permissions
+  const [profilePermissions, setProfilePermissions] = useState([]);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [profileToVerify, setProfileToVerify] = useState(null);
 
   // Attempt to load selected profile from localStorage on initial render
   useEffect(() => {
@@ -25,6 +27,16 @@ export const ProfileProvider = ({ children }) => {
     } else {
       localStorage.removeItem('selectedProfile');
     }
+  };
+
+  const openPinModal = (profile) => {
+    setProfileToVerify(profile);
+    setIsPinModalOpen(true);
+  };
+
+  const closePinModal = () => {
+    setProfileToVerify(null);
+    setIsPinModalOpen(false);
   };
 
   // Fetch permissions when selectedProfile changes
@@ -57,7 +69,17 @@ export const ProfileProvider = ({ children }) => {
   }, [profilePermissions]);
 
   return (
-    <ProfileContext.Provider value={{ selectedProfile, setSelectedProfile: updateSelectedProfile, loadingProfile, profilePermissions, hasPermission }}>
+    <ProfileContext.Provider value={{ 
+      selectedProfile, 
+      setSelectedProfile: updateSelectedProfile, 
+      loadingProfile, 
+      profilePermissions, 
+      hasPermission,
+      isPinModalOpen,
+      profileToVerify,
+      openPinModal,
+      closePinModal
+    }}>
       {children}
     </ProfileContext.Provider>
   );
