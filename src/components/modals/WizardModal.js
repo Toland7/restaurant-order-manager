@@ -10,15 +10,27 @@ const openLinkInNewTab = (url) => {
     if (newWindow) newWindow.opener = null;
 };
 
+const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+};
+
 const generateEmailLink = (to, subject, body, preferredClient) => {
     const encodedSubject = encodeURIComponent(subject);
     const encodedBody = encodeURIComponent(body);
 
     switch (preferredClient) {
         case 'gmail':
-            return `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${encodedSubject}&body=${encodedBody}`;
+            if (isMobile()) {
+                return `googlegmail://co?to=${to}&subject=${encodedSubject}&body=${encodedBody}`;
+            } else {
+                return `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${encodedSubject}&body=${encodedBody}`;
+            }
         case 'outlook':
-            return `https://outlook.live.com/owa/?path=/mail/action/compose&to=${to}&subject=${encodedSubject}&body=${encodedBody}`;
+            if (isMobile()) {
+                return `ms-outlook://compose?to=${to}&subject=${encodedSubject}&body=${encodedBody}`;
+            } else {
+                return `https://outlook.live.com/owa/?path=/mail/action/compose&to=${to}&subject=${encodedSubject}&body=${encodedBody}`;
+            }
         case 'default':
         default:
             return `mailto:${to}?subject=${encodedSubject}&body=${encodedBody}`;
