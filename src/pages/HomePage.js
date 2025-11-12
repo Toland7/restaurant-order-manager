@@ -13,9 +13,9 @@ const HomePage = ({ profile, user, unreadCount, analytics }) => {
         <div className="max-w-sm mx-auto px-6 py-6">
           <div className="flex justify-between items-center mb-4"><div className="text-center">
             <h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1>
-            <p className="text-gray-500 text-sm">
+            <div className="text-gray-500 text-sm">
               Benvenuto, <ProfileSwitcherDropdown />
-            </p>
+            </div>
           </div>
             <div className="flex space-x-2">
               <button onClick={() => navigate('/analytics')} className="icon-btn" aria-label="Visualizza analytics"><BarChart3 size={20} /></button>

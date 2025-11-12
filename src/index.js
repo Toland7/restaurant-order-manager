@@ -5,12 +5,21 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './AuthContext.js';
 import { PrefillProvider } from './PrefillContext.js';
 import { ProfileProvider } from './ProfileContext.js';
 import { SubscriptionProvider } from './hooks/useSubscriptionStatus.js';
 import './i18n';
+
+// Import components used in routes
+import MainApp from './MainApp';
+import PrivacyPolicy from './PrivacyPolicy';
+import CookiePolicy from './CookiePolicy';
+import TermsOfService from './TermsOfService';
+import LegalPageLayout from './LegalPageLayout';
+import UpdatePasswordPage from './pages/UpdatePasswordPage';
+
 
 // Inizializza Sentry per monitoraggio errori
 Sentry.init({
@@ -20,21 +29,48 @@ Sentry.init({
   environment: process.env.NODE_ENV,
 });
 
+const router = createBrowserRouter([
+  {
+    path: "/*", // Changed from "/" to "/*"
+    element: <App />,
+    children: [
+      {
+        path: "privacy",
+        element: <LegalPageLayout title="Privacy Policy"><PrivacyPolicy /></LegalPageLayout>,
+      },
+      {
+        path: "cookie-policy",
+        element: <LegalPageLayout title="Cookie Policy"><CookiePolicy /></LegalPageLayout>,
+      },
+      {
+        path: "terms-of-service",
+        element: <LegalPageLayout title="Termini di Servizio"><TermsOfService /></LegalPageLayout>,
+      },
+      {
+        path: "update-password",
+        element: <UpdatePasswordPage />,
+      },
+      {
+        path: "*",
+        element: <MainApp />,
+      },
+    ],
+  },
+]);
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<p>Si è verificato un errore. Ricarica la pagina.</p>}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <ProfileProvider>
-            <SubscriptionProvider>
-              <PrefillProvider>
-                <App />
-              </PrefillProvider>
-            </SubscriptionProvider>
-          </ProfileProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <ProfileProvider>
+          <SubscriptionProvider>
+            <PrefillProvider>
+              <RouterProvider router={router} future={{ v7_startTransition: true }} />
+            </PrefillProvider>
+          </SubscriptionProvider>
+        </ProfileProvider>
+      </AuthProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );
