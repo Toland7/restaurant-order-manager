@@ -8,10 +8,13 @@ import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import ProductImportModal from '../components/modals/ProductImportModal';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import the hook
+import { useProfileContext } from '../ProfileContext'; // Import the profile context
 
 const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const navigate = useNavigate();
     const { isProUser, loadingSubscription } = useSubscriptionStatus(); // Use the hook
+    const { hasPermission } = useProfileContext(); // Use the profile context
+    const canManageSuppliers = hasPermission('suppliers:manage');
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
@@ -27,6 +30,10 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     };
 
     const handleAddSupplierClick = () => {
+      if (!canManageSuppliers) {
+        toast.error("Non hai i permessi per aggiungere fornitori.");
+        return;
+      }
       if (isLimitReached) {
         toast.error('Hai raggiunto il limite di 10 fornitori per il piano Base. Esegui l\'upgrade a PRO per aggiungerne altri.');
       } else {
@@ -116,6 +123,10 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     };
 
     const saveSupplier = async () => {
+      if (!canManageSuppliers) {
+        toast.error("Non hai i permessi per salvare fornitori.");
+        return;
+      }
       if (!newSupplier.name || !newSupplier.contact) { toast.error('Nome e contatto sono obbligatori'); return; }
       if (!user) { toast.error('Sessione utente non valida. Effettua nuovamente il login.'); navigate('/auth'); return; }
       setIsSubmitting(true);
@@ -148,12 +159,20 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     };
 
     const editSupplier = (supplier) => {
+      if (!canManageSuppliers) {
+        toast.error("Non hai i permessi per modificare fornitori.");
+        return;
+      }
       setNewSupplier({ name: supplier.name, contact_method: supplier.contact_method, contact: supplier.contact, products: supplier.products || [], message_template: supplier.message_template, email_subject: supplier.email_subject || '', preferred_email_client: supplier.preferred_email_client || 'default' });
       setEditingSupplier(supplier);
       setIsAdding(true);
     };
 
     const deleteSupplier = async (id) => {
+      if (!canManageSuppliers) {
+        toast.error("Non hai i permessi per eliminare fornitori.");
+        return;
+      }
       if (!window.confirm('Sei sicuro di voler eliminare questo fornitore? Questa azione eliminerà anche tutti i prodotti associati.')) return;
       try {
         await supabaseHelpers.deleteSupplier(id);
@@ -171,14 +190,16 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         <div className="max-w-sm mx-auto px-6 py-6">
           {!isAdding ? (
             <>
-              <button 
-                onClick={handleAddSupplierClick} 
-                disabled={isLimitReached || loadingSubscription}
-                className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                <Plus size={20} />
-                <span>Aggiungi Fornitore</span>
-              </button>
+              {canManageSuppliers && (
+                <button 
+                  onClick={handleAddSupplierClick} 
+                  disabled={isLimitReached || loadingSubscription}
+                  className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  <Plus size={20} />
+                  <span>Aggiungi Fornitore</span>
+                </button>
+              )}
               {isLimitReached && (
                 <div className="text-center text-xs text-red-600 dark:text-red-400 mb-4 p-2 bg-red-100 dark:bg-red-900/20 rounded-md">
                   Limite di 10 fornitori raggiunto. <button className="font-bold underline" onClick={() => { /* TODO: Upgrade logic */ }}>Upgrade a PRO</button>
@@ -189,11 +210,13 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                   <div key={supplier.id} className="glass-card p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-medium text-gray-900">{supplier.name}</h3>
-                      <div className="flex space-x-2">
-                        <button onClick={() => handleExportSupplierCSV(supplier.id, supplier.name)} className="p-1 text-green-500 hover:bg-green-50 rounded"><Download size={16} /></button>
-                        <button onClick={() => editSupplier(supplier)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Edit3 size={16} /></button>
-                        <button onClick={() => deleteSupplier(supplier.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
-                      </div>
+                      {canManageSuppliers && (
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleExportSupplierCSV(supplier.id, supplier.name)} className="p-1 text-green-500 hover:bg-green-50 rounded"><Download size={16} /></button>
+                          <button onClick={() => editSupplier(supplier)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Edit3 size={16} /></button>
+                          <button onClick={() => deleteSupplier(supplier.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                        </div>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Contatto:</span> {supplier.contact_method} - {supplier.contact}</p>
                     {supplier.contact_method === 'email' && supplier.email_subject && <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Oggetto Email:</span> {supplier.email_subject}</p>}
@@ -201,7 +224,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                     <p className="text-sm text-gray-600"><span className="font-medium">Prodotti:</span> {supplier.products ? supplier.products.join(', ') : 'Nessun prodotto'}</p>
                   </div>
                 ))}
-                {suppliers.length === 0 && !loadingSubscription && <div className="text-center py-12"><Users size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-4">Nessun fornitore ancora aggiunto</p><button onClick={handleAddSupplierClick} className="text-blue-500 hover:text-blue-600 font-medium">Aggiungi il primo fornitore</button></div>}
+                {suppliers.length === 0 && !loadingSubscription && <div className="text-center py-12"><Users size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500 mb-4">Nessun fornitore ancora aggiunto</p>{canManageSuppliers && <button onClick={handleAddSupplierClick} className="text-blue-500 hover:text-blue-600 font-medium">Aggiungi il primo fornitore</button>}</div>}
               </div>
             </>
           ) : (

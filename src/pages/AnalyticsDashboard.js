@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Filter, ChevronDown } from 'lucide-react';
+import { Filter, ChevronDown, Lock } from 'lucide-react';
+import { useProfileContext } from '../ProfileContext';
 import Header from '../components/ui/Header';
 import { useNavigate } from 'react-router-dom';
 
 const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory }) => {
     const navigate = useNavigate();
+    const { hasPermission } = useProfileContext();
+    const canViewAnalytics = hasPermission('analytics:view');
+
     const [filters, setFilters] = useState({
       dateFrom: '',
       dateTo: '',
@@ -17,6 +21,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
     const [showFilters, setShowFilters] = useState(false);
 
     const filteredOrders = useMemo(() => {
+      if (!canViewAnalytics) return [];
       let currentOrders = orders;
 
       if (filters.dateFrom) {
@@ -41,7 +46,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
         );
       }
       return currentOrders;
-    }, [orders, filters]);
+    }, [orders, filters, canViewAnalytics]);
 
     const ordersOverTimeData = useMemo(() => {
       const monthlyCounts = {};
@@ -149,6 +154,19 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
     };
 
     const PIE_CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57', '#ffc0cb'];
+
+    if (!canViewAnalytics) {
+      return (
+        <div className="min-h-screen app-background">
+          <Header title="Dashboard Analytics" onBack={() => navigate('/')} />
+          <div className="max-w-sm mx-auto px-6 py-6 text-center">
+            <Lock size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
+            <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">Accesso Negato</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Non hai i permessi per visualizzare la dashboard analytics.</p>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen app-background">

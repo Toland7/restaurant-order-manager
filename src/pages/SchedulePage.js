@@ -6,7 +6,8 @@ import { usePrefill } from '../PrefillContext';
 import { supabaseHelpers } from '../supabase';
 import ScheduledOrderPreview from '../components/ui/ScheduledOrderPreview';
 import { useNavigate } from 'react-router-dom';
-import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import the hook
+import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
+import { useProfileContext } from '../ProfileContext';
 
 const groupOrdersByScheduledAt = (orders) => {
     return orders.reduce((acc, order) => {
@@ -21,7 +22,9 @@ const groupOrdersByScheduledAt = (orders) => {
 
 const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders, setScheduledOrders, setWizardOrders, showWizard, setShowWizard, wizardOrders, wizardStep, setWizardStep, user }) => {
     const navigate = useNavigate();
-    const { isProUser, loadingSubscription } = useSubscriptionStatus(); // Use the hook
+    const { isProUser, loadingSubscription } = useSubscriptionStatus();
+    const { hasPermission } = useProfileContext();
+    const canScheduleOrders = hasPermission('orders:schedule');
     const { prefilledData, setPrefilledData } = usePrefill();
     const getRoundedTime = (date = new Date()) => { const minutes = date.getMinutes(); const roundedMinutes = Math.ceil(minutes / 15) * 15; date.setMinutes(roundedMinutes); return date.toTimeString().slice(0, 5); };
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -72,6 +75,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
     const isLimitReached = !isProUser && !editingOrder && scheduledOrders.length >= 3;
 
     const handleScheduleOrderClick = () => {
+      if (!canScheduleOrders) {
+        toast.error("Non hai i permessi per programmare ordini.");
+        return;
+      }
       if (isLimitReached) {
         toast.error('Hai raggiunto il limite di 3 ordini programmati per il piano Base. Esegui l\'upgrade a PRO per programmarne altri.');
       } else {
@@ -149,6 +156,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
     }, [editingOrder, scheduledOrders]);
 
     const scheduleOrder = async () => {
+      if (!canScheduleOrders) {
+        toast.error("Non hai i permessi per programmare o modificare ordini.");
+        return;
+      }
       if (!selectedDate) { toast.error('Seleziona data'); return; }
       const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
       if (scheduledDateTime < new Date() && !editingOrder) { toast.error('Non puoi programmare un ordine nel passato.'); return; }
@@ -247,6 +258,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
     };
 
     const deleteScheduledOrder = async (id) => {
+      if (!canScheduleOrders) {
+        toast.error("Non hai i permessi per eliminare ordini programmati.");
+        return;
+      }
       if (!window.confirm('Sei sicuro di voler eliminare questo ordine programmato?')) return;
       try {
         await supabaseHelpers.deleteScheduledOrder(id);
@@ -259,6 +274,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
     };
 
     const handleDeleteBatch = async (ordersToDelete) => {
+      if (!canScheduleOrders) {
+        toast.error("Non hai i permessi per eliminare ordini programmati.");
+        return;
+      }
       if (!window.confirm(`Sei sicuro di voler eliminare questo lotto di ${ordersToDelete.length} ordini programmati? Questa azione è irreversibile.`)) return;
       try {
         for (const order of ordersToDelete) {
@@ -529,6 +548,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
                                                                navigate('/create-order');
                                                              }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
                                                              <button onClick={() => {
+                                                               if (!canScheduleOrders) {
+                                                                 toast.error("Non hai i permessi per modificare ordini programmati.");
+                                                                 return;
+                                                               }
                                                                const supplierExists = suppliers.find(s => s.id === order.supplier_id);
                                                                if (!supplierExists) {
                                                                  toast.error("Fornitore non trovato, modifica limitata.");
@@ -597,6 +620,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
                                                                navigate('/create-order');
                                                              }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
                                                              <button onClick={() => {
+                                                               if (!canScheduleOrders) {
+                                                                 toast.error("Non hai i permessi per modificare ordini programmati.");
+                                                                 return;
+                                                               }
                                                                const supplierExists = suppliers.find(s => s.id === order.supplier_id);
                                                                if (!supplierExists) {
                                                                  toast.error("Fornitore non trovato, modifica limitata.");
@@ -632,10 +659,10 @@ const SchedulePage = ({ multiOrders, setMultiOrders, suppliers, scheduledOrders,
             {selectedDate && ((editingOrder && editingMultiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim()))) || (!editingOrder && selectedSupplierData && (Object.keys(orderItems).some(key => orderItems[key] && orderItems[key] !== '0') || additionalItems.trim()))) && (
               <button 
                 onClick={handleScheduleOrderClick} 
-                disabled={isSubmitting || isLimitReached || loadingSubscription} 
+                disabled={isSubmitting || (isLimitReached && !editingOrder) || !canScheduleOrders || loadingSubscription} 
                 className="w-full bg-purple-500 text-white py-3 rounded-lg font-medium hover:bg-purple-600 transition-colors flex items-center justify-center space-x-2 disabled:bg-purple-300 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (isLimitReached ? <Lock size={20} /> : <Calendar size={20} />)}
+                {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (isLimitReached || !canScheduleOrders ? <Lock size={20} /> : <Calendar size={20} />)}
                 <span>{isSubmitting ? (editingOrder ? 'Aggiornando...' : 'Programmando...') : (editingOrder ? 'Aggiorna Ordini' : 'Programma Ordini')}</span>
               </button>
             )}

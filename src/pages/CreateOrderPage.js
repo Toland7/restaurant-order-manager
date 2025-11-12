@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
+import { useProfileContext } from '../ProfileContext'; // Import the profile context
 
 import ScheduleOrderModal from '../components/modals/ScheduleOrderModal';
 import ConfirmOrderModal from '../components/modals/ConfirmOrderModal';
@@ -18,6 +19,9 @@ import { useNavigate } from 'react-router-dom';
 const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, multiOrders, setMultiOrders, suppliers, setOrders, showWizard, setShowWizard, wizardOrders, setWizardOrders, wizardStep, setWizardStep, user }) => {
     const navigate = useNavigate();
     const { isProUser } = useSubscriptionStatus();
+    const { hasPermission } = useProfileContext(); // Use the profile context
+    const canSendOrders = hasPermission('orders:send');
+    const canScheduleOrders = hasPermission('orders:schedule');
     const { prefilledData, setPrefilledData } = usePrefill();
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmMessages, setConfirmMessages] = useState(null);
@@ -138,6 +142,10 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     };
 
     const handlePreviewOrder = () => {
+        if (!canSendOrders) {
+          toast.error("Non hai i permessi per inviare ordini.");
+          return;
+        }
         const invalidOrders = [];
         const orderMessages = [];
         multiOrders.forEach((order, index) => {
@@ -161,6 +169,14 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         }
         setConfirmMessages(orderMessages);
         setShowConfirm(true);
+    };
+
+    const handleScheduleClick = () => {
+      if (!canScheduleOrders) {
+        toast.error("Non hai i permessi per programmare ordini.");
+        return;
+      }
+      setShowScheduleModal(true);
     };
 
     const sendOrder = async () => {
@@ -326,11 +342,13 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                order.email_subject?.trim())
             ) && (
               <div className="flex space-x-3">
-                <button onClick={handlePreviewOrder} className="btn btn-primary w-full">
+                <button onClick={handlePreviewOrder} className="btn btn-primary w-full" disabled={!canSendOrders}>
                   Anteprima {multiOrders.length > 1 ? 'Ordini' : 'Ordine'}
+                  {!canSendOrders && <Lock size={12} className="inline-block ml-2" />}
                 </button>
-                <button onClick={() => setShowScheduleModal(true)} className="btn btn-warning w-full">
+                <button onClick={handleScheduleClick} className="btn btn-warning w-full" disabled={!canScheduleOrders}>
                   Programma per dopo
+                  {!canScheduleOrders && <Lock size={12} className="inline-block ml-2" />}
                 </button>
               </div>
             )}

@@ -3,14 +3,20 @@ import { toast } from 'react-hot-toast';
 import { usePrefill } from '../../PrefillContext';
 import { supabaseHelpers } from '../../supabase';
 import { useNavigate } from 'react-router-dom';
+import { useProfileContext } from '../../ProfileContext';
 
 const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule = () => {}, scheduledOrders = [], setScheduledOrders = () => {}, suppliers }) => {
     const navigate = useNavigate();
     const { setPrefilledData } = usePrefill();
+    const { hasPermission } = useProfileContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date());
 
     const linkToScheduledOrder = async (scheduledOrderId) => {
+      if (!hasPermission('orders:schedule')) {
+        toast.error("Non hai i permessi per programmare ordini.");
+        return;
+      }
       if (isSubmitting) return;
       setIsSubmitting(true);
       try {
@@ -58,6 +64,22 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
       }
     };
 
+    const handleCreateNewScheduledOrder = () => {
+      if (!hasPermission('orders:schedule')) {
+        toast.error("Non hai i permessi per programmare ordini.");
+        return;
+      }
+      const currentOrder = multiOrders[0] || { supplier: '', items: {}, additional: '' };
+      setPrefilledData({
+        type: 'schedule',
+        data: {
+          supplier_id: currentOrder.supplier,
+          order_data: JSON.stringify({ items: currentOrder.items, additional_items: currentOrder.additional })
+        }
+      });
+      navigate('/schedule');
+    };
+
     return (
       <div className="modal-overlay">
         <div className="bg-surface p-6 max-w-sm w-full max-h-96 overflow-y-auto rounded-xl shadow-lg border border-border flex flex-col">
@@ -79,18 +101,7 @@ const ScheduleOrderModal = ({ onClose = () => {}, multiOrders = [], onSchedule =
               <div className="text-center py-8">
                 <p className="text-dark-gray mb-4">Nessun ordine futuro programmato per questo fornitore.</p>
                 <button
-                  onClick={() => {
-                    // For now, schedule the first order in multiOrders
-                    const currentOrder = multiOrders[0] || { supplier: '', items: {}, additional: '' };
-                    setPrefilledData({
-                      type: 'schedule',
-                      data: {
-                        supplier_id: currentOrder.supplier,
-                        order_data: JSON.stringify({ items: currentOrder.items, additional_items: currentOrder.additional })
-                      }
-                    });
-                    navigate('/schedule');
-                  }}
+                  onClick={handleCreateNewScheduledOrder}
                   className="btn btn-primary w-full"
                 >
                   Crea un nuovo ordine programmato

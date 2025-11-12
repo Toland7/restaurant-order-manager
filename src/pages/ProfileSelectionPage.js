@@ -23,7 +23,6 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
     } else {
       // Clear selected profile from context and localStorage on mount
       setSelectedProfile(null);
-      localStorage.removeItem('selectedProfile');
     }
   }, [preSelectedProfile, setSelectedProfile]);
 
@@ -54,7 +53,6 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
       if (data.is_valid) {
         toast.success(`Benvenuto, ${selectedProfileData.profile_name}!`);
         setSelectedProfile(selectedProfileData); // Store selected profile in context
-        localStorage.setItem('selectedProfile', JSON.stringify(selectedProfileData)); // Save to localStorage
         if (onPinVerificationSuccess) {
           onPinVerificationSuccess();
         } else {
@@ -93,7 +91,6 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
       // Log the user in with the newly created profile
       const updatedProfile = { ...selectedProfileData, pin_hash: 'set' }; // Mock hash to prevent re-triggering setup
       setSelectedProfile(updatedProfile);
-      localStorage.setItem('selectedProfile', JSON.stringify(updatedProfile)); // Save to localStorage
       if (onPinVerificationSuccess) {
         onPinVerificationSuccess();
       } else {

@@ -17,6 +17,16 @@ export const ProfileProvider = ({ children }) => {
     setLoadingProfile(false);
   }, []);
 
+  // New function to update profile and sync with localStorage
+  const updateSelectedProfile = (profile) => {
+    setSelectedProfile(profile);
+    if (profile) {
+      localStorage.setItem('selectedProfile', JSON.stringify(profile));
+    } else {
+      localStorage.removeItem('selectedProfile');
+    }
+  };
+
   // Fetch permissions when selectedProfile changes
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -47,7 +57,7 @@ export const ProfileProvider = ({ children }) => {
   }, [profilePermissions]);
 
   return (
-    <ProfileContext.Provider value={{ selectedProfile, setSelectedProfile, loadingProfile, profilePermissions, hasPermission }}>
+    <ProfileContext.Provider value={{ selectedProfile, setSelectedProfile: updateSelectedProfile, loadingProfile, profilePermissions, hasPermission }}>
       {children}
     </ProfileContext.Provider>
   );

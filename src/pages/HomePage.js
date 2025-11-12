@@ -1,18 +1,42 @@
 import { BarChart3, Bell, Settings, ShoppingCart, Users, Calendar, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MenuButton from '../components/ui/MenuButton';
-import { useProfileContext } from '../ProfileContext'; // Import useProfileContext
+import { useProfileContext } from '../ProfileContext';
+import { useInAppProfiles } from '../hooks/useInAppProfiles';
 
 const HomePage = ({ profile, user, unreadCount, analytics }) => {
     const navigate = useNavigate();
-    const { selectedProfile } = useProfileContext(); // Get selectedProfile from context
+    const { selectedProfile, setSelectedProfile } = useProfileContext();
+    const { profiles } = useInAppProfiles();
+
+    const profileName = selectedProfile?.profile_name || profile?.first_name || user?.email?.split('@')[0];
+    const isSwitchable = profiles && profiles.length > 1;
+
+    const handleProfileClick = () => {
+      if (isSwitchable) {
+        setSelectedProfile(null);
+        navigate('/profile-selection');
+      }
+    };
 
     return (
     <div className="min-h-screen app-background">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50">Salta al contenuto principale</a>
       <div className="backdrop-blur bg-white/60 dark:bg-black/40 border-b border-white/60 dark:border-white/10">
         <div className="max-w-sm mx-auto px-6 py-6">
-          <div className="flex justify-between items-center mb-4"><div className="text-center"><h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1><p className="text-gray-500 text-sm">Benvenuto, {selectedProfile?.profile_name || profile?.first_name || user?.email?.split('@')[0]}</p></div>
+          <div className="flex justify-between items-center mb-4"><div className="text-center">
+            <h1 className="text-2xl font-light text-gray-900">Gestione Ordini</h1>
+            <p className="text-gray-500 text-sm">
+              Benvenuto,{' '}
+              {isSwitchable ? (
+                <button onClick={handleProfileClick} className="underline font-medium text-blue-600 hover:text-blue-800">
+                  {profileName}
+                </button>
+              ) : (
+                <span>{profileName}</span>
+              )}
+            </p>
+          </div>
             <div className="flex space-x-2">
               <button onClick={() => navigate('/analytics')} className="icon-btn" aria-label="Visualizza analytics"><BarChart3 size={20} /></button>
               <button onClick={() => navigate('/notifications')} className="relative icon-btn" aria-label={`Notifiche${unreadCount > 0 ? `, ${unreadCount} non lette` : ''}`}>
