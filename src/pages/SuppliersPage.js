@@ -22,11 +22,13 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const [newProduct, setNewProduct] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isProductImportModalOpen, setIsProductImportModalOpen] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
 
     const isLimitReached = !isProUser && suppliers.length >= 10;
 
     const resetNewSupplier = () => {
       setNewSupplier({ name: '', contact_method: 'whatsapp', contact: '', products: [], message_template: 'Buongiorno, vorremmo ordinare i seguenti prodotti:', email_subject: '', preferred_email_client: 'default' });
+      setFormErrors({});
     };
 
     const handleAddSupplierClick = () => {
@@ -38,6 +40,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         toast.error('Hai raggiunto il limite di 10 fornitori per il piano Base. Esegui l\'upgrade a PRO per aggiungerne altri.');
       } else {
         setIsAdding(true);
+        setFormErrors({});
       }
     };
 
@@ -122,13 +125,28 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
       }
     };
 
+    const validateForm = () => {
+        const errors = {};
+        if (!newSupplier.name.trim()) {
+            errors.name = 'Il nome è obbligatorio.';
+        }
+        if (!newSupplier.contact.trim()) {
+            errors.contact = 'Il contatto è obbligatorio.';
+        }
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const saveSupplier = async () => {
       if (!canManageSuppliers) {
         toast.error("Non hai i permessi per salvare fornitori.");
         return;
       }
-      if (!newSupplier.name || !newSupplier.contact) { toast.error('Nome e contatto sono obbligatori'); return; }
+      if (!validateForm()) {
+        return;
+      }
       if (!user) { toast.error('Sessione utente non valida. Effettua nuovamente il login.'); navigate('/auth'); return; }
+      
       setIsSubmitting(true);
       try {
         const supplierData = { user_id: user.id, name: newSupplier.name, contact_method: newSupplier.contact_method, contact: newSupplier.contact, message_template: newSupplier.message_template, email_subject: newSupplier.email_subject, preferred_email_client: newSupplier.preferred_email_client };
@@ -174,6 +192,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         return;
       }
       if (!window.confirm('Sei sicuro di voler eliminare questo fornitore? Questa azione eliminerà anche tutti i prodotti associati.')) return;
+      setIsSubmitting(true);
       try {
         await supabaseHelpers.deleteSupplier(id);
         setSuppliers(prev => prev.filter(s => s.id !== id));
@@ -181,6 +200,8 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
       } catch (error) {
         console.error('Error deleting supplier:', error);
         toast.error("Errore durante l'eliminazione");
+      } finally {
+        setIsSubmitting(false);
       }
     };
 
@@ -193,7 +214,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
               {canManageSuppliers && (
                 <button 
                   onClick={handleAddSupplierClick} 
-                  disabled={isLimitReached || loadingSubscription}
+                  disabled={isLimitReached || loadingSubscription || isSubmitting}
                   className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   <Plus size={20} />
@@ -212,9 +233,9 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                       <h3 className="font-medium text-gray-900">{supplier.name}</h3>
                       {canManageSuppliers && (
                         <div className="flex space-x-2">
-                          <button onClick={() => handleExportSupplierCSV(supplier.id, supplier.name)} className="p-1 text-green-500 hover:bg-green-50 rounded"><Download size={16} /></button>
-                          <button onClick={() => editSupplier(supplier)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Edit3 size={16} /></button>
-                          <button onClick={() => deleteSupplier(supplier.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                          <button onClick={() => handleExportSupplierCSV(supplier.id, supplier.name)} disabled={isSubmitting} className="p-1 text-green-500 hover:bg-green-50 rounded disabled:opacity-50"><Download size={16} /></button>
+                          <button onClick={() => editSupplier(supplier)} disabled={isSubmitting} className="p-1 text-blue-500 hover:bg-blue-50 rounded disabled:opacity-50"><Edit3 size={16} /></button>
+                          <button onClick={() => deleteSupplier(supplier.id)} disabled={isSubmitting} className="p-1 text-red-500 hover:bg-red-50 rounded disabled:opacity-50"><Trash2 size={16} /></button>
                         </div>
                       )}
                     </div>
@@ -229,14 +250,46 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
             </>
           ) : (
             <div className="space-y-6">
-              <div className="glass-card p-4"><label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label><input id="supplier-name" name="supplier-name" type="text" value={newSupplier.name} onChange={(e) => setNewSupplier(prev => ({ ...prev, name: e.target.value }))} className="input" placeholder="Es. Fornitore Verdure Bio" /></div>
-              <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="select"><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
-              <div className="glass-card p-4"><label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label><input id="contact" name="contact" type="text" value={newSupplier.contact} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))} className="input" placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' || newSupplier.contact_method === 'whatsapp_group' ? "+39 123 456 7890" : "email@fornitore.com"} /></div>
+              <div className="glass-card p-4">
+                <label htmlFor="supplier-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Fornitore *</label>
+                <input 
+                  id="supplier-name" 
+                  name="supplier-name" 
+                  type="text" 
+                  value={newSupplier.name} 
+                  onChange={(e) => {
+                    setNewSupplier(prev => ({ ...prev, name: e.target.value }));
+                    if (formErrors.name) setFormErrors(prev => ({ ...prev, name: null }));
+                  }} 
+                  className={`input ${formErrors.name ? 'border-red-500' : ''}`} 
+                  placeholder="Es. Fornitore Verdure Bio" 
+                  disabled={isSubmitting} 
+                />
+                {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
+              </div>
+              <div className="glass-card p-4"><label htmlFor="contact-method" className="block text-sm font-medium text-gray-700 mb-2">Metodo di Invio</label><select id="contact-method" name="contact-method" value={newSupplier.contact_method} onChange={(e) => setNewSupplier(prev => ({ ...prev, contact_method: e.target.value }))} className="select" disabled={isSubmitting}><option value="whatsapp">WhatsApp</option><option value="whatsapp_group">Gruppo WhatsApp</option><option value="email">Email</option><option value="sms">Messaggio</option></select></div>
+              <div className="glass-card p-4">
+                <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-2">Contatto *</label>
+                <input 
+                  id="contact" 
+                  name="contact" 
+                  type="text" 
+                  value={newSupplier.contact} 
+                  onChange={(e) => {
+                    setNewSupplier(prev => ({ ...prev, contact: e.target.value }));
+                    if (formErrors.contact) setFormErrors(prev => ({ ...prev, contact: null }));
+                  }} 
+                  className={`input ${formErrors.contact ? 'border-red-500' : ''}`} 
+                  placeholder={newSupplier.contact_method === 'whatsapp' || newSupplier.contact_method === 'sms' || newSupplier.contact_method === 'whatsapp_group' ? "+39 123 456 7890" : "email@fornitore.com"} 
+                  disabled={isSubmitting} 
+                />
+                {formErrors.contact && <p className="text-red-500 text-xs mt-1">{formErrors.contact}</p>}
+              </div>
               {newSupplier.contact_method === 'email' && (
                 <>
                   <div className="glass-card p-4">
                     <label htmlFor="email-subject" className="block text-sm font-medium text-gray-700 mb-2">Oggetto Email</label>
-                    <input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" />
+                    <input id="email-subject" name="email-subject" type="text" value={newSupplier.email_subject} onChange={(e) => setNewSupplier(prev => ({ ...prev, email_subject: e.target.value }))} className="input" placeholder="Oggetto dell'email" disabled={isSubmitting} />
                   </div>
                   <div className="glass-card p-4">
                     <label htmlFor="preferred-email-client" className="block text-sm font-medium text-gray-700 mb-2">Client Email Preferito</label>
@@ -246,6 +299,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                       value={newSupplier.preferred_email_client}
                       onChange={(e) => setNewSupplier(prev => ({ ...prev, preferred_email_client: e.target.value }))}
                       className="select"
+                      disabled={isSubmitting}
                     >
                       <option value="default">Client predefinito</option>
                       <option value="gmail">Gmail</option>
@@ -260,7 +314,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                   <button 
                     type="button" 
                     onClick={handleImportClick} 
-                    disabled={!isProUser || loadingSubscription}
+                    disabled={!isProUser || loadingSubscription || isSubmitting}
                     className="btn btn-outline text-sm py-1 px-2 flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {!isProUser && <Lock size={12} />}
@@ -269,10 +323,10 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                 </div>
 
                 <label htmlFor="new-product" className="block text-sm font-medium text-gray-700 mb-2">Nuovo Prodotto</label>
-                <div className="flex space-x-2 mb-3"><input id="new-product" name="new-product" type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} /><button onClick={addProduct} className="btn btn-primary"><Plus size={16} /></button></div>
-                <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button></div>)}</div>
+                <div className="flex space-x-2 mb-3"><input id="new-product" name="new-product" type="text" value={newProduct} onChange={(e) => setNewProduct(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Aggiungi prodotto..." onKeyPress={(e) => e.key === 'Enter' && addProduct()} disabled={isSubmitting} /><button onClick={addProduct} className="btn btn-primary" disabled={isSubmitting}><Plus size={16} /></button></div>
+                <div className="space-y-2">{newSupplier.products.map((product, index) => <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><span className="text-sm text-gray-700">{product}</span><button onClick={() => removeProduct(index)} className="p-1 text-red-500 hover:bg-red-100 rounded" disabled={isSubmitting}><Trash2 size={14} /></button></div>)}</div>
               </div>
-              <div className="glass-card p-4"><label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea id="message-template" name="message-template" value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="input" rows="3" placeholder="Messaggio che precederà ogni ordine..." /></div>
+              <div className="glass-card p-4"><label htmlFor="message-template" className="block text-sm font-medium text-gray-700 mb-2">Messaggio Predefinito</label><textarea id="message-template" name="message-template" value={newSupplier.message_template} onChange={(e) => setNewSupplier(prev => ({ ...prev, message_template: e.target.value }))} className="input" rows="3" placeholder="Messaggio che precederà ogni ordine..." disabled={isSubmitting} /></div>
               <div className="flex space-x-3"><button onClick={() => { setIsAdding(false); setEditingSupplier(null); resetNewSupplier(); }} className="btn btn-outline flex-1" disabled={isSubmitting}>Annulla</button><button onClick={saveSupplier} disabled={isSubmitting} className="btn btn-primary flex-1">{isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={16} />}<span>{isSubmitting ? 'Salvando...' : 'Salva'}</span></button></div>
             </div>
           )}

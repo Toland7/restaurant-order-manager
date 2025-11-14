@@ -147,15 +147,15 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-2">Nome</label>
-                            <input id="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="input" placeholder="Mario" />
+                            <input id="first-name" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="input" placeholder="Mario" disabled={isSubmitting} />
                         </div>
                         <div>
                             <label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-2">Cognome</label>
-                            <input id="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="input" placeholder="Rossi" />
+                            <input id="last-name" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="input" placeholder="Rossi" disabled={isSubmitting} />
                         </div>
                         <div>
                             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Ruolo</label>
-                            <input id="role" type="text" value={role} onChange={(e) => setRole(e.target.value)} className="input" placeholder="Es. Manager, Chef, etc." />
+                            <input id="role" type="text" value={role} onChange={(e) => setRole(e.target.value)} className="input" placeholder="Es. Manager, Chef, etc." disabled={isSubmitting} />
                         </div>
                     </div>
                 </div>
@@ -165,19 +165,19 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="company-name" className="block text-sm font-medium text-gray-700 mb-2">Ragione Sociale</label>
-                            <input id="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="input" placeholder="Nome della tua azienda" />
+                            <input id="company-name" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="input" placeholder="Nome della tua azienda" disabled={isSubmitting} />
                         </div>
                         <div>
                             <label htmlFor="company-vat-id" className="block text-sm font-medium text-gray-700 mb-2">Partita IVA</label>
-                            <input id="company-vat-id" type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} className="input" placeholder="IT12345678901" />
+                            <input id="company-vat-id" type="text" value={companyVatId} onChange={(e) => setCompanyVatId(e.target.value)} className="input" placeholder="IT12345678901" disabled={isSubmitting} />
                         </div>
                         <div>
                             <label htmlFor="headquarters-name" className="block text-sm font-medium text-gray-700 mb-2">Nome Sede</label>
-                            <input id="headquarters-name" type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} className="input" placeholder="Nome della sede principale" />
+                            <input id="headquarters-name" type="text" value={headquartersName} onChange={(e) => setHeadquartersName(e.target.value)} className="input" placeholder="Nome della sede principale" disabled={isSubmitting} />
                         </div>
                         <div>
                             <label htmlFor="headquarters-address" className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Sede</label>
-                            <input id="headquarters-address" type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} className="input" placeholder="Indirizzo completo della sede" />
+                            <input id="headquarters-address" type="text" value={headquartersAddress} onChange={(e) => setHeadquartersAddress(e.target.value)} className="input" placeholder="Indirizzo completo della sede" disabled={isSubmitting} />
                         </div>
                     </div>
                 </div>

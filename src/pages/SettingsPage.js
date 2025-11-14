@@ -11,6 +11,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const navigate = useNavigate();
     const { signOut } = useAuth();
     const { selectedProfile, setSelectedProfile, hasPermission } = useProfileContext();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
       const isIos = () => { const userAgent = window.navigator.userAgent.toLowerCase(); return /iphone|ipad|ipod/.test(userAgent); };
@@ -21,10 +22,12 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
     }, []);
 
     const handleLogout = async () => {
+      setIsSubmitting(true);
       setSelectedProfile(null); // Clear the selected profile
       await signOut();
       toast.success('Logout effettuato');
-      navigate('/');
+      // Navigation will be handled by the AuthProvider
+      setIsSubmitting(false);
     };
 
     const [isPushEnabled, setIsPushEnabled] = useState(false);
@@ -47,7 +50,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
         toast.error('Le notifiche push non sono supportate da questo browser.');
         return;
       }
-
+      setIsSubmitting(true);
       try {
         const registration = await navigator.serviceWorker.ready;
 
@@ -111,6 +114,8 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
       } catch (error) {
         console.error('Error toggling push notifications:', error);
         toast.error('Impossibile modificare lo stato delle notifiche push.');
+      } finally {
+        setIsSubmitting(false);
       }
     };
 
@@ -118,7 +123,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
       <div className="min-h-screen app-background">
         <Header title="Impostazioni" onBack={() => navigate('/')} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
-          <button onClick={() => navigate('/user-profile')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all">
+          <button onClick={() => navigate('/user-profile')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all" disabled={isSubmitting}>
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><User size={24} className="text-gray-500" /></div>
               <div>
@@ -130,7 +135,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           </button>
 
           {selectedProfile && hasPermission('profiles:manage') && (
-            <button onClick={() => navigate('/profile-manager')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all">
+            <button onClick={() => navigate('/profile-manager')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all" disabled={isSubmitting}>
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><Users size={24} className="text-gray-500" /></div>
                 <div>
@@ -144,6 +149,8 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
 
           <button 
             onClick={async () => {
+              if (isSubmitting) return;
+              setIsSubmitting(true);
               const toastId = toast.loading('Esportazione dei dati in corso...');
               try {
                 const userData = await supabaseHelpers.exportUserData();
@@ -162,9 +169,12 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
                 toast.success('Dati esportati con successo!', { id: toastId });
               } catch (error) {
                 toast.error(`Errore durante l'esportazione: ${error.message}`, { id: toastId });
+              } finally {
+                setIsSubmitting(false);
               }
             }} 
             className="w-full glass-card p-4 text-left hover:shadow-md transition-all"
+            disabled={isSubmitting}
           >
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><Download size={24} className="text-gray-500" /></div>
@@ -184,7 +194,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
               <p className="text-xs text-gray-500 dark:text-gray-400">Interfaccia ottimizzata per ambienti poco luminosi</p>
             </div>
             <label className="inline-flex items-center cursor-pointer">
-              <input id="theme-toggle" name="theme-toggle" type="checkbox" className="sr-only peer" checked={theme === 'dark'} onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')} />
+              <input id="theme-toggle" name="theme-toggle" type="checkbox" className="sr-only peer" checked={theme === 'dark'} onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')} disabled={isSubmitting} />
               <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 transition-colors relative">
                 <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></span>
               </div>
@@ -197,14 +207,16 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
               <p className="text-xs text-gray-500 dark:text-gray-400">Ricevi aggiornamenti importanti</p>
             </div>
             <label className="inline-flex items-center cursor-pointer">
-              <input id="push-toggle" name="push-toggle" type="checkbox" className="sr-only peer" checked={isPushEnabled} onChange={(e) => handleTogglePush(e.target.checked)} />
+              <input id="push-toggle" name="push-toggle" type="checkbox" className="sr-only peer" checked={isPushEnabled} onChange={(e) => handleTogglePush(e.target.checked)} disabled={isSubmitting} />
               <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-600 transition-colors relative">
                 <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></span>
               </div>
             </label>
           </div>
 
-          <button onClick={handleLogout} className="w-full bg-red-500 text-white py-3 rounded-lg font-medium mt-6 hover:bg-red-600 transition-colors">Logout</button>
+          <button onClick={handleLogout} className="w-full bg-red-500 text-white py-3 rounded-lg font-medium mt-6 hover:bg-red-600 transition-colors" disabled={isSubmitting}>
+            {isSubmitting ? 'Logout in corso...' : 'Logout'}
+          </button>
         </div>
       </div>
     );
