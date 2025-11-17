@@ -435,7 +435,7 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
             })}
             <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
-                <select onChange={e => { addOrder(e.target.value); e.target.value = ''; }} disabled={!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier) || isSubmitting} className="select mb-4 disabled:bg-gray-200">
+                <select onChange={e => { addOrder(e.target.value); e.target.value = ''; }} disabled={((!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) || isSubmitting)} className="select mb-4 disabled:bg-gray-200">
                     <option value="">Aggiungi...</option>
                     {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>

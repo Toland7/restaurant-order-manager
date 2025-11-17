@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Filter, Download, Check, History, ChevronDown, PlusCircle } from 'lucide-react';
+import { Filter, Download, Check, History, ChevronDown } from 'lucide-react';
 import Header from '../components/ui/Header';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import EmptyState from '../components/ui/EmptyState';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 
 const HistoryPage = ({ orders, suppliers }) => {
     const navigate = useNavigate();
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', supplier: '', status: '' });
+    const [parent] = useAutoAnimate();
 
     const filteredOrders = useMemo(() => {
         let filtered = [...orders];
@@ -85,7 +87,7 @@ const HistoryPage = ({ orders, suppliers }) => {
             ) : (
             <>
               <div className="flex justify-between items-center mb-4"><p className="text-sm text-gray-600">{filteredOrders.length} {filteredOrders.length === 1 ? 'ordine trovato' : 'ordini trovati'}</p></div>
-              <div className="space-y-4">
+              <div ref={parent} className="space-y-4">
                 {Object.entries(groupedOrders).map(([groupName, groupOrders]) => (
                     groupOrders.length > 0 && (
                         <details key={groupName} className="glass-card group" open={groupName === 'Ultime 48 ore'}> 

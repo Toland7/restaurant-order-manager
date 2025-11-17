@@ -3,18 +3,20 @@ import { Plus, Edit3, Trash2, Check, Users, Download, Lock } from 'lucide-react'
 import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../@/components/ui/dialog';
+import Modal from '../components/ui/Modal'; // Import the generic Modal component
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import ProductImportModal from '../components/modals/ProductImportModal';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import the hook
 import { useProfileContext } from '../ProfileContext'; // Import the profile context
+import { useAutoAnimate } from '@formkit/auto-animate/react'; // Import useAutoAnimate
 
 const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const navigate = useNavigate();
     const { isProUser, loadingSubscription } = useSubscriptionStatus(); // Use the hook
     const { hasPermission } = useProfileContext(); // Use the profile context
     const canManageSuppliers = hasPermission('suppliers:manage');
+    const [parent] = useAutoAnimate();
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState(null);
@@ -226,7 +228,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
                   Limite di 10 fornitori raggiunto. <button className="font-bold underline" onClick={() => { /* TODO: Upgrade logic */ }}>Upgrade a PRO</button>
                 </div>
               )}
-              <div className="space-y-4 mt-4">
+              <div ref={parent} className="space-y-4 mt-4">
                 {suppliers.map(supplier => (
                   <div key={supplier.id} className="glass-card p-4">
                     <div className="flex justify-between items-start mb-2">
@@ -331,20 +333,16 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
             </div>
           )}
 
-          <Dialog open={isProductImportModalOpen} onOpenChange={setIsProductImportModalOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Importa Prodotti da CSV</DialogTitle>
-                <DialogDescription>
-                  Carica un file CSV con una singola colonna "product_name" per aggiungere rapidamente più prodotti a questo fornitore.
-                </DialogDescription>
-              </DialogHeader>
-              <ProductImportModal 
-                onDownloadTemplate={handleDownloadTemplate}
-                onFileSelect={handleFileSelectedForImport}
-              />
-            </DialogContent>
-          </Dialog>
+          <Modal isOpen={isProductImportModalOpen} onClose={() => setIsProductImportModalOpen(false)}>
+            <h2 className="text-2xl font-bold mb-4">Importa Prodotti da CSV</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Carica un file CSV con una singola colonna "product_name" per aggiungere rapidamente più prodotti a questo fornitore.
+            </p>
+            <ProductImportModal 
+              onDownloadTemplate={handleDownloadTemplate}
+              onFileSelect={handleFileSelectedForImport}
+            />
+          </Modal>
 
         </div>
       </div>

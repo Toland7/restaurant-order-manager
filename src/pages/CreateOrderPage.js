@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Lock, ArrowLeft, Calendar, Send, CheckCircle } from 'lucide-react';
+import { Trash2, Lock, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
 import { useProfileContext } from '../ProfileContext';
 import OrderFlow, { useOrderFlow } from '../components/OrderFlow';
-import { supabase, supabaseHelpers } from '../supabase'; // Import supabase for functions.invoke
+import { supabaseHelpers } from '../supabase'; // Import supabase for functions.invoke
 
 import ExitConfirmationModal from '../components/modals/ExitConfirmationModal';
 
@@ -462,7 +462,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             </OrderFlow.Step>
           </OrderFlow>
         </div>
-         <ExitConfirmationModal showExitConfirm={showExitConfirm} setShowExitConfirm={setShowExitConfirm} onConfirmExit={onConfirmExit}/>
+         <ExitConfirmationModal isOpen={showExitConfirm} onClose={() => setShowExitConfirm(false)} onConfirmExit={onConfirmExit}/>
       </div>
     );
 };

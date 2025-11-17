@@ -116,7 +116,7 @@ const AuthPage = () => {
             </div>
           </div>
         </div>
-        <ResetPasswordModal show={showResetPassword} onClose={() => setShowResetPassword(false)} />
+        <ResetPasswordModal isOpen={showResetPassword} onClose={() => setShowResetPassword(false)} />
       </>
     );
   };

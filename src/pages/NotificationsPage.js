@@ -6,6 +6,7 @@ import { supabaseHelpers } from '../supabase';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePrefill } from '../PrefillContext';
 import { useNavigate } from 'react-router-dom';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 
 const NotificationsPage = ({ user }) => {
     const navigate = useNavigate();
@@ -13,6 +14,8 @@ const NotificationsPage = ({ user }) => {
     const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [unreadParent] = useAutoAnimate();
+    const [readParent] = useAutoAnimate();
 
     useEffect(() => {
         const fetchAndCleanNotifications = async () => {
@@ -108,7 +111,7 @@ const NotificationsPage = ({ user }) => {
                 ) : (
                     <div className="space-y-4">
                         {unreadNotifications.length > 0 && (
-                            <div className="space-y-3">
+                            <div ref={unreadParent} className="space-y-3">
                                 {unreadNotifications.map(notification => (
                                     <div key={notification.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-l-4 border-blue-500 transition-all hover:shadow-md">
                                         <div className="flex justify-between items-start gap-4">
@@ -136,7 +139,7 @@ const NotificationsPage = ({ user }) => {
                                     <h3 className="text-sm mb-3">Archivio (Ultime 24 ore)</h3>
                                     <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" size={16} />
                                 </summary>
-                                <div className="space-y-3 mt-3">
+                                <div ref={readParent} className="space-y-3 mt-3">
                                     {readNotifications.map(notification => (
                                         <div key={notification.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm opacity-60">
                                             <h3 className="font-medium text-gray-700 dark:text-gray-300">{notification.title}</h3>
