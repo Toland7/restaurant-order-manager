@@ -99,9 +99,13 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       navigate(-1);
     };
 
-    const prepareAndValidateOrders = () => {
-        if (!canSendOrders) {
+    const prepareAndValidateOrders = (checkType) => {
+        if (checkType === 'send' && !canSendOrders) {
           toast.error("Non hai i permessi per inviare ordini.");
+          return null;
+        }
+        if (checkType === 'schedule' && !canScheduleOrders) {
+          toast.error("Non hai i permessi per programmare ordini.");
           return null;
         }
         const invalidOrders = [];
@@ -360,11 +364,11 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
               {multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim())) && (
                 <div className="flex space-x-3">
-                  <OrderFlow.GoToStepButton stepName="review" onClick={prepareAndValidateOrders} className="btn btn-primary w-full" disabled={!canSendOrders || isSubmitting}>
+                  <OrderFlow.GoToStepButton stepName="review" onClick={() => prepareAndValidateOrders('send')} className="btn btn-primary w-full" disabled={!canSendOrders || isSubmitting}>
                     {isSubmitting ? 'Preparazione...' : 'Anteprima e Invia'}
                     {!canSendOrders && <Lock size={12} className="inline-block ml-2" />}
                   </OrderFlow.GoToStepButton>
-                  <OrderFlow.GoToStepButton stepName="schedule" onClick={prepareAndValidateOrders} className="btn btn-warning w-full" disabled={!canScheduleOrders || isSubmitting}>
+                  <OrderFlow.GoToStepButton stepName="schedule" onClick={() => prepareAndValidateOrders('schedule')} className="btn btn-warning w-full" disabled={!canScheduleOrders || isSubmitting}>
                     {isSubmitting ? 'Preparazione...' : 'Programma'}
                     {!canScheduleOrders && <Lock size={12} className="inline-block ml-2" />}
                   </OrderFlow.GoToStepButton>
@@ -384,7 +388,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 ))}
                 <div className="flex space-x-3 mt-6">
                     <OrderFlow.PrevButton className="btn btn-secondary w-full" disabled={isSubmitting}><ArrowLeft size={16} className="inline-block mr-2"/> Modifica</OrderFlow.PrevButton>
-                    <OrderFlow.GoToStepButton stepName="send" className="btn btn-primary w-full" disabled={isSubmitting}><Send size={16} className="inline-block mr-2"/> Inizia Invio</OrderFlow.GoToStepButton>
+                    <OrderFlow.GoToStepButton stepName="send" className="btn btn-primary w-full" disabled={!canSendOrders || isSubmitting}><Send size={16} className="inline-block mr-2"/> Inizia Invio</OrderFlow.GoToStepButton>
                 </div>
               </div>
             </OrderFlow.Step>
