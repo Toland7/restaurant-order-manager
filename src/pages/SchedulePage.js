@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, ChevronDown, Edit3, Trash2, Lock, PlusCircle, Send } from 'lucide-react';
+import { Calendar, ChevronDown, Edit3, Trash2, Lock, PlusCircle, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
 import { useProfileContext } from '../ProfileContext';
 import OrderFlow from '../components/OrderFlow';
+import SendOrderComponent, { generateOrderMessage, openLinkInNewTab, generateEmailLink } from '../components/ui/SendOrderComponent';
 
 const groupOrdersByScheduledAt = (orders) => {
     return orders.reduce((acc, order) => {
@@ -34,6 +35,11 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     const [selectedTime, setSelectedTime] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
+
+    const [showSendWizard, setShowSendWizard] = useState(false);
+    const [wizardOrders, setWizardOrders] = useState([]);
+    const [wizardStep, setWizardStep] = useState(0);
+    const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
     const getRoundedTime = (date = new Date()) => {
         const minutes = date.getMinutes();
@@ -73,57 +79,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         return `${h}:${m}`;
     });
 
-    const handleSendNow = async (ordersToSend) => {
-        if (!window.confirm(`Sei sicuro di voler inviare ${ordersToSend.length} ordini ora? L'invio è irreversibile.`)) return;
 
-        setIsSubmitting(true);
-        toast.loading('Invio in corso...', { id: 'send-now' });
-        try {
-            for (const order of ordersToSend) {
-                const supplier = suppliers.find(s => s.id === order.supplier_id);
-                if (!supplier) {
-                    toast.error(`Fornitore per l'ordine ${order.id} non trovato.`);
-                    continue;
-                }
-
-                const order_data = JSON.parse(order.order_data);
-                const { data: historyData, error: historyError } = await supabaseHelpers.createOrderHistory({
-                    user_id: user.id,
-                    supplier_id: supplier.id,
-                    order_data: order.order_data,
-                    status: 'inviato',
-                });
-
-                if (historyError) throw historyError;
-
-                const { error: functionError } = await supabase.functions.invoke('send-order-email', {
-                    body: {
-                        orderId: historyData[0].id,
-                        supplierName: supplier.name,
-                        supplierEmail: supplier.email,
-                        preferredEmailClient: supplier.preferred_email_client,
-                        subject: order_data.email_subject,
-                        orderItems: order_data.items,
-                        additionalItems: order_data.additional_items,
-                        userName: user.user_metadata.full_name || 'Utente',
-                    },
-                });
-
-                if (functionError) throw functionError;
-
-                await supabaseHelpers.deleteScheduledOrder(order.id);
-            }
-            
-            setScheduledOrders(prev => prev.filter(o => !ordersToSend.some(sent => sent.id === o.id)));
-            toast.success('Ordini inviati e rimossi dalla programmazione!', { id: 'send-now' });
-
-        } catch (error) {
-            console.error("Error sending order now:", error);
-            toast.error(`Errore durante l'invio: ${error.message}`, { id: 'send-now' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const handleSaveNewOrder = async () => {
       if (!canScheduleOrders) { toast.error("Non hai i permessi."); return null; }
@@ -253,7 +209,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                         <span className="text-xs text-gray-500 ml-2">({orders.length} ordini)</span>
                                     </div>
                                     <div className="flex items-center space-x-3">
-                                        <button onClick={(e) => { e.preventDefault(); handleSendNow(orders); }} disabled={isSubmitting} className="p-1 text-green-600 hover:bg-green-100 rounded-full" title="Invia Ora">{isSubmitting ? 'Invio...' : <Send size={16} />}</button>
+                                        <button onClick={(e) => { e.preventDefault(); startSendNowWizard(orders); }} disabled={isSubmitting} className="p-1 text-green-600 hover:bg-green-100 rounded-full" title="Invia Ora">{isSubmitting ? 'Preparazione...' : <Send size={16} />}</button>
                                         <button onClick={(e) => { e.preventDefault(); handleEditClick(orders[0]); }} disabled={isSubmitting} className="p-1 text-blue-600 hover:bg-blue-100 rounded-full" title="Modifica"><Edit3 size={16} /></button>
                                         <button onClick={(e) => { e.preventDefault(); handleDeleteBatch(orders); }} disabled={isSubmitting} className="p-1 text-red-600 hover:bg-red-100 rounded-full" title="Elimina"><Trash2 size={16} /></button>
                                         <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
@@ -349,13 +305,158 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         );
     };
 
+    const startSendNowWizard = (ordersToSend) => {
+        const validatedOrders = [];
+        ordersToSend.forEach(scheduledOrder => {
+            const supplier = suppliers.find(s => s.id === scheduledOrder.supplier_id);
+            if (!supplier) {
+                toast.error(`Fornitore per l'ordine ${scheduledOrder.id} non trovato. Impossibile inviare.`);
+                return;
+            }
+            const order_data = JSON.parse(scheduledOrder.order_data);
+            const message = generateOrderMessage(supplier, order_data.items || {}, order_data.additional_items || '');
+            validatedOrders.push({
+                id: scheduledOrder.id, // Keep original scheduled order ID for deletion later
+                supplier,
+                items: order_data.items || {},
+                additional: order_data.additional_items || '',
+                email_subject: order_data.email_subject || '',
+                message,
+            });
+        });
+
+        if (validatedOrders.length === 0) {
+            toast.error("Nessun ordine valido da inviare.");
+            return;
+        }
+
+        setWizardOrders(validatedOrders);
+        setWizardStep(0);
+        setNewlyCreatedOrders([]); // Clear previous
+        setShowSendWizard(true);
+    };
+
+    const handleSendFromWizard = async (goToNext) => {
+        setIsSubmitting(true);
+        const order = wizardOrders[wizardStep];
+
+        try {
+            // Re-create the order in the main order history
+            const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additional || null, status: 'sent' };
+            const orderItemsToInsert = Object.entries(order.items).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
+            const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
+            
+            // Add to a temporary list for the summary screen
+            setNewlyCreatedOrders(prev => [...prev, { ...newOrder, supplier: order.supplier, message: order.message, original_id: order.id }]);
+            toast.success(`Ordine per ${order.supplier.name} salvato.`);
+
+            // Delete the original scheduled order
+            await supabaseHelpers.deleteScheduledOrder(order.id);
+
+        } catch (error) {
+            console.error('Error processing order:', error);
+            toast.error('Errore durante il processamento dell\'ordine.');
+        } finally {
+            setIsSubmitting(false);
+        }
+
+        const encodedMessage = encodeURIComponent(order.message);
+        let contactLink = '';
+        switch (order.supplier.contact_method) {
+            case 'whatsapp': {
+                const sanitizedContact = order.supplier?.contact?.replace(/\D/g, '') || '';
+                contactLink = `https://wa.me/${sanitizedContact}?text=${encodedMessage}`;
+                break;
+            }
+            case 'whatsapp_group': {
+                contactLink = `whatsapp://send?text=${encodedMessage}`;
+                break;
+            }
+            case 'email': {
+                contactLink = generateEmailLink(
+                    order.supplier?.contact || '',
+                    order.email_subject || order.supplier?.email_subject || `Ordine Fornitore - ${order.supplier?.name || 'Sconosciuto'}`,
+                    order.message,
+                    order.supplier?.preferred_email_client
+                );
+                break;
+            }
+            case 'sms': {
+                const sanitizedContact = order.supplier?.contact?.replace(/\D/g, '') || '';
+                contactLink = `sms:${sanitizedContact}?body=${encodedMessage}`;
+                break;
+            }
+            default:
+                break;
+        }
+        openLinkInNewTab(contactLink);
+
+        goToNext();
+    };
+
+    const handleFinishWizard = () => {
+        // Filter out the sent orders from the main list
+        setScheduledOrders(prev => prev.filter(o => !newlyCreatedOrders.some(sent => sent.original_id === o.id)));
+        
+        // Reset wizard state
+        setShowSendWizard(false);
+        setWizardOrders([]);
+        setWizardStep(0);
+        setNewlyCreatedOrders([]);
+        
+        toast.success("Invio completato!");
+    };
+
     return (
       <div className="min-h-screen app-background">
-        <Header title="Programma Ordini" onBack={() => view !== 'list' ? setView('list') : navigate('/')} />
+        <Header title="Programma Ordini" onBack={() => {
+            if (showSendWizard) {
+                setShowSendWizard(false);
+            } else if (view !== 'list') {
+                setView('list');
+            } else {
+                navigate('/');
+            }
+        }} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-            {view === 'list' && renderListView()}
-            {view === 'create' && renderFlowView('create')}
-            {view === 'edit' && renderFlowView('edit')}
+            {showSendWizard ? (
+                 <OrderFlow initialStep="send">
+                    <OrderFlow.Step name="send">
+                        <SendOrderComponent 
+                            wizardOrders={wizardOrders} 
+                            wizardStep={wizardStep} 
+                            isSubmitting={isSubmitting}
+                            onSend={handleSendFromWizard}
+                            setWizardStep={setWizardStep}
+                        />
+                    </OrderFlow.Step>
+                    <OrderFlow.Step name="summary">
+                        <div className="glass-card p-4">
+                            <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Riepilogo Invio</h3>
+                            <div className="space-y-3">
+                                {newlyCreatedOrders.map(order => (
+                                    <div key={order.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{order.supplier.name}</span>
+                                            <CheckCircle className="text-green-500" size={20} />
+                                        </div>
+                                        <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-gray-300">{order.message}</pre>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-6">
+                                <button onClick={handleFinishWizard} className="btn btn-primary w-full" disabled={isSubmitting}>Fine</button>
+                            </div>
+                        </div>
+                    </OrderFlow.Step>
+                </OrderFlow>
+            ) : (
+                <>
+                    {view === 'list' && renderListView()}
+                    {view === 'create' && renderFlowView('create')}
+                    {view === 'edit' && renderFlowView('edit')}
+                </>
+            )}
         </div>
       </div>
     );
