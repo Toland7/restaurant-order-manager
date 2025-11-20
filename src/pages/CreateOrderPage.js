@@ -25,6 +25,59 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     const canScheduleOrders = hasPermission('orders:schedule');
     const { prefilledData, setPrefilledData } = usePrefill();
     
+    // State
+    const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const [orderMessages, setOrderMessages] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [wizardOrders, setWizardOrders] = useState([]);
+    const [wizardStep, setWizardStep] = useState(0);
+    const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
+    const [flowInitialStep, setFlowInitialStep] = useState('selection');
+    const [isPrefilledOrder, setIsPrefilledOrder] = useState(false);
+    const [initialMultiOrdersSet, setInitialMultiOrdersSet] = useState(false);
+
+    const prepareAndValidateOrders = useCallback((checkType) => {
+        if (checkType === 'send' && !canSendOrders) {
+          toast.error("Non hai i permessi per inviare ordini.");
+          return null;
+        }
+        if (checkType === 'schedule' && !canScheduleOrders) {
+          toast.error("Non hai i permessi per programmare ordini.");
+          return null;
+        }
+        const invalidOrders = [];
+        const messages = [];
+        const validWizardOrders = [];
+
+        multiOrders.forEach((order, index) => {
+            if (!order.supplier) {
+                invalidOrders.push(`Ordine ${index + 1}: Seleziona un fornitore`);
+                return;
+            }
+            const supplier = suppliers.find(s => s.id.toString() === order.supplier);
+            if (!supplier) return;
+            const itemsWithMissingQuantity = Object.keys(order.items).filter(product => order.items[product] === '');
+            if (itemsWithMissingQuantity.length > 0) {
+                invalidOrders.push(`Ordine ${index + 1} (${supplier.name}): Inserire quantità per ${itemsWithMissingQuantity.join(', ')}`);
+                return;
+            }
+            const message = generateOrderMessage(supplier, order.items, order.additional);
+            messages.push({ supplier: supplier.name, message });
+            validWizardOrders.push({ ...order, supplier, message, email_subject: order.email_subject });
+        });
+
+        if (invalidOrders.length > 0) {
+            toast.error(invalidOrders.join('; '));
+            return null;
+        }
+        
+        setOrderMessages(messages);
+        setWizardOrders(validWizardOrders);
+        setWizardStep(0);
+        setNewlyCreatedOrders([]);
+        return 'ok';
+    }, [canSendOrders, canScheduleOrders, multiOrders, suppliers, setOrderMessages, setWizardOrders, setWizardStep, setNewlyCreatedOrders]);
+
     useEffect(() => {
         const params = new URLSearchParams(currentLocation.search);
         const reminderId = params.get('reminder_id');
@@ -86,64 +139,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         }
     }, [currentLocation, setPrefilledData, navigate, user, suppliers, setMultiOrders, setIsPrefilledOrder, setInitialMultiOrdersSet, prepareAndValidateOrders, setFlowInitialStep]);
     
-    // State
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
-    const [orderMessages, setOrderMessages] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [wizardOrders, setWizardOrders] = useState([]);
-    const [wizardStep, setWizardStep] = useState(0);
-    const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
-    const [flowInitialStep, setFlowInitialStep] = useState('selection');
-    const [isPrefilledOrder, setIsPrefilledOrder] = useState(false);
-
     const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date());
-
-
-    const prepareAndValidateOrders = useCallback((checkType) => {
-        if (checkType === 'send' && !canSendOrders) {
-          toast.error("Non hai i permessi per inviare ordini.");
-          return null;
-        }
-        if (checkType === 'schedule' && !canScheduleOrders) {
-          toast.error("Non hai i permessi per programmare ordini.");
-          return null;
-        }
-        const invalidOrders = [];
-        const messages = [];
-        const validWizardOrders = [];
-
-        multiOrders.forEach((order, index) => {
-            if (!order.supplier) {
-                invalidOrders.push(`Ordine ${index + 1}: Seleziona un fornitore`);
-                return;
-            }
-            const supplier = suppliers.find(s => s.id.toString() === order.supplier);
-            if (!supplier) return;
-            const itemsWithMissingQuantity = Object.keys(order.items).filter(product => order.items[product] === '');
-            if (itemsWithMissingQuantity.length > 0) {
-                invalidOrders.push(`Ordine ${index + 1} (${supplier.name}): Inserire quantità per ${itemsWithMissingQuantity.join(', ')}`);
-                return;
-            }
-            const message = generateOrderMessage(supplier, order.items, order.additional);
-            messages.push({ supplier: supplier.name, message });
-            validWizardOrders.push({ ...order, supplier, message, email_subject: order.email_subject });
-        });
-
-        if (invalidOrders.length > 0) {
-            toast.error(invalidOrders.join('; '));
-            return null;
-        }
-        
-        setOrderMessages(messages);
-        setWizardOrders(validWizardOrders);
-        setWizardStep(0);
-        setNewlyCreatedOrders([]);
-        return 'ok';
-    }, [canSendOrders, canScheduleOrders, multiOrders, suppliers, setOrderMessages, setWizardOrders, setWizardStep, setNewlyCreatedOrders]);
-
-
-    // State for initial multiOrders setup (for non-prefilled cases)
-    const [initialMultiOrdersSet, setInitialMultiOrdersSet] = useState(false);
 
     // Effect to handle prefilled data (runs only when prefilledData changes to a non-null value)
     useEffect(() => {
