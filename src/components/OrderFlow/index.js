@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 
 // 1. Create the context
 const OrderFlowContext = createContext();
@@ -15,6 +15,11 @@ export const useOrderFlow = () => {
 // 2. Create the Parent Component (Provider)
 const OrderFlow = ({ children, initialStep }) => {
   const [currentStep, setCurrentStep] = useState(initialStep);
+
+  // Add this useEffect to update currentStep when initialStep prop changes
+  useEffect(() => {
+    setCurrentStep(initialStep);
+  }, [initialStep]); // ONLY depend on initialStep, NOT currentStep.
 
   const steps = useMemo(() => 
     React.Children.toArray(children).map(child => child.props.name), 

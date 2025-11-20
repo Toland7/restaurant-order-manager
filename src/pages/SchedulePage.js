@@ -3,7 +3,7 @@ import { Calendar, ChevronDown, Edit3, Trash2, Lock, PlusCircle, Send, CheckCirc
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
-import { supabase, supabaseHelpers } from '../supabase';
+import { supabaseHelpers } from '../supabase';
 import ScheduledOrderPreview from '../components/ui/ScheduledOrderPreview';
 import { useNavigate } from 'react-router-dom';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
@@ -150,7 +150,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         setScheduledOrders(prev => prev.filter(o => !ordersToDelete.some(d => d.id === o.id)));
         toast.success(`${ordersToDelete.length} ordini eliminati.`);
       } catch (error) {
-        toast.error("Errore durante l\'eliminazione.");
+        toast.error("Errore durante l'eliminazione.");
       } finally {
         setIsSubmitting(false);
       }

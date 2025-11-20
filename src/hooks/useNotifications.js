@@ -10,7 +10,7 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
       try {
         const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
         if (scheduledOrder) {
-          setPrefilledData({ type: 'order', data: scheduledOrder });
+          setPrefilledData({ type: 'schedule', data: scheduledOrder });
           navigate('/create-order');
           // Auto-mark as read
           await supabaseHelpers.markNotificationAsRead(notification.id);

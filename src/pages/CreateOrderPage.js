@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2, Lock, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
 import { useProfileContext } from '../ProfileContext';
-import OrderFlow, { useOrderFlow } from '../components/OrderFlow';
+import OrderFlow from '../components/OrderFlow';
 import { supabaseHelpers } from '../supabase'; // Import supabase for functions.invoke
 
 import ExitConfirmationModal from '../components/modals/ExitConfirmationModal';
@@ -28,50 +28,13 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
     const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
+    const [flowInitialStep, setFlowInitialStep] = useState('selection');
+    const [isPrefilledOrder, setIsPrefilledOrder] = useState(false);
 
     const futureScheduledOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date());
 
-    // Effects
-    useEffect(() => {
-      if (!prefilledData) {
-        setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
-      }
-    }, [setMultiOrders, prefilledData]);
 
-    // Functions
-    const removeSupplierOrder = (id) => {
-      if (multiOrders.length > 1) setMultiOrders(prev => prev.filter(order => order.id !== id));
-    };
-
-    const updateSupplierOrder = (id, field, value) => {
-      setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
-    };
-
-    const handleAddSupplier = (supplierId) => {
-      if (!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) {
-        toast.error("Aggiungere più fornitori in un unico ordine è una funzionalità PRO.");
-        return;
-      }
-      if (supplierId) {
-        if (multiOrders.length === 1 && !multiOrders[0].supplier) {
-          updateSupplierOrder(multiOrders[0].id, 'supplier', supplierId);
-        } else {
-          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' }]);
-        }
-      }
-    };
-
-
-
-    const hasUnsavedChanges = () => multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim() || order.email_subject?.trim()));
-
-    const onConfirmExit = () => {
-      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
-      setShowExitConfirm(false);
-      navigate(-1);
-    };
-
-    const prepareAndValidateOrders = (checkType) => {
+    const prepareAndValidateOrders = useCallback((checkType) => {
         if (checkType === 'send' && !canSendOrders) {
           toast.error("Non hai i permessi per inviare ordini.");
           return null;
@@ -111,6 +74,102 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         setWizardStep(0);
         setNewlyCreatedOrders([]);
         return 'ok';
+    }, [canSendOrders, canScheduleOrders, multiOrders, suppliers, setOrderMessages, setWizardOrders, setWizardStep, setNewlyCreatedOrders]);
+
+
+    // State for initial multiOrders setup (for non-prefilled cases)
+    const [initialMultiOrdersSet, setInitialMultiOrdersSet] = useState(false);
+
+    // Effect to handle prefilled data (runs only when prefilledData changes to a non-null value)
+    useEffect(() => {
+        if (prefilledData && prefilledData.type === 'schedule') {
+            const scheduledOrder = prefilledData.data;
+            const orderData = JSON.parse(scheduledOrder.order_data);
+            const supplierObj = suppliers.find(s => s.id === scheduledOrder.supplier_id);
+
+            if (!supplierObj) {
+                toast.error("Fornitore non trovato per l'ordine programmato.");
+                // Ensure prefilledData is cleared to avoid re-triggering this effect
+                setPrefilledData(null); // Clear context
+                setIsPrefilledOrder(false);
+                setInitialMultiOrdersSet(false); // Reset in case we need to init multiOrders again
+                return;
+            }
+
+            setMultiOrders([
+                {
+                    id: Date.now(),
+                    supplier: scheduledOrder.supplier_id.toString(),
+                    items: orderData.items || {},
+                    additional: orderData.additional_items || '',
+                    email_subject: orderData.email_subject || supplierObj.email_subject || '',
+                    searchTerm: ''
+                }
+            ]);
+            setIsPrefilledOrder(true);
+            setInitialMultiOrdersSet(true); // Mark that multiOrders have been set
+
+            const timeoutId = setTimeout(() => {
+                const validationResult = prepareAndValidateOrders('send');
+                if (validationResult === 'ok') {
+                    setFlowInitialStep('review');
+                }
+                // Clear prefilledData ONLY IF this page was INITIALLY loaded with prefilled data
+                // (i.e., from a notification). Do NOT clear if this page just SET prefilledData for navigation.
+                if (isPrefilledOrder) { 
+                    setPrefilledData(null); 
+                }
+            }, 0);
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [prefilledData, suppliers, setPrefilledData, prepareAndValidateOrders, setFlowInitialStep, setIsPrefilledOrder, setMultiOrders, setInitialMultiOrdersSet, isPrefilledOrder]);
+
+
+
+
+
+    // Effect to initialize multiOrders for non-prefilled cases or after prefilled data is cleared
+    // This effect runs only once when prefilledData is null and initialMultiOrdersSet is false
+    useEffect(() => {
+        if (!prefilledData && !initialMultiOrdersSet) {
+            setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
+            setIsPrefilledOrder(false);
+            setInitialMultiOrdersSet(true); // Mark as set
+        }
+    }, [prefilledData, initialMultiOrdersSet, setMultiOrders, setIsPrefilledOrder, setInitialMultiOrdersSet]);
+
+    // Functions
+    const removeSupplierOrder = (id) => {
+      if (multiOrders.length > 1) setMultiOrders(prev => prev.filter(order => order.id !== id));
+    };
+
+    const updateSupplierOrder = (id, field, value) => {
+      setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
+    };
+
+    const handleAddSupplier = (supplierId) => {
+      if (!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) {
+        toast.error("Aggiungere più fornitori in un unico ordine è una funzionalità PRO.");
+        return;
+      }
+      if (supplierId) {
+        if (multiOrders.length === 1 && !multiOrders[0].supplier) {
+          updateSupplierOrder(multiOrders[0].id, 'supplier', supplierId);
+        } else {
+          setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' }]);
+        }
+      }
+    };
+
+
+
+    const hasUnsavedChanges = () => multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim() || order.email_subject?.trim()));
+
+    const onConfirmExit = () => {
+      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
+      setShowExitConfirm(false);
+      navigate(-1);
     };
 
     const handleSendSingleOrder = async (goToNext) => {
@@ -230,22 +289,28 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         toast.error("Non hai i permessi per programmare ordini.");
         return;
       }
-      const currentOrder = multiOrders[0] || { supplier: '', items: {}, additional: '' };
-      setPrefilledData({
-        type: 'schedule',
-        data: {
-          supplier_id: currentOrder.supplier,
-          order_data: JSON.stringify({ items: currentOrder.items, additional_items: currentOrder.additional })
-        }
-      });
-      navigate('/schedule');
+      // Filter out invalid orders and format them for SchedulePage
+      const ordersToSchedule = multiOrders.filter(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim())) // Basic validation for non-empty orders
+                                          .map(order => ({
+                                            supplier: order.supplier,
+                                            items: order.items,
+                                            additional: order.additional,
+                                            email_subject: order.email_subject
+                                          }));
+
+      if (ordersToSchedule.length === 0) {
+        toast.error("Nessun ordine valido da programmare.");
+        return;
+      }
+
+      navigate('/schedule', { state: { ordersToSchedule: ordersToSchedule } });
     };
 
     return (
       <div className="min-h-screen app-background">
-        <Header title="Crea Ordine" onBack={() => { hasUnsavedChanges() ? setShowExitConfirm(true) : navigate(-1); }} />
+        <Header title="Crea Ordine" onBack={() => { isPrefilledOrder ? navigate(-1) : (hasUnsavedChanges() ? setShowExitConfirm(true) : navigate(-1)); }} />
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-          <OrderFlow initialStep="selection">
+          <OrderFlow initialStep={flowInitialStep}>
             {/* STEP 1: SELECTION */}
             <OrderFlow.Step name="selection">
               {suppliers.length === 0 && <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center"><p className="text-yellow-800 text-sm mb-3">Non hai ancora fornitori configurati</p><button onClick={() => navigate('/suppliers')} className="text-yellow-600 hover:text-yellow-800 font-medium text-sm">Aggiungi il primo fornitore →</button></div>}
