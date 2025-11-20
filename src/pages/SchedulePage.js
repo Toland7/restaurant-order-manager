@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, ChevronDown, Edit3, Trash2, Lock, PlusCircle, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
-import { usePrefill } from '../PrefillContext';
+
 import { supabaseHelpers } from '../supabase';
 import ScheduledOrderPreview from '../components/ui/ScheduledOrderPreview';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
 import { useProfileContext } from '../ProfileContext';
 import OrderFlow from '../components/OrderFlow';
@@ -24,10 +24,13 @@ const groupOrdersByScheduledAt = (orders) => {
 
 const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { state } = location;
+    const initialOrdersArray = state?.ordersToSchedule;
     const { isProUser } = useSubscriptionStatus();
     const { hasPermission } = useProfileContext();
     const canScheduleOrders = hasPermission('orders:schedule');
-    const { prefilledData, setPrefilledData } = usePrefill();
+
     
     const [view, setView] = useState('list'); // 'list', 'create', 'edit'
     const [multiOrders, setMultiOrders] = useState([]);
@@ -41,37 +44,41 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     const [wizardStep, setWizardStep] = useState(0);
     const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
-    const getRoundedTime = (date = new Date()) => {
+    const getRoundedTime = useCallback((date = new Date()) => {
         const minutes = date.getMinutes();
         const roundedMinutes = Math.ceil(minutes / 15) * 15;
         date.setMinutes(roundedMinutes);
         return date.toTimeString().slice(0, 5);
-    };
+    }, []);
 
     const resetForm = useCallback(() => {
         setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedTime(getRoundedTime());
         setEditingOrder(null);
-    }, []);
+    }, [getRoundedTime]);
 
-    useEffect(() => {
-        if (prefilledData && prefilledData.type === 'schedule') {
-            const orderData = JSON.parse(prefilledData.data.order_data);
-            setMultiOrders([
-                {
-                    id: Date.now(),
-                    supplier: prefilledData.data.supplier_id,
-                    items: orderData.items || {},
-                    additional: orderData.additional_items || '',
-                    email_subject: '',
-                    searchTerm: ''
-                }
-            ]);
-            setView('create');
-            setPrefilledData(null);
-        }
-    }, [prefilledData, setPrefilledData]);
+  useEffect(() => {
+    if (initialOrdersArray && initialOrdersArray.length > 0) {
+      setEditingOrder(null); // Ensure no old edit state interferes
+      setView('create'); // Switch to the create view
+
+      // Map the incoming array into the multiOrders structure
+      const formattedMultiOrders = initialOrdersArray.map(order => ({
+        id: Date.now() + Math.random(), // Ensure unique ID for each order in the array
+        supplier: order.supplier.toString(), // Use order.supplier directly (string ID)
+        items: order.items || {},
+        additional: order.additional || '',
+        email_subject: order.email_subject || '',
+        searchTerm: ''
+      }));
+      setMultiOrders(formattedMultiOrders); // Set the array
+
+      // Set scheduled date and time - always default to current as it's not passed from CreateOrderPage
+      setSelectedDate(new Date().toISOString().split('T')[0]);
+      setSelectedTime(getRoundedTime());
+    }
+  }, [initialOrdersArray, setEditingOrder, setView, setMultiOrders, setSelectedDate, setSelectedTime, getRoundedTime]);
 
     const timeSlots = Array.from({ length: 24 * 4 }, (_, i) => {
         const h = Math.floor(i / 4).toString().padStart(2, '0');
