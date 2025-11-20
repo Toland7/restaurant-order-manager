@@ -11,7 +11,7 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
         const scheduledOrder = await supabaseHelpers.getScheduledOrderById(notification.reminder_id);
         if (scheduledOrder) {
           setPrefilledData({ type: 'schedule', data: scheduledOrder });
-          navigate('/create-order');
+          navigate('/create-order?flowInitialStep=review');
           // Auto-mark as read
           await supabaseHelpers.markNotificationAsRead(notification.id);
           setUnreadCount(prev => Math.max(0, prev - 1));

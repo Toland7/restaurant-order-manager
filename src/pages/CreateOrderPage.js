@@ -83,6 +83,11 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         const reminderId = params.get('reminder_id');
         const batchId = params.get('batch_id');
         const userId = params.get('user_id');
+        const flowInitialStepParam = params.get('flowInitialStep');
+
+        if (flowInitialStepParam === 'review') {
+            setFlowInitialStep('review');
+        }
 
         if (reminderId) {
             const fetchScheduledOrder = async () => {
@@ -99,8 +104,6 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 }
             };
             fetchScheduledOrder();
-            // Clean up the URL
-            navigate('/create-order', { replace: true });
         } else if (batchId && userId) {
             const fetchBatch = async () => {
                 try {
@@ -134,7 +137,10 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 }
             };
             fetchBatch();
-            // Clean up the URL
+        }
+
+        // Clean up the URL regardless after processing
+        if (reminderId || batchId) {
             navigate('/create-order', { replace: true });
         }
     }, [currentLocation, setPrefilledData, navigate, user, suppliers, setMultiOrders, setIsPrefilledOrder, setInitialMultiOrdersSet, prepareAndValidateOrders, setFlowInitialStep]);
