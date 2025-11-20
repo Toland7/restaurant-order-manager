@@ -183,8 +183,25 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 }
                 // Clear prefilledData ONLY IF this page was INITIALLY loaded with prefilled data
                 // (i.e., from a notification). Do NOT clear if this page just SET prefilledData for navigation.
-                if (isPrefilledOrder) { 
-                    setPrefilledData(null); 
+                if (isPrefilledOrder) {
+                    setPrefilledData(null);
+                }
+            }, 0);
+
+            return () => clearTimeout(timeoutId);
+        } else if (prefilledData && prefilledData.type === 'multi-schedule' && Array.isArray(prefilledData.data)) {
+            // New logic for multi-scheduled orders
+            setMultiOrders(prefilledData.data);
+            setIsPrefilledOrder(true);
+            setInitialMultiOrdersSet(true);
+
+            const timeoutId = setTimeout(() => {
+                const validationResult = prepareAndValidateOrders('send');
+                if (validationResult === 'ok') {
+                    setFlowInitialStep('review');
+                }
+                if (isPrefilledOrder) {
+                    setPrefilledData(null);
                 }
             }, 0);
 

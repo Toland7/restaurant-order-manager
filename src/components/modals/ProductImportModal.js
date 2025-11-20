@@ -19,6 +19,8 @@ const ProductImportModal = ({ onDownloadTemplate, onFileSelect }) => {
             
             <input
                 type="file"
+                id="product-csv-upload"
+                aria-label="Carica file CSV dei prodotti"
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
