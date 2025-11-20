@@ -410,26 +410,31 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                                   <>
                                     {isProUser && (
                                       <div className="mb-4">
-                                        <input type="text" placeholder="Cerca prodotto..." value={order.searchTerm || ''} onChange={(e) => updateSupplierOrder(order.id, 'searchTerm', e.target.value)} className="input" disabled={isSubmitting}/>
+                                        <label htmlFor={`search-product-${order.id}`} className="sr-only">Cerca prodotto</label>
+                                        <input type="text" id={`search-product-${order.id}`} placeholder="Cerca prodotto..." value={order.searchTerm || ''} onChange={(e) => updateSupplierOrder(order.id, 'searchTerm', e.target.value)} className="input" disabled={isSubmitting}/>
                                       </div>
                                     )}
                                     <div className="space-y-3">
                                       {supplierData.products
                                         .filter(product => !isProUser || product.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
-                                        .map(product => (
+                                        .map(product => {
+                                          const productId = `product-${order.id}-${product.replace(/\s+/g, '-')}`;
+                                          const quantityId = `quantity-${order.id}-${product.replace(/\s+/g, '-')}`;
+                                          return (
                                       <div key={product} className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                                        <label className="flex items-center space-x-3 flex-1">
-                                          <input type="checkbox" checked={order.items.hasOwnProperty(product)} onChange={(e) => {
+                                        <label htmlFor={productId} className="flex items-center space-x-3 flex-1">
+                                          <input id={productId} type="checkbox" checked={order.items.hasOwnProperty(product)} onChange={(e) => {
                                               const newItems = { ...order.items };
                                               if (e.target.checked) { newItems[product] = ''; } else { delete newItems[product]; }
                                               updateSupplierOrder(order.id, 'items', newItems);
                                             }} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 accent-blue-600 transition-transform active:scale-95" disabled={isSubmitting}/>
                                           <span className="text-sm text-gray-700">{product}</span>
                                         </label>
-                                         <input type="text" placeholder="Qt." defaultValue={order.items[product] || ''} onBlur={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting}/>
+                                        <label htmlFor={quantityId} className="sr-only">Quantity for {product}</label>
+                                         <input id={quantityId} type="text" placeholder="Qt." defaultValue={order.items[product] || ''} onBlur={(e) => updateSupplierOrder(order.id, 'items', { ...order.items, [product]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting}/>
                                       </div>
-                                    ))}
-                                    </div>
+                                    )})
+                                    }</div>
                                   </>
                                 )}
                               </div>
