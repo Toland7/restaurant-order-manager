@@ -249,6 +249,17 @@ export const supabaseHelpers = {
      return data ? data[0] : null;
    },
 
+  async getScheduledOrdersByBatch(userId, scheduledAt) {
+    const { data, error } = await supabase
+      .from('scheduled_orders')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('scheduled_at', scheduledAt);
+
+    if (error) throw error;
+    return data;
+  },
+
 
     
       async getNotifications(userId, includeRead = true) {

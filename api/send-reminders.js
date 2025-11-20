@@ -50,79 +50,96 @@ module.exports = async (req, res) => {
     // 1. Fetch due and unsent reminders
     const { data: reminders, error: remindersError } = await supabase
       .from('scheduled_orders')
-      .select(`
-        *,
-        suppliers ( name )
-      `)
+      .select('*, suppliers ( name )')
       .eq('is_sent', false)
       .lte('scheduled_at', now.toISOString());
 
-    if (remindersError) {
-      throw remindersError;
-    }
+    if (remindersError) throw remindersError;
 
     if (!reminders || reminders.length === 0) {
       return res.status(200).json({ message: 'No reminders to send.' });
     }
 
-    const notificationsToSend = reminders.map(async reminder => {
-      // 2. Fetch all push subscriptions for the user
+    // Group reminders by user_id and scheduled_at
+    const groupedReminders = reminders.reduce((acc, reminder) => {
+      const key = `${reminder.user_id}|${reminder.scheduled_at}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(reminder);
+      return acc;
+    }, {});
+
+    const allPromises = Object.values(groupedReminders).map(async (group) => {
+      const firstReminder = group[0];
+      const { user_id, scheduled_at } = firstReminder;
+
+      // Fetch all push subscriptions for the user
       const { data: subscriptions, error: subscriptionsError } = await supabase
         .from('push_subscriptions')
         .select('subscription')
-        .eq('user_id', reminder.user_id);
+        .eq('user_id', user_id);
 
       if (subscriptionsError || !subscriptions || subscriptions.length === 0) {
-        return { status: 'no-subscription', reminderId: reminder.id };
+        return group.map(r => ({ status: 'no-subscription', reminderId: r.id }));
       }
 
-      const payload = JSON.stringify({
-        title: `Promemoria Ordine: ${reminder.suppliers.name}`,
-        body: reminder.reminder_type === 'prefilled'
-          ? 'Il tuo ordine precompilato è pronto per essere inviato.'
-          : `È ora di fare l'ordine per ${reminder.suppliers.name}!`,
-        data: { url: `/create-order?reminder_id=${reminder.id}` }
-      });
+      let payload;
+      if (group.length > 1) {
+        // Batch notification
+        payload = JSON.stringify({
+          title: `Promemoria per ${group.length} ordini`,
+          body: `Hai ${group.length} ordini programmati pronti per essere inviati.`,
+          data: { url: `/create-order?batch_id=${encodeURIComponent(scheduled_at)}&user_id=${user_id}` }
+        });
+      } else {
+        // Single notification
+        const reminder = firstReminder;
+        payload = JSON.stringify({
+          title: `Promemoria Ordine: ${reminder.suppliers.name}`,
+          body: reminder.reminder_type === 'prefilled'
+            ? 'Il tuo ordine precompilato è pronto per essere inviato.'
+            : `È ora di fare l'ordine per ${reminder.suppliers.name}!`,
+          data: { url: `/create-order?reminder_id=${reminder.id}` }
+        });
+      }
 
       const sendPromises = subscriptions.map(sub =>
         webpush.sendNotification(sub.subscription, payload)
           .catch(err => {
-            console.error(`Error sending push notification to one device for user ${reminder.user_id}:`, err);
+            console.error(`Error sending push notification to one device for user ${user_id}:`, err);
             if (err.statusCode === 410) {
-              // Subscription is expired or invalid, delete it
-              supabase.from('push_subscriptions').delete().eq('subscription', sub.subscription);
+              supabase.from('push_subscriptions').delete().eq('subscription', sub.subscription).then(() => {});
             }
-            return { status: 'error', error: err.body }; // Return error status for this specific device
+            return { status: 'error', error: err.body };
           })
       );
-      
+
       const results = await Promise.allSettled(sendPromises);
       const isAnySuccess = results.some(r => r.status === 'fulfilled');
 
       if (isAnySuccess) {
-        // Insert notification only once per reminder, if at least one device was reached
+        // Insert notification only once per batch/reminder
         const notificationData = {
-          user_id: reminder.user_id,
-          title: `Promemoria Ordine: ${reminder.suppliers.name}`,
-          message: `È ora di fare l'ordine per ${reminder.suppliers.name}!`,
+          user_id: user_id,
+          title: group.length > 1 ? `Promemoria per ${group.length} ordini` : `Promemoria Ordine: ${firstReminder.suppliers.name}`,
+          message: group.length > 1 ? `Hai ${group.length} ordini programmati pronti per essere inviati.` : `È ora di fare l'ordine per ${firstReminder.suppliers.name}!`,
           type: 'info',
-          reminder_id: reminder.id
+          reminder_id: firstReminder.id
         };
+
         const { error } = await supabase.from('notifications').insert([notificationData]);
-        if (error) {
-          // If the notification already exists due to the unique constraint, it's not a critical error.
-          // This can happen in a race condition if another process just sent it.
-          if (error.code !== '23505') { // 23505 is unique_violation
-            console.error('Error inserting notification:', error);
-          }
+        if (error && error.code !== '23505') { // Ignore unique violation errors
+          console.error('Error inserting notification:', error);
         }
-        return { status: 'success', reminderId: reminder.id };
+
+        return group.map(r => ({ status: 'success', reminderId: r.id }));
       } else {
-        return { status: 'all-failed', reminderId: reminder.id };
+        return group.map(r => ({ status: 'all-failed', reminderId: r.id }));
       }
     });
 
-    const results = await Promise.all(notificationsToSend);
+    const results = (await Promise.all(allPromises)).flat();
 
     const sentIds = results
       .filter(r => r.status === 'success')

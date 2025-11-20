@@ -28,6 +28,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     useEffect(() => {
         const params = new URLSearchParams(currentLocation.search);
         const reminderId = params.get('reminder_id');
+        const batchId = params.get('batch_id');
+        const userId = params.get('user_id');
 
         if (reminderId) {
             const fetchScheduledOrder = async () => {
@@ -46,8 +48,43 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             fetchScheduledOrder();
             // Clean up the URL
             navigate('/create-order', { replace: true });
+        } else if (batchId && userId) {
+            const fetchBatch = async () => {
+                try {
+                    const batchOrders = await supabaseHelpers.getScheduledOrdersByBatch(userId, batchId);
+                    if (batchOrders && batchOrders.length > 0) {
+                        const formattedOrders = batchOrders.map(order => {
+                            const orderData = JSON.parse(order.order_data);
+                            const supplierObj = suppliers.find(s => s.id === order.supplier_id);
+                            return {
+                                id: order.id,
+                                supplier: order.supplier_id.toString(),
+                                items: orderData.items || {},
+                                additional: orderData.additional_items || '',
+                                email_subject: orderData.email_subject || supplierObj?.email_subject || '',
+                                searchTerm: ''
+                            };
+                        });
+                        setMultiOrders(formattedOrders);
+                        setIsPrefilledOrder(true);
+                        setInitialMultiOrdersSet(true);
+                        const validationResult = prepareAndValidateOrders('send');
+                        if (validationResult === 'ok') {
+                            setFlowInitialStep('review');
+                        }
+                    } else {
+                        toast.error("Batch di ordini non trovato.");
+                    }
+                } catch (error) {
+                    console.error("Error loading batch from URL:", error);
+                    toast.error("Impossibile caricare il batch di ordini.");
+                }
+            };
+            fetchBatch();
+            // Clean up the URL
+            navigate('/create-order', { replace: true });
         }
-    }, [currentLocation, setPrefilledData, navigate]);
+    }, [currentLocation, setPrefilledData, navigate, user, suppliers, setMultiOrders, setIsPrefilledOrder, setInitialMultiOrdersSet, prepareAndValidateOrders, setFlowInitialStep]);
     
     // State
     const [showExitConfirm, setShowExitConfirm] = useState(false);
