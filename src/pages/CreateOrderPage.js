@@ -10,16 +10,44 @@ import { supabaseHelpers } from '../supabase'; // Import supabase for functions.
 
 import ExitConfirmationModal from '../components/modals/ExitConfirmationModal';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SendOrderComponent, { openLinkInNewTab, generateEmailLink, generateOrderMessage } from '../components/ui/SendOrderComponent';
 
 const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, multiOrders, setMultiOrders, suppliers, setOrders, user }) => {
     const navigate = useNavigate();
+    const currentLocation = useLocation();
+
+
+
     const { isProUser } = useSubscriptionStatus();
     const { hasPermission } = useProfileContext();
     const canSendOrders = hasPermission('orders:send');
     const canScheduleOrders = hasPermission('orders:schedule');
     const { prefilledData, setPrefilledData } = usePrefill();
+    
+    useEffect(() => {
+        const params = new URLSearchParams(currentLocation.search);
+        const reminderId = params.get('reminder_id');
+
+        if (reminderId) {
+            const fetchScheduledOrder = async () => {
+                try {
+                    const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
+                    if (scheduledOrder) {
+                        setPrefilledData({ type: 'schedule', data: scheduledOrder });
+                    } else {
+                        toast.error("Ordine programmato non trovato.");
+                    }
+                } catch (error) {
+                    console.error("Error loading reminder from URL:", error);
+                    toast.error("Impossibile caricare il promemoria.");
+                }
+            };
+            fetchScheduledOrder();
+            // Clean up the URL
+            navigate('/create-order', { replace: true });
+        }
+    }, [currentLocation, setPrefilledData, navigate]);
     
     // State
     const [showExitConfirm, setShowExitConfirm] = useState(false);

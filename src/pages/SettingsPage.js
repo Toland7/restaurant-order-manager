@@ -96,7 +96,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
             },
           };
 
-          await supabaseHelpers.updateUserProfile(user.id, { push_subscription: subscriptionData });
+          await supabaseHelpers.createPushSubscription(user.id, subscriptionData);
           setIsPushEnabled(true);
           toast.success('Notifiche push abilitate con successo!');
         } else {
@@ -104,7 +104,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           const subscription = await registration.pushManager.getSubscription();
           if (subscription) {
             await subscription.unsubscribe();
-            await supabaseHelpers.updateUserProfile(user.id, { push_subscription: null });
+            await supabaseHelpers.deletePushSubscription(user.id, subscription.endpoint);
             setIsPushEnabled(false);
             toast.success('Notifiche push disabilitate con successo!');
           } else {

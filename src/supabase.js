@@ -397,5 +397,38 @@ export const supabaseHelpers = {
     return data;
   },
 
+  // Push Subscriptions
+  async createPushSubscription(userId, subscriptionData) {
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .insert([
+        { user_id: userId, subscription: subscriptionData }
+      ]);
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePushSubscription(userId, endpoint) {
+    // We need to query for the subscription to delete it, as the subscription object is complex.
+    // A simpler way is to just delete based on the user_id and a unique part of the subscription, like the endpoint.
+    const { data: subscriptions, error: selectError } = await supabase
+      .from('push_subscriptions')
+      .select('id, subscription')
+      .eq('user_id', userId);
+
+    if (selectError) throw selectError;
+
+    const subscriptionToDelete = subscriptions.find(s => s.subscription.endpoint === endpoint);
+
+    if (subscriptionToDelete) {
+      const { error: deleteError } = await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('id', subscriptionToDelete.id);
+
+      if (deleteError) throw deleteError;
+    }
+  },
 
 };
