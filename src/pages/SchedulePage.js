@@ -13,7 +13,7 @@ import SendOrderComponent, { generateOrderMessage, openLinkInNewTab, generateEma
 
 const groupOrdersByScheduledAt = (orders) => {
     return orders.reduce((acc, order) => {
-        const key = new Date(order.scheduled_at).toDateString();
+        const key = order.scheduled_at;
         if (!acc[key]) {
             acc[key] = [];
         }
@@ -185,20 +185,31 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     };
 
     const renderListView = () => {
-        const futureOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > new Date()).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+        const now = new Date();
+        const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+
+        const readyToSendOrders = scheduledOrders.filter(o => {
+            const scheduledAt = new Date(o.scheduled_at);
+            return scheduledAt <= now && scheduledAt >= fortyEightHoursAgo;
+        }).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+        const futureOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > now).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+        const groupedReadyToSendOrders = groupOrdersByScheduledAt(readyToSendOrders);
         const groupedFutureOrders = groupOrdersByScheduledAt(futureOrders);
+
         const isLimitReached = !isProUser && scheduledOrders.length >= 3;
 
         return (
             <>
                 <div className="flex justify-center">
-                    <button 
+                    <button
                         onClick={() => {
-                            if (isLimitReached) { toast.error('Limite raggiunto per il piano Base.'); return; } 
-                            resetForm(); 
-                            setView('create'); 
-                        }} 
-                        disabled={isLimitReached || !canScheduleOrders || isSubmitting} 
+                            if (isLimitReached) { toast.error('Limite raggiunto per il piano Base.'); return; }
+                            resetForm();
+                            setView('create');
+                        }}
+                        disabled={isLimitReached || !canScheduleOrders || isSubmitting}
                         className="btn btn-primary inline-flex items-center space-x-2"
                     >
                         <PlusCircle size={20} />
@@ -206,40 +217,156 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                         {isLimitReached && <Lock size={16} />}
                     </button>
                 </div>
-                {futureOrders.length > 0 ? (
+
+                {scheduledOrders.length > 0 ? (
                     <div className="space-y-4">
-                        {Object.entries(groupedFutureOrders).map(([date, orders]) => (
-                            <details key={date} className="glass-card group" open>
-                                <summary className="font-medium text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
-                                    <div className="flex-1">
-                                        <span>{new Date(date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-                                        <span className="text-xs text-gray-500 ml-2">({orders.length} ordini)</span>
-                                    </div>
-                                    <div className="flex items-center space-x-3">
-                                        <button onClick={(e) => { e.preventDefault(); startSendNowWizard(orders); }} disabled={isSubmitting} className="p-1 text-green-600 hover:bg-green-100 rounded-full" title="Invia Ora">{isSubmitting ? 'Preparazione...' : <Send size={16} />}</button>
-                                        <button onClick={(e) => { e.preventDefault(); handleEditClick(orders[0]); }} disabled={isSubmitting} className="p-1 text-blue-600 hover:bg-blue-100 rounded-full" title="Modifica"><Edit3 size={16} /></button>
-                                        <button onClick={(e) => { e.preventDefault(); handleDeleteBatch(orders); }} disabled={isSubmitting} className="p-1 text-red-600 hover:bg-red-100 rounded-full" title="Elimina"><Trash2 size={16} /></button>
-                                        <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
-                                    </div>
+                        {Object.keys(groupedReadyToSendOrders).length > 0 && (
+                            <details className="glass-card group" open>
+                                <summary className="font-medium text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                                    <span>Pronti per l\'invio ({readyToSendOrders.length})</span>
+                                    <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                                 </summary>
                                 <div className="p-4 space-y-3 border-t border-gray-100">
-                                    {orders.map(order => {
-                                        const supplier = suppliers.find(s => s.id === order.supplier_id);
+                                    {Object.values(groupedReadyToSendOrders).map((orders, groupIndex) => {
+                                        const isBatch = orders.length > 1;
+                                        const firstOrder = orders[0];
+                                        const scheduledAt = new Date(firstOrder.scheduled_at);
                                         return (
-                                            <div key={order.id} className="w-full text-left p-3 rounded-lg bg-white dark:bg-purple-900/30">
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
-                                                        <p className="text-xs text-gray-500">{new Date(order.scheduled_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>
-                                                    </div>
+                                            <details key={groupIndex} className="bg-green-50/50 dark:bg-green-900/20 rounded-lg">
+                                                <summary className="font-medium text-sm p-3 cursor-pointer flex justify-between items-center list-none">
+                                                    {isBatch ? (
+                                                        <div className="w-full flex justify-between items-center">
+                                                            <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
+                                                            <div className="flex items-center space-x-2">
+                                                                <button onClick={(e) => { e.stopPropagation(); startSendNowWizard(orders); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch(orders); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
+                                                    )}
+                                                    <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                                                </summary>
+                                                <div className="p-3 border-t">
+                                                    {orders.map(order => {
+                                                        const supplier = suppliers.find(s => s.id === order.supplier_id);
+                                                        return (
+                                                            <div key={order.id} className="w-full text-left p-3 rounded-lg bg-white dark:bg-green-900/30 mb-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <div>
+                                                                        <p className="font-medium text-sm text-green-900 dark:text-green-200">{supplier?.name || 'Fornitore eliminato'}</p>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <button onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                                            if (!supplierExists) {
+                                                                              toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
+                                                                              return;
+                                                                            }
+                                                                            // This will now use the current wizard for sending single orders
+                                                                            startSendNowWizard([order]);
+                                                                         }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                                         <button onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (!canScheduleOrders) {
+                                                                              toast.error("Non hai i permessi per modificare ordini programmati.");
+                                                                              return;
+                                                                            }
+                                                                            const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                                            if (!supplierExists) {
+                                                                              toast.error("Fornitore non trovato, modifica limitata.");
+                                                                            }
+                                                                            // Need to adjust handleEditClick to work with the multiOrders/editingOrder state
+                                                                            handleEditClick(order);
+                                                                         }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
+                                                                         <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch([order]); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                                    </div>
+                                                                </div>
+                                                                <ScheduledOrderPreview order={order} suppliers={suppliers} />
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
-                                                <ScheduledOrderPreview order={order} suppliers={suppliers} />
-                                            </div>
-                                        );
+                                            </details>
+                                        )
                                     })}
                                 </div>
                             </details>
-                        ))}
+                        )}
+
+                        {Object.keys(groupedFutureOrders).length > 0 && (
+                            <details className="glass-card group">
+                                <summary className="font-medium text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
+                                    <span>Ordini Programmati ({futureOrders.length})</span>
+                                    <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                                </summary>
+                                <div className="p-4 space-y-3 border-t border-gray-100">
+                                    {Object.values(groupedFutureOrders).map((orders, groupIndex) => {
+                                        const isBatch = orders.length > 1;
+                                        const firstOrder = orders[0];
+                                        const scheduledAt = new Date(firstOrder.scheduled_at);
+                                        return (
+                                            <details key={groupIndex} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg">
+                                                <summary className="font-medium text-sm p-3 cursor-pointer flex justify-between items-center list-none">
+                                                    {isBatch ? (
+                                                        <div className="w-full flex justify-between items-center">
+                                                            <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
+                                                            <div className="flex items-center space-x-2">
+                                                                <button onClick={(e) => { e.stopPropagation(); startSendNowWizard(orders); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch(orders); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
+                                                    )}
+                                                    <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
+                                                </summary>
+                                                <div className="p-3 border-t">
+                                                    {orders.map(order => {
+                                                        const supplier = suppliers.find(s => s.id === order.supplier_id);
+                                                        return (
+                                                            <div key={order.id} className={`w-full text-left p-3 rounded-lg ${editingOrder?.id === order.id ? 'bg-purple-200' : 'bg-white'} dark:bg-purple-900/30 mb-2`}>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div>
+                                                                        <p className="font-medium text-sm text-purple-900">{supplier?.name || 'Fornitore eliminato'}</p>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <button onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                                            if (!supplierExists) {
+                                                                              toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
+                                                                              return;
+                                                                            }
+                                                                            startSendNowWizard([order]);
+                                                                         }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                                         <button onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (!canScheduleOrders) {
+                                                                              toast.error("Non hai i permessi per modificare ordini programmati.");
+                                                                              return;
+                                                                            }
+                                                                            const supplierExists = suppliers.find(s => s.id === order.supplier_id);
+                                                                            if (!supplierExists) {
+                                                                              toast.error("Fornitore non trovato, modifica limitata.");
+                                                                            }
+                                                                            handleEditClick(order);
+                                                                         }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
+                                                                         <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch([order]); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                                    </div>
+                                                                </div>
+                                                                <ScheduledOrderPreview order={order} suppliers={suppliers} />
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </details>
+                                        )
+                                    })}
+                                </div>
+                            </details>
+                        )}
                     </div>
                 ) : (
                     <div className="text-center py-12"><Calendar size={48} className="mx-auto text-gray-300 mb-4" /><p className="text-gray-500">Nessun ordine programmato.</p></div>
