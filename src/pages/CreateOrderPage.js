@@ -36,14 +36,14 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
   const [isPrefilledOrder, setIsPrefilledOrder] = useState(false);
   const [initialMultiOrdersSet, setInitialMultiOrdersSet] = useState(false);
 
-  const prepareAndValidateOrders = useCallback((checkType) => {
+  const prepareAndValidateOrders = useCallback((checkType, suppressPermissionErrors = false) => {
     if (checkType === 'send' && !canSendOrders) {
-      toast.error("Non hai i permessi per inviare ordini.");
-      return null;
+      if (!suppressPermissionErrors) toast.error("Non hai i permessi per inviare ordini.");
+      return suppressPermissionErrors ? 'ok' : null;
     }
     if (checkType === 'schedule' && !canScheduleOrders) {
-      toast.error("Non hai i permessi per programmare ordini.");
-      return null;
+      if (!suppressPermissionErrors) toast.error("Non hai i permessi per programmare ordini.");
+      return suppressPermissionErrors ? 'ok' : null;
     }
     const invalidOrders = [];
     const messages = [];
@@ -128,7 +128,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             setMultiOrders(formattedOrders);
             setIsPrefilledOrder(true);
             setInitialMultiOrdersSet(true);
-            const validationResult = prepareAndValidateOrders('send');
+            const validationResult = prepareAndValidateOrders('send', true);
             if (validationResult === 'ok') {
               setFlowInitialStep('review');
             }
@@ -161,7 +161,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             setMultiOrders(formattedOrders);
             setIsPrefilledOrder(true);
             setInitialMultiOrdersSet(true);
-            const validationResult = prepareAndValidateOrders('send');
+            const validationResult = prepareAndValidateOrders('send', true);
             if (validationResult === 'ok') {
               setFlowInitialStep('review');
             }
