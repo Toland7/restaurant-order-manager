@@ -60,9 +60,14 @@ module.exports = async (req, res) => {
       return res.status(200).json({ message: 'No reminders to send.' });
     }
 
-    // Group reminders by user_id and scheduled_at
+    // Group reminders by user_id and scheduled_at (normalized to the minute)
     const groupedReminders = reminders.reduce((acc, reminder) => {
-      const key = `${reminder.user_id}|${reminder.scheduled_at}`;
+      // Normalize scheduled_at to the minute (remove seconds and milliseconds)
+      const scheduledDate = new Date(reminder.scheduled_at);
+      scheduledDate.setSeconds(0, 0); // Set seconds and milliseconds to 0
+      const normalizedScheduledAt = scheduledDate.toISOString();
+
+      const key = `${reminder.user_id}|${normalizedScheduledAt}`;
       if (!acc[key]) {
         acc[key] = [];
       }
@@ -90,7 +95,9 @@ module.exports = async (req, res) => {
         payload = JSON.stringify({
           title: `Promemoria per ${group.length} ordini`,
           body: `Hai ${group.length} ordini programmati pronti per essere inviati.`,
-          data: { url: `/create-order?batch_id=${encodeURIComponent(scheduled_at)}&user_id=${user_id}` }
+          data: {
+            url: `/create-order?batch_id=${encodeURIComponent(scheduled_at)}&user_id=${user_id}&flowInitialStep=review`
+          }
         });
       } else {
         // Single notification
@@ -100,7 +107,9 @@ module.exports = async (req, res) => {
           body: reminder.reminder_type === 'prefilled'
             ? 'Il tuo ordine precompilato è pronto per essere inviato.'
             : `È ora di fare l'ordine per ${reminder.suppliers.name}!`,
-          data: { url: `/create-order?reminder_id=${reminder.id}` }
+          data: {
+            url: `/create-order?reminder_id=${reminder.id}&flowInitialStep=review`
+          }
         });
       }
 
@@ -109,7 +118,7 @@ module.exports = async (req, res) => {
           .catch(err => {
             console.error(`Error sending push notification to one device for user ${user_id}:`, err);
             if (err.statusCode === 410) {
-              supabase.from('push_subscriptions').delete().eq('subscription', sub.subscription).then(() => {});
+              supabase.from('push_subscriptions').delete().eq('subscription', sub.subscription).then(() => { });
             }
             return { status: 'error', error: err.body };
           })
@@ -125,7 +134,10 @@ module.exports = async (req, res) => {
           title: group.length > 1 ? `Promemoria per ${group.length} ordini` : `Promemoria Ordine: ${firstReminder.suppliers.name}`,
           message: group.length > 1 ? `Hai ${group.length} ordini programmati pronti per essere inviati.` : `È ora di fare l'ordine per ${firstReminder.suppliers.name}!`,
           type: 'info',
-          reminder_id: firstReminder.id
+          reminder_id: firstReminder.id,
+          data: group.length > 1 ?
+            { reminder_ids: group.map(r => r.id), user_id: user_id, url: '/notifications' } :
+            { reminder_id: firstReminder.id, user_id: user_id, url: `/create-order?reminder_id=${firstReminder.id}` }
         };
 
         const { error } = await supabase.from('notifications').insert([notificationData]);

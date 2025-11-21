@@ -119,7 +119,7 @@ const NotificationsPage = ({ user }) => {
                                                 <h3 className="font-medium text-gray-800 dark:text-gray-200">{notification.title}</h3>
                                                 <p className="text-xs text-gray-500 mt-1">{new Date(notification.created_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })}</p>
                                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{notification.message}</p>
-                                                {notification.reminder_id && (
+                                                {(notification.reminder_id || (notification.data && (notification.data.reminder_id || notification.data.reminder_ids))) && (
                                                     <button onClick={() => handleNotificationClick(notification)} className="mt-2 text-sm font-medium text-blue-600 hover:underline">
                                                         Visualizza ordine
                                                     </button>

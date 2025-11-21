@@ -10,6 +10,7 @@ import useSubscriptionStatus from '../hooks/useSubscriptionStatus';
 import { useProfileContext } from '../ProfileContext';
 import OrderFlow from '../components/OrderFlow';
 import SendOrderComponent, { generateOrderMessage, openLinkInNewTab, generateEmailLink } from '../components/ui/SendOrderComponent';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const groupOrdersByScheduledAt = (orders) => {
     return orders.reduce((acc, order) => {
@@ -31,7 +32,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     const { hasPermission } = useProfileContext();
     const canScheduleOrders = hasPermission('orders:schedule');
 
-    
+
     const [view, setView] = useState('list'); // 'list', 'create', 'edit'
     const [multiOrders, setMultiOrders] = useState([]);
     const [selectedDate, setSelectedDate] = useState('');
@@ -44,9 +45,13 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     const [wizardStep, setWizardStep] = useState(0);
     const [newlyCreatedOrders, setNewlyCreatedOrders] = useState([]);
 
+    // State for delete confirmation modal
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [ordersToDelete, setOrdersToDelete] = useState([]);
+
     const getRoundedTime = useCallback((date = new Date()) => {
         const minutes = date.getMinutes();
-        const roundedMinutes = Math.ceil(minutes / 15) * 15;
+        const roundedMinutes = Math.ceil(minutes / 5) * 5;
         date.setMinutes(roundedMinutes);
         return date.toTimeString().slice(0, 5);
     }, []);
@@ -58,62 +63,62 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         setEditingOrder(null);
     }, [getRoundedTime]);
 
-  useEffect(() => {
-    if (initialOrdersArray && initialOrdersArray.length > 0) {
-      setEditingOrder(null); // Ensure no old edit state interferes
-      setView('create'); // Switch to the create view
+    useEffect(() => {
+        if (initialOrdersArray && initialOrdersArray.length > 0) {
+            setEditingOrder(null); // Ensure no old edit state interferes
+            setView('create'); // Switch to the create view
 
-      // Map the incoming array into the multiOrders structure
-      const formattedMultiOrders = initialOrdersArray.map(order => ({
-        id: Date.now() + Math.random(), // Ensure unique ID for each order in the array
-        supplier: order.supplier.toString(), // Use order.supplier directly (string ID)
-        items: order.items || {},
-        additional: order.additional || '',
-        email_subject: order.email_subject || '',
-        searchTerm: ''
-      }));
-      setMultiOrders(formattedMultiOrders); // Set the array
+            // Map the incoming array into the multiOrders structure
+            const formattedMultiOrders = initialOrdersArray.map(order => ({
+                id: Date.now() + Math.random(), // Ensure unique ID for each order in the array
+                supplier: order.supplier.toString(), // Use order.supplier directly (string ID)
+                items: order.items || {},
+                additional: order.additional || '',
+                email_subject: order.email_subject || '',
+                searchTerm: ''
+            }));
+            setMultiOrders(formattedMultiOrders); // Set the array
 
-      // Set scheduled date and time - always default to current as it's not passed from CreateOrderPage
-      setSelectedDate(new Date().toISOString().split('T')[0]);
-      setSelectedTime(getRoundedTime());
-    }
-  }, [initialOrdersArray, setEditingOrder, setView, setMultiOrders, setSelectedDate, setSelectedTime, getRoundedTime]);
+            // Set scheduled date and time - always default to current as it's not passed from CreateOrderPage
+            setSelectedDate(new Date().toISOString().split('T')[0]);
+            setSelectedTime(getRoundedTime());
+        }
+    }, [initialOrdersArray, setEditingOrder, setView, setMultiOrders, setSelectedDate, setSelectedTime, getRoundedTime]);
 
-    const timeSlots = Array.from({ length: 24 * 4 }, (_, i) => {
-        const h = Math.floor(i / 4).toString().padStart(2, '0');
-        const m = ((i % 4) * 15).toString().padStart(2, '0');
+    const timeSlots = Array.from({ length: 24 * 12 }, (_, i) => {
+        const h = Math.floor(i / 12).toString().padStart(2, '0');
+        const m = ((i % 12) * 5).toString().padStart(2, '0');
         return `${h}:${m}`;
     });
 
 
 
     const handleSaveNewOrder = async () => {
-      if (!canScheduleOrders) { toast.error("Non hai i permessi."); return null; }
-      const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
-      if (scheduledDateTime < new Date()) { toast.error('Non puoi programmare nel passato.'); return null; }
-      
-      const validOrders = multiOrders.filter(o => o.supplier);
-      if (validOrders.length === 0) { toast.error('Nessun ordine valido.'); return null; }
+        if (!canScheduleOrders) { toast.error("Non hai i permessi."); return null; }
+        const scheduledDateTime = new Date(`${selectedDate}T${selectedTime}`);
+        if (scheduledDateTime < new Date()) { toast.error('Non puoi programmare nel passato.'); return null; }
 
-      setIsSubmitting(true);
-      try {
-          const newScheduledOrders = [];
-          for (const order of validOrders) {
-            const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject }) };
-            const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
-            newScheduledOrders.push({ ...newScheduledOrder, supplier: suppliers.find(s => s.id.toString() === order.supplier) });
-          }
-          setScheduledOrders(prev => [...prev, ...newScheduledOrders]);
-          toast.success(`${validOrders.length} ordini programmati!`);
-          resetForm();
-          setView('list');
-      } catch (error) {
-        console.error('Error saving scheduled order:', error);
-        toast.error('Errore durante il salvataggio.');
-      } finally {
-        setIsSubmitting(false);
-      }
+        const validOrders = multiOrders.filter(o => o.supplier);
+        if (validOrders.length === 0) { toast.error('Nessun ordine valido.'); return null; }
+
+        setIsSubmitting(true);
+        try {
+            const newScheduledOrders = [];
+            for (const order of validOrders) {
+                const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject }) };
+                const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+                newScheduledOrders.push({ ...newScheduledOrder, supplier: suppliers.find(s => s.id.toString() === order.supplier) });
+            }
+            setScheduledOrders(prev => [...prev, ...newScheduledOrders]);
+            toast.success(`${validOrders.length} ordini programmati!`);
+            resetForm();
+            setView('list');
+        } catch (error) {
+            console.error('Error saving scheduled order:', error);
+            toast.error('Errore durante il salvataggio.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleUpdateOrder = async () => {
@@ -135,7 +140,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                 const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
                 newScheduledOrders.push({ ...newScheduledOrder, supplier: suppliers.find(s => s.id.toString() === order.supplier) });
             }
-            
+
             setScheduledOrders(prev => [...prev.filter(o => !originalBatch.some(orig => orig.id === o.id)), ...newScheduledOrders]);
             toast.success(`${validOrders.length} ordini aggiornati!`);
             resetForm();
@@ -148,25 +153,30 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         }
     };
 
-    const handleDeleteBatch = async (ordersToDelete) => {
-      if (!canScheduleOrders) { toast.error("Non hai i permessi."); return; }
-      if (!window.confirm(`Sei sicuro di voler eliminare ${ordersToDelete.length} ordini programmati?`)) return;
-      setIsSubmitting(true);
-      try {
-        await Promise.all(ordersToDelete.map(o => supabaseHelpers.deleteScheduledOrder(o.id)));
-        setScheduledOrders(prev => prev.filter(o => !ordersToDelete.some(d => d.id === o.id)));
-        toast.success(`${ordersToDelete.length} ordini eliminati.`);
-      } catch (error) {
-        toast.error("Errore durante l'eliminazione.");
-      } finally {
-        setIsSubmitting(false);
-      }
+    const handleDeleteBatch = (ordersToDelete) => {
+        if (!canScheduleOrders) { toast.error("Non hai i permessi."); return; }
+        setOrdersToDelete(ordersToDelete);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        setIsSubmitting(true);
+        try {
+            await Promise.all(ordersToDelete.map(o => supabaseHelpers.deleteScheduledOrder(o.id)));
+            setScheduledOrders(prev => prev.filter(o => !ordersToDelete.some(d => d.id === o.id)));
+            toast.success(`${ordersToDelete.length} ordini eliminati.`);
+        } catch (error) {
+            toast.error("Errore durante l'eliminazione.");
+        } finally {
+            setIsSubmitting(false);
+            setOrdersToDelete([]);
+        }
     };
 
     const handleEditClick = (orderToEdit) => {
         const batch = scheduledOrders.filter(o => new Date(o.scheduled_at).getTime() === new Date(orderToEdit.scheduled_at).getTime());
         const scheduledAt = new Date(orderToEdit.scheduled_at);
-        
+
         setEditingOrder(orderToEdit);
         setSelectedDate(scheduledAt.toISOString().split('T')[0]);
         setSelectedTime(scheduledAt.toTimeString().slice(0, 5));
@@ -191,9 +201,9 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         const readyToSendOrders = scheduledOrders.filter(o => {
             const scheduledAt = new Date(o.scheduled_at);
             return scheduledAt <= now && scheduledAt >= fortyEightHoursAgo;
-        }).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+        }).sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
-        const futureOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > now).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+        const futureOrders = scheduledOrders.filter(o => new Date(o.scheduled_at) > now).sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
         const groupedReadyToSendOrders = groupOrdersByScheduledAt(readyToSendOrders);
         const groupedFutureOrders = groupOrdersByScheduledAt(futureOrders);
@@ -235,19 +245,26 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                             <details key={groupIndex} className="bg-green-50/50 dark:bg-green-900/20 rounded-lg">
                                                 <summary className="font-medium text-sm p-3 cursor-pointer flex justify-between items-center list-none">
                                                     {isBatch ? (
-                                                        <div className="w-full flex justify-between items-center">
-                                                            <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
-                                                            <div className="flex items-center space-x-2">
-                                                                <button onClick={(e) => { e.stopPropagation(); startSendNowWizard(orders); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch(orders); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
-                                                            </div>
-                                                        </div>
+                                                        <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
                                                     ) : (
                                                         <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
                                                     )}
                                                     <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                                                 </summary>
                                                 <div className="p-3 border-t">
+                                                    {isBatch && (
+                                                        <div className="flex items-center space-x-4 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                                                            <span className="text-sm font-medium">Azioni per il lotto:</span>
+                                                            <button onClick={() => startSendNowWizard(orders)} className="p-1 text-green-500 hover:bg-green-100 rounded flex items-center space-x-1">
+                                                                <Send size={14} />
+                                                                <span>Invia</span>
+                                                            </button>
+                                                            <button onClick={() => handleDeleteBatch(orders)} className="p-1 text-red-500 hover:bg-red-100 rounded flex items-center space-x-1">
+                                                                <Trash2 size={14} />
+                                                                <span>Elimina</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     {orders.map(order => {
                                                         const supplier = suppliers.find(s => s.id === order.supplier_id);
                                                         return (
@@ -261,26 +278,26 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                                                             e.stopPropagation();
                                                                             const supplierExists = suppliers.find(s => s.id === order.supplier_id);
                                                                             if (!supplierExists) {
-                                                                              toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
-                                                                              return;
+                                                                                toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
+                                                                                return;
                                                                             }
                                                                             // This will now use the current wizard for sending single orders
                                                                             startSendNowWizard([order]);
-                                                                         }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
-                                                                         <button onClick={(e) => {
+                                                                        }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                                        <button onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             if (!canScheduleOrders) {
-                                                                              toast.error("Non hai i permessi per modificare ordini programmati.");
-                                                                              return;
+                                                                                toast.error("Non hai i permessi per modificare ordini programmati.");
+                                                                                return;
                                                                             }
                                                                             const supplierExists = suppliers.find(s => s.id === order.supplier_id);
                                                                             if (!supplierExists) {
-                                                                              toast.error("Fornitore non trovato, modifica limitata.");
+                                                                                toast.error("Fornitore non trovato, modifica limitata.");
                                                                             }
                                                                             // Need to adjust handleEditClick to work with the multiOrders/editingOrder state
                                                                             handleEditClick(order);
-                                                                         }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
-                                                                         <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch([order]); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                                        }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
+                                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch([order]); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
                                                                     </div>
                                                                 </div>
                                                                 <ScheduledOrderPreview order={order} suppliers={suppliers} />
@@ -310,19 +327,26 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                             <details key={groupIndex} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg">
                                                 <summary className="font-medium text-sm p-3 cursor-pointer flex justify-between items-center list-none">
                                                     {isBatch ? (
-                                                        <div className="w-full flex justify-between items-center">
-                                                            <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
-                                                            <div className="flex items-center space-x-2">
-                                                                <button onClick={(e) => { e.stopPropagation(); startSendNowWizard(orders); }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch(orders); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
-                                                            </div>
-                                                        </div>
+                                                        <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
                                                     ) : (
                                                         <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
                                                     )}
                                                     <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                                                 </summary>
                                                 <div className="p-3 border-t">
+                                                    {isBatch && (
+                                                        <div className="flex items-center space-x-4 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                                                            <span className="text-sm font-medium">Azioni per il lotto:</span>
+                                                            <button onClick={() => startSendNowWizard(orders)} className="p-1 text-green-500 hover:bg-green-100 rounded flex items-center space-x-1">
+                                                                <Send size={14} />
+                                                                <span>Invia</span>
+                                                            </button>
+                                                            <button onClick={() => handleDeleteBatch(orders)} className="p-1 text-red-500 hover:bg-red-100 rounded flex items-center space-x-1">
+                                                                <Trash2 size={14} />
+                                                                <span>Elimina</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     {orders.map(order => {
                                                         const supplier = suppliers.find(s => s.id === order.supplier_id);
                                                         return (
@@ -336,24 +360,24 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                                                             e.stopPropagation();
                                                                             const supplierExists = suppliers.find(s => s.id === order.supplier_id);
                                                                             if (!supplierExists) {
-                                                                              toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
-                                                                              return;
+                                                                                toast.error("Fornitore non trovato, impossibile inviare l'ordine.");
+                                                                                return;
                                                                             }
                                                                             startSendNowWizard([order]);
-                                                                         }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
-                                                                         <button onClick={(e) => {
+                                                                        }} className="p-1 text-green-500 hover:bg-green-100 rounded"><Send size={14} /></button>
+                                                                        <button onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             if (!canScheduleOrders) {
-                                                                              toast.error("Non hai i permessi per modificare ordini programmati.");
-                                                                              return;
+                                                                                toast.error("Non hai i permessi per modificare ordini programmati.");
+                                                                                return;
                                                                             }
                                                                             const supplierExists = suppliers.find(s => s.id === order.supplier_id);
                                                                             if (!supplierExists) {
-                                                                              toast.error("Fornitore non trovato, modifica limitata.");
+                                                                                toast.error("Fornitore non trovato, modifica limitata.");
                                                                             }
                                                                             handleEditClick(order);
-                                                                         }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
-                                                                         <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch([order]); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
+                                                                        }} className="p-1 text-blue-500 hover:bg-blue-100 rounded"><Edit3 size={14} /></button>
+                                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteBatch([order]); }} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 size={14} /></button>
                                                                     </div>
                                                                 </div>
                                                                 <ScheduledOrderPreview order={order} suppliers={suppliers} />
@@ -386,8 +410,8 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                 <OrderFlow initialStep="selection">
                     <OrderFlow.Step name="selection">
                         <h3 className="text-lg font-semibold mb-4">1. Seleziona Prodotti</h3>
-                        <OrderSelectionUI 
-                            multiOrders={multiOrders} 
+                        <OrderSelectionUI
+                            multiOrders={multiOrders}
                             setMultiOrders={setMultiOrders}
                             suppliers={suppliers}
                             isProUser={isProUser}
@@ -479,7 +503,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
             const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additional || null, status: 'sent' };
             const orderItemsToInsert = Object.entries(order.items).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
             const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
-            
+
             // Add to a temporary list for the summary screen
             setNewlyCreatedOrders(prev => [...prev, { ...newOrder, supplier: order.supplier, message: order.message, original_id: order.id }]);
             toast.success(`Ordine per ${order.supplier.name} salvato.`);
@@ -531,95 +555,106 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     const handleFinishWizard = () => {
         // Filter out the sent orders from the main list
         setScheduledOrders(prev => prev.filter(o => !newlyCreatedOrders.some(sent => sent.original_id === o.id)));
-        
+
         // Reset wizard state
         setShowSendWizard(false);
         setWizardOrders([]);
         setWizardStep(0);
         setNewlyCreatedOrders([]);
-        
+
         toast.success("Invio completato!");
     };
 
     return (
-      <div className="min-h-screen app-background">
-        <Header title="Programma Ordini" onBack={() => {
-            if (showSendWizard) {
-                setShowSendWizard(false);
-            } else if (view !== 'list') {
-                setView('list');
-            } else {
-                navigate('/');
-            }
-        }} />
-        <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
-            {showSendWizard ? (
-                 <OrderFlow initialStep="send">
-                    <OrderFlow.Step name="send">
-                        <SendOrderComponent 
-                            wizardOrders={wizardOrders} 
-                            wizardStep={wizardStep} 
-                            isSubmitting={isSubmitting}
-                            onSend={handleSendFromWizard}
-                            setWizardStep={setWizardStep}
-                        />
-                    </OrderFlow.Step>
-                    <OrderFlow.Step name="summary">
-                        <div className="glass-card p-4">
-                            <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Riepilogo Invio</h3>
-                            <div className="space-y-3">
-                                {newlyCreatedOrders.map(order => (
-                                    <div key={order.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{order.supplier.name}</span>
-                                            <CheckCircle className="text-green-500" size={20} />
+        <div className="min-h-screen app-background">
+            <Header title="Programma Ordini" onBack={() => {
+                if (showSendWizard) {
+                    setShowSendWizard(false);
+                } else if (view !== 'list') {
+                    setView('list');
+                } else {
+                    navigate('/');
+                }
+            }} />
+            <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
+                {showSendWizard ? (
+                    <OrderFlow initialStep="send">
+                        <OrderFlow.Step name="send">
+                            <SendOrderComponent
+                                wizardOrders={wizardOrders}
+                                wizardStep={wizardStep}
+                                isSubmitting={isSubmitting}
+                                onSend={handleSendFromWizard}
+                                setWizardStep={setWizardStep}
+                            />
+                        </OrderFlow.Step>
+                        <OrderFlow.Step name="summary">
+                            <div className="glass-card p-4">
+                                <h3 className="font-medium text-dark-gray dark:text-gray-100 mb-4">Riepilogo Invio</h3>
+                                <div className="space-y-3">
+                                    {newlyCreatedOrders.map(order => (
+                                        <div key={order.id} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{order.supplier.name}</span>
+                                                <CheckCircle className="text-green-500" size={20} />
+                                            </div>
+                                            <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-gray-300">{order.message}</pre>
                                         </div>
-                                        <pre className="whitespace-pre-wrap text-xs text-gray-600 dark:text-gray-300">{order.message}</pre>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                                <div className="mt-6">
+                                    <button onClick={handleFinishWizard} className="btn btn-primary w-full" disabled={isSubmitting}>Fine</button>
+                                </div>
                             </div>
-                            <div className="mt-6">
-                                <button onClick={handleFinishWizard} className="btn btn-primary w-full" disabled={isSubmitting}>Fine</button>
-                            </div>
-                        </div>
-                    </OrderFlow.Step>
-                </OrderFlow>
-            ) : (
-                <>
-                    {view === 'list' && renderListView()}
-                    {view === 'create' && renderFlowView('create')}
-                    {view === 'edit' && renderFlowView('edit')}
-                </>
-            )}
+                        </OrderFlow.Step>
+                    </OrderFlow>
+                ) : (
+                    <>
+                        {view === 'list' && renderListView()}
+                        {view === 'create' && renderFlowView('create')}
+                        {view === 'edit' && renderFlowView('edit')}
+                    </>
+                )}
+            </div>
+
+            <ConfirmModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Conferma Eliminazione"
+                message={`Sei sicuro di voler eliminare ${ordersToDelete.length} ordini programmati?`}
+                confirmText="Elimina"
+                cancelText="Annulla"
+                confirmButtonClass="bg-red-500 hover:bg-red-600 text-white"
+            />
         </div>
-      </div>
     );
 };
 
 const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, isSubmitting }) => {
     const updateOrder = (id, field, value) => {
-      setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
+        setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
     };
 
     const removeOrder = (id) => {
-      if (multiOrders.length > 1) {
-        setMultiOrders(prev => prev.filter(order => order.id !== id));
-      }
+        if (multiOrders.length > 1) {
+            setMultiOrders(prev => prev.filter(order => order.id !== id));
+        }
     };
 
     const addOrder = (supplierId) => {
-      if (!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) {
-        toast.error("Funzionalità PRO.");
-        return;
-      }
-      if (supplierId) {
-        const newOrder = { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' };
-        if (multiOrders.length === 1 && !multiOrders[0].supplier) {
-            setMultiOrders([newOrder]);
-        } else {
-            setMultiOrders(prev => [...prev, newOrder]);
+        if (!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) {
+            toast.error("Funzionalità PRO.");
+            return;
         }
-      }
+        if (supplierId) {
+            const newOrder = { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' };
+            if (multiOrders.length === 1 && !multiOrders[0].supplier) {
+                setMultiOrders([newOrder]);
+            } else {
+                setMultiOrders(prev => [...prev, newOrder]);
+            }
+        }
     };
 
     return (
@@ -650,15 +685,16 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
                                                     const productId = `schedule-product-${order.id}-${p.replace(/\s+/g, '-')}`;
                                                     const quantityId = `schedule-quantity-${order.id}-${p.replace(/\s+/g, '-')}`;
                                                     return (
-                                                    <div key={p} className="flex items-center justify-between p-2 border rounded-lg">
-                                                        <label htmlFor={productId} className="flex items-center space-x-3 flex-1">
-                                                            <input id={productId} type="checkbox" checked={order.items.hasOwnProperty(p)} onChange={e => { const newItems = { ...order.items }; if (e.target.checked) {newItems[p] = ''} else {delete newItems[p]} updateOrder(order.id, 'items', newItems) }} className="rounded accent-blue-600" disabled={isSubmitting}/>
-                                                            <span>{p}</span>
-                                                        </label>
-                                                        <label htmlFor={quantityId} className="sr-only">Quantity for {p}</label>
-                                                        <input id={quantityId} type="text" placeholder="Qt." defaultValue={order.items[p] || ''} onBlur={e => updateOrder(order.id, 'items', { ...order.items, [p]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting}/>
-                                                    </div>
-                                                );})}
+                                                        <div key={p} className="flex items-center justify-between p-2 border rounded-lg">
+                                                            <label htmlFor={productId} className="flex items-center space-x-3 flex-1">
+                                                                <input id={productId} type="checkbox" checked={order.items.hasOwnProperty(p)} onChange={e => { const newItems = { ...order.items }; if (e.target.checked) { newItems[p] = '' } else { delete newItems[p] } updateOrder(order.id, 'items', newItems) }} className="rounded accent-blue-600" disabled={isSubmitting} />
+                                                                <span>{p}</span>
+                                                            </label>
+                                                            <label htmlFor={quantityId} className="sr-only">Quantity for {p}</label>
+                                                            <input id={quantityId} type="text" placeholder="Qt." defaultValue={order.items[p] || ''} onBlur={e => updateOrder(order.id, 'items', { ...order.items, [p]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting} />
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>

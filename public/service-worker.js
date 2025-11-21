@@ -40,7 +40,7 @@ self.addEventListener('notificationclick', event => {
     if (event.notification.data.url) {
       urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
     } else if (event.notification.data.reminder_id) {
-      // Construct the URL for the reminder
+      // Fallback for old notifications
       urlToOpen = new URL(`/reminders/${event.notification.data.reminder_id}`, self.location.origin).href;
     }
   }
