@@ -96,7 +96,7 @@ module.exports = async (req, res) => {
           title: `Promemoria per ${group.length} ordini`,
           body: `Hai ${group.length} ordini programmati pronti per essere inviati.`,
           data: {
-            url: `/create-order?batch_id=${encodeURIComponent(scheduled_at)}&user_id=${user_id}&flowInitialStep=review`
+            url: `/create-order?reminder_ids=${group.map(r => r.id).join(',')}&user_id=${user_id}&flowInitialStep=review`
           }
         });
       } else {

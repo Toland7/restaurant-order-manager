@@ -680,22 +680,38 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
                                     <div>
                                         <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h4>
                                         {supplierData.products.length === 0 ? <p className="text-gray-500 text-sm">Nessun prodotto.</p> : (
-                                            <div className="space-y-3">
-                                                {supplierData.products.map(p => {
-                                                    const productId = `schedule-product-${order.id}-${p.replace(/\s+/g, '-')}`;
-                                                    const quantityId = `schedule-quantity-${order.id}-${p.replace(/\s+/g, '-')}`;
-                                                    return (
-                                                        <div key={p} className="flex items-center justify-between p-2 border rounded-lg">
-                                                            <label htmlFor={productId} className="flex items-center space-x-3 flex-1">
-                                                                <input id={productId} type="checkbox" checked={order.items.hasOwnProperty(p)} onChange={e => { const newItems = { ...order.items }; if (e.target.checked) { newItems[p] = '' } else { delete newItems[p] } updateOrder(order.id, 'items', newItems) }} className="rounded accent-blue-600" disabled={isSubmitting} />
-                                                                <span>{p}</span>
-                                                            </label>
-                                                            <label htmlFor={quantityId} className="sr-only">Quantity for {p}</label>
-                                                            <input id={quantityId} type="text" placeholder="Qt." defaultValue={order.items[p] || ''} onBlur={e => updateOrder(order.id, 'items', { ...order.items, [p]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting} />
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+                                            <>
+                                                {isProUser && (
+                                                    <div className="mb-4">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Cerca prodotto..."
+                                                            value={order.searchTerm || ''}
+                                                            onChange={(e) => updateOrder(order.id, 'searchTerm', e.target.value)}
+                                                            className="input"
+                                                            disabled={isSubmitting}
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="space-y-3">
+                                                    {supplierData.products
+                                                        .filter(p => !isProUser || p.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
+                                                        .map(p => {
+                                                            const productId = `schedule-product-${order.id}-${p.replace(/\s+/g, '-')}`;
+                                                            const quantityId = `schedule-quantity-${order.id}-${p.replace(/\s+/g, '-')}`;
+                                                            return (
+                                                                <div key={p} className="flex items-center justify-between p-2 border rounded-lg">
+                                                                    <label htmlFor={productId} className="flex items-center space-x-3 flex-1">
+                                                                        <input id={productId} type="checkbox" checked={order.items.hasOwnProperty(p)} onChange={e => { const newItems = { ...order.items }; if (e.target.checked) { newItems[p] = '' } else { delete newItems[p] } updateOrder(order.id, 'items', newItems) }} className="rounded accent-blue-600" disabled={isSubmitting} />
+                                                                        <span>{p}</span>
+                                                                    </label>
+                                                                    <label htmlFor={quantityId} className="sr-only">Quantity for {p}</label>
+                                                                    <input id={quantityId} type="text" placeholder="Qt." defaultValue={order.items[p] || ''} onBlur={e => updateOrder(order.id, 'items', { ...order.items, [p]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting} />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                     <div>
