@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useProfileContext } from '../../ProfileContext';
 import Modal from '../ui/Modal';
 
+import logger from '../../utils/logger';
 const PinVerificationModal = ({ isOpen, onClose, profile, onSuccess }) => {
   const { setSelectedProfile } = useProfileContext();
   const [pinError, setPinError] = useState('');
@@ -37,7 +38,7 @@ const PinVerificationModal = ({ isOpen, onClose, profile, onSuccess }) => {
         toast.error('PIN errato.');
       }
     } catch (err) {
-      console.error('Error verifying PIN:', err);
+      logger.error('Error verifying PIN:', err);
       setPinError('Errore durante la verifica del PIN.');
       toast.error('Errore di sistema.');
     }
@@ -58,7 +59,7 @@ const PinVerificationModal = ({ isOpen, onClose, profile, onSuccess }) => {
       setSelectedProfile(updatedProfile);
       onSuccess(updatedProfile);
     } catch (err) {
-      console.error('Error setting PIN:', err);
+      logger.error('Error setting PIN:', err);
       setPinError("Errore durante l'impostazione del PIN.");
       toast.error('Errore di sistema.');
     }

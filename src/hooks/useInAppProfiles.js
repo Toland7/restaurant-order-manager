@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../AuthContext';
 
+import logger from '../utils/logger';
 export const useInAppProfiles = () => {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState([]);
@@ -54,7 +55,7 @@ export const useInAppProfiles = () => {
         setProfiles(data);
       } catch (err) {
         setError(err.message);
-        console.error("Error fetching in-app profiles:", err);
+        logger.error("Error fetching in-app profiles:", err);
         setProfiles([]); // Clear profiles on error
       } finally {
         setLoading(false);

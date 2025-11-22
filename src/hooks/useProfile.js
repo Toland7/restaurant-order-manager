@@ -3,6 +3,7 @@ import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast'; // Import toast
 import { supabase } from '../supabase'; // Import supabase for signOut
 
+import logger from '../utils/logger';
 export const useProfile = (user) => {
     const [profile, setProfile] = useState(null);
 
@@ -22,7 +23,7 @@ export const useProfile = (user) => {
                     setProfile(profileData);
                 } catch (error) {
                     if (error.code !== 'PGRST116') {
-                        console.error('Error fetching profile:', error);
+                        logger.error('Error fetching profile:', error);
                     }
                     setProfile(null);
                 }

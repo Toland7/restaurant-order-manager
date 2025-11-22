@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseHelpers } from '../supabase';
 
+import logger from '../utils/logger';
 export const useSuppliers = (user) => {
     const [suppliers, setSuppliers] = useState([]);
 
@@ -12,7 +13,7 @@ export const useSuppliers = (user) => {
                     const formattedSuppliers = suppliersData.filter(supplier => supplier && supplier.id).map(supplier => ({ ...supplier, products: supplier.products ? supplier.products.map(p => p.name) : [] }));
                     setSuppliers(formattedSuppliers);
                 } catch (error) {
-                    console.error('Error fetching suppliers:', error);
+                    logger.error('Error fetching suppliers:', error);
                     setSuppliers([]);
                 }
             } else {

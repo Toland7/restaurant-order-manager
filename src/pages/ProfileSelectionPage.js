@@ -6,6 +6,7 @@ import PinPad from '../components/ui/PinPad';
 import { toast } from 'react-hot-toast';
 import { useProfileContext } from '../ProfileContext';
 
+import logger from '../utils/logger';
 const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, onPinVerificationFailure }) => {
   const { profiles, loading, error } = useInAppProfiles();
   const navigate = useNavigate();
@@ -66,7 +67,7 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
         }
       }
     } catch (err) {
-      console.error('Error verifying PIN:', err);
+      logger.error('Error verifying PIN:', err);
       setPinError('Errore durante la verifica del PIN.');
       toast.error('Errore di sistema.');
       if (onPinVerificationFailure) {
@@ -98,7 +99,7 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
       }
 
     } catch (err) {
-      console.error('Error setting PIN:', err);
+      logger.error('Error setting PIN:', err);
       setPinError("Errore durante l'impostazione del PIN.");
       toast.error('Errore di sistema.');
     }

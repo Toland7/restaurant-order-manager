@@ -8,6 +8,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal'; // Imp
 import { useAuth } from '../AuthContext'; // Import useAuth
 
 
+import logger from '../utils/logger';
 const UserProfilePage = ({ user, profile, setProfile }) => {
     const navigate = useNavigate();
     const { setIsLoggingOut } = useAuth(); // Get setter from AuthContext
@@ -62,7 +63,7 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
             }));
             toast.success('Profilo aggiornato con successo!');
         } catch (error) {
-            console.error('Error updating profile:', error);
+            logger.error('Error updating profile:', error);
             toast.error('Errore durante l\'aggiornamento del profilo.');
         } finally {
             setIsSubmitting(false);
@@ -103,7 +104,7 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
                     try {
                         await supabase.auth.signOut(); // Explicitly sign out the user
                     } catch (signOutError) {
-                        console.warn('Error during signOut after user deletion:', signOutError.message);
+                        logger.warn('Error during signOut after user deletion:', signOutError.message);
                         // Continue even if signOut fails, as the user is already deleted from backend
                     } finally {
                         setIsLoggingOut(false); // Reset global logging out state
@@ -117,7 +118,7 @@ const UserProfilePage = ({ user, profile, setProfile }) => {
                 throw new Error('Errore sconosciuto durante l\'eliminazione dell\'account.');
             }
         } catch (error) {
-            console.error('Error deleting account:', error);
+            logger.error('Error deleting account:', error);
             toast.error('Errore durante l\'eliminazione dell\'account: ' + (error.message || 'Sconosciuto'));
             setIsDeleteModalOpen(false); // Close modal on error too
             setIsDeletingAccount(false); // Reset state on error

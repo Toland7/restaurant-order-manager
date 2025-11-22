@@ -9,6 +9,7 @@ import { useAutoAnimate } from '@formkit/auto-animate/react';
 import PinPad from '../components/ui/PinPad';
 import Modal from '../components/ui/Modal';
 
+import logger from '../utils/logger';
 const ProfileManagerPage = () => {
   const navigate = useNavigate();
   const { profiles, loading, error, setProfiles } = useInAppProfiles();
@@ -34,7 +35,7 @@ const ProfileManagerPage = () => {
     const fetchPermissions = async () => {
       const { data, error } = await supabase.from('permissions').select('*');
       if (error) {
-        console.error('Error fetching available permissions:', error);
+        logger.error('Error fetching available permissions:', error);
       } else {
         setAvailablePermissions(data);
       }
@@ -57,7 +58,7 @@ const ProfileManagerPage = () => {
       .eq('profile_id', profile.id);
 
     if (error) {
-      console.error('Error fetching profile permissions for editing:', error);
+      logger.error('Error fetching profile permissions for editing:', error);
       setProfilePermissions([]);
     } else {
       const fetchedPermissions = data.map(pp => pp.permissions.name);
@@ -136,7 +137,7 @@ const ProfileManagerPage = () => {
         // Update permissions for existing profile
         const { error: deleteError } = await supabase.from('profile_permissions').delete().eq('profile_id', savedProfile.id);
         if (deleteError) {
-          console.error('Error deleting existing permissions:', deleteError);
+          logger.error('Error deleting existing permissions:', deleteError);
           throw deleteError;
         }
 
@@ -148,7 +149,7 @@ const ProfileManagerPage = () => {
         if (permissionsToInsert.length > 0) {
           const { error: insertPermError } = await supabase.from('profile_permissions').insert(permissionsToInsert);
           if (insertPermError) {
-            console.error('Error inserting new permissions:', insertPermError);
+            logger.error('Error inserting new permissions:', insertPermError);
             throw insertPermError;
           }
         }
@@ -201,7 +202,7 @@ const ProfileManagerPage = () => {
       setProfilePermissions([]); // Clear permissions state after saving
 
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       toast.error(`Errore: ${error.message}`, { id: toastId });
     }
   };

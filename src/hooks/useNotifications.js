@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabaseHelpers } from '../supabase';
 import { toast } from 'react-hot-toast';
 
+import logger from '../utils/logger';
 export const useNotifications = (user, setPrefilledData, navigate) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -57,7 +58,7 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
                     }
                 }
             } catch (error) {
-                console.error("Error loading reminder(s) from notification:", error);
+                logger.error("Error loading reminder(s) from notification:", error);
                 toast.error("Impossibile caricare il promemoria/i.");
             }
         } else {
@@ -75,7 +76,7 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
                         navigator.setAppBadge(count);
                     }
                 } catch (error) {
-                    console.error('Error fetching unread notifications count:', error);
+                    logger.error('Error fetching unread notifications count:', error);
                 }
             };
             fetchUnreadCount();

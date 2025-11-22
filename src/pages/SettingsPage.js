@@ -7,6 +7,7 @@ import { useAuth } from '../AuthContext';
 import { useProfileContext } from '../ProfileContext';
 import { supabaseHelpers } from '../supabase';
 
+import logger from '../utils/logger';
 const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const navigate = useNavigate();
     const { signOut } = useAuth();
@@ -63,7 +64,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           }
           const vapidPublicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
           if (!vapidPublicKey) {
-            console.error('VAPID public key not found.');
+            logger.error('VAPID public key not found.');
             toast.error('Errore di configurazione: chiave pubblica non trovata.');
             return;
           }
@@ -112,7 +113,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           }
         }
       } catch (error) {
-        console.error('Error toggling push notifications:', error);
+        logger.error('Error toggling push notifications:', error);
         toast.error('Impossibile modificare lo stato delle notifiche push.');
       } finally {
         setIsSubmitting(false);

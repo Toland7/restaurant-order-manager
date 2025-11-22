@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabase'; // Assuming supabase client is exported from here
 
+import logger from './utils/logger';
 const ProfileContext = createContext(null);
 
 export const ProfileProvider = ({ children }) => {
@@ -49,7 +50,7 @@ export const ProfileProvider = ({ children }) => {
           .eq('profile_id', selectedProfile.id);
 
         if (error) {
-          console.error('Error fetching profile permissions:', error);
+          logger.error('Error fetching profile permissions:', error);
           setProfilePermissions([]);
         } else {
           const fetchedPermissions = data.map(pp => pp.permissions.name);

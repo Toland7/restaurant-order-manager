@@ -8,6 +8,7 @@ import { usePrefill } from '../PrefillContext';
 import { useNavigate } from 'react-router-dom';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 
+import logger from '../utils/logger';
 const NotificationsPage = ({ user }) => {
     const navigate = useNavigate();
     const { setPrefilledData } = usePrefill();
@@ -42,7 +43,7 @@ const NotificationsPage = ({ user }) => {
                     setNotifications(data);
                 }
             } catch (error) {
-                console.error('Error fetching or cleaning notifications:', error);
+                logger.error('Error fetching or cleaning notifications:', error);
                 toast.error('Errore durante il caricamento delle notifiche.');
             } finally {
                 setLoading(false);
@@ -61,7 +62,7 @@ const NotificationsPage = ({ user }) => {
                 navigator.setAppBadge(newCount);
             }
         } catch (error) {
-            console.error('Error marking notification as read:', error);
+            logger.error('Error marking notification as read:', error);
             toast.error('Errore durante l\'aggiornamento della notifica.');
         }
     };
@@ -79,7 +80,7 @@ const NotificationsPage = ({ user }) => {
             }
             toast.success('Tutte le notifiche sono state segnate come lette.');
         } catch (error) {
-            console.error('Error marking all as read:', error);
+            logger.error('Error marking all as read:', error);
             toast.error('Errore durante l\'archiviazione delle notifiche.');
         }
     };

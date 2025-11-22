@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabaseHelpers } from '../supabase';
 import useSubscriptionStatus from './useSubscriptionStatus'; // Import the hook
 
+import logger from '../utils/logger';
 export const useOrders = (user) => {
     const [orders, setOrders] = useState([]);
     const { isProUser, loadingSubscription } = useSubscriptionStatus(); // Use the hook
@@ -19,7 +20,7 @@ export const useOrders = (user) => {
                     const ordersData = await supabaseHelpers.getOrders(user.id, filters);
                     setOrders(ordersData);
                 } catch (error) {
-                    console.error('Error fetching orders:', error);
+                    logger.error('Error fetching orders:', error);
                     setOrders([]);
                 }
             } else if (!user) {

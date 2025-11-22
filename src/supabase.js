@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import logger from './utils/logger';
 
 // VERSION_220251028_1530_DEBUG_API_KEY_FILTER_FIX
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
@@ -291,7 +292,7 @@ export const supabaseHelpers = {
       .eq('is_read', false);
 
     if (error) {
-      console.error('Error getting unread notifications count:', error);
+      logger.error('Error getting unread notifications count:', error);
       return 0;
     }
     return count;

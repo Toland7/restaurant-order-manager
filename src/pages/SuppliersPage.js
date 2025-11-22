@@ -10,6 +10,7 @@ import ProductImportModal from '../components/modals/ProductImportModal';
 import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import the hook
 import { useProfileContext } from '../ProfileContext'; // Import the profile context
 import { useAutoAnimate } from '@formkit/auto-animate/react'; // Import useAutoAnimate
+import logger from '../utils/logger';
 
 const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const navigate = useNavigate();
@@ -75,7 +76,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
             },
             error: (err) => {
                 toast.error('Errore nella lettura del file CSV.');
-                console.error('PapaParse error:', err);
+                logger.error('PapaParse error:', err);
                 setIsProductImportModalOpen(false); // Close modal on error
             }
         });
@@ -122,7 +123,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         document.body.removeChild(link);
         toast.success(`Prodotti di ${supplierName} esportati con successo!`);
       } catch (error) {
-        console.error('Error exporting supplier products:', error);
+        logger.error('Error exporting supplier products:', error);
         toast.error(`Errore durante l'esportazione dei prodotti.`);
       }
     };
@@ -170,7 +171,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         setEditingSupplier(null);
         if (!editingSupplier) { setTimeout(() => { if (window.confirm('Fornitore aggiunto! Vuoi aggiungerne un altro?')) handleAddSupplierClick(); }, 1000); }
       } catch (error) {
-        console.error('Error saving supplier:', error);
+        logger.error('Error saving supplier:', error);
         toast.error('Errore durante il salvataggio');
         if (error.message && error.message.includes('Auth session missing')) navigate('/auth');
       } finally {
@@ -200,7 +201,7 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         setSuppliers(prev => prev.filter(s => s.id !== id));
         toast.success('Fornitore eliminato');
       } catch (error) {
-        console.error('Error deleting supplier:', error);
+        logger.error('Error deleting supplier:', error);
         toast.error("Errore durante l'eliminazione");
       } finally {
         setIsSubmitting(false);

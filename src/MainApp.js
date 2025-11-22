@@ -31,6 +31,7 @@ import PinVerificationModal from './components/modals/PinVerificationModal';
 import UpgradeToProBanner from './components/ui/UpgradeToProBanner.js';
 import DemoTrialBanner from './components/ui/DemoTrialBanner';
 
+import logger from './utils/logger';
 const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
@@ -114,7 +115,7 @@ const MainApp = () => {
         const scheduled = await supabaseHelpers.getScheduledOrders(userId);
         setScheduledOrders(scheduled);
       } catch (error) {
-        console.error('Error loading scheduled orders:', error);
+        logger.error('Error loading scheduled orders:', error);
         toast.error('Errore durante il caricamento degli ordini programmati.');
       }
     }, []);

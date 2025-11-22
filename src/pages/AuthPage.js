@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../supabase';
 import ResetPasswordModal from '../components/modals/ResetPasswordModal';
+import logger from '../utils/logger';
+import { sanitizeText, sanitizeEmail } from '../utils/sanitize';
+import { validate, personNameSchema, companyNameSchema, emailSchema } from '../utils/validation';
 
 const AuthPage = () => {
     const [email, setEmail] = useState('');
@@ -37,30 +40,60 @@ const AuthPage = () => {
     const handleSignUp = async (e) => {
       e.preventDefault();
       setIsAuthenticating(true);
-      console.log('Starting signup for email:', email);
+      
+      // Validate and sanitize inputs
+      const emailValidation = validate(emailSchema, email);
+      if (!emailValidation.success) {
+        toast.error(emailValidation.error);
+        setIsAuthenticating(false);
+        return;
+      }
+      
+      const firstNameValidation = validate(personNameSchema, firstName);
+      if (!firstNameValidation.success) {
+        toast.error('Nome: ' + firstNameValidation.error);
+        setIsAuthenticating(false);
+        return;
+      }
+      
+      const lastNameValidation = validate(personNameSchema, lastName);
+      if (!lastNameValidation.success) {
+        toast.error('Cognome: ' + lastNameValidation.error);
+        setIsAuthenticating(false);
+        return;
+      }
+      
+      const companyNameValidation = validate(companyNameSchema, companyName);
+      if (!companyNameValidation.success) {
+        toast.error('Ragione Sociale: ' + companyNameValidation.error);
+        setIsAuthenticating(false);
+        return;
+      }
+      
+      logger.log('Starting signup for email:', sanitizeEmail(email));
       try {
-        console.log('Calling supabase.auth.signUp...');
+        logger.log('Calling supabase.auth.signUp...');
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: sanitizeEmail(email),
           password,
           options: {
             data: {
-              first_name: firstName,
-              last_name: lastName,
-              role: role,
-              company_name: companyName,
-              company_vat_id: companyVatId,
-              headquarters_name: headquartersName,
-              headquarters_address: headquartersAddress,
+              first_name: sanitizeText(firstName),
+              last_name: sanitizeText(lastName),
+              role: sanitizeText(role),
+              company_name: sanitizeText(companyName),
+              company_vat_id: sanitizeText(companyVatId),
+              headquarters_name: sanitizeText(headquartersName),
+              headquarters_address: sanitizeText(headquartersAddress),
             }
           }
         });
-        console.log('Signup response data:', data);
-        console.log('Signup response error:', error);
+        logger.log('Signup response data:', data);
+        logger.log('Signup response error:', error);
 
         // Salva i dati del profilo nella tabella profiles
         if (data.user && !error) {
-          console.log('Profile data will be populated by trigger.');
+          logger.log('Profile data will be populated by trigger.');
         }
         if (error) throw error;
         if (data.user) {
@@ -68,9 +101,9 @@ const AuthPage = () => {
           setIsLogin(true);
         }
       } catch (error) {
-        console.error('Signup error caught:', error);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error);
+        logger.error('Signup error caught:', error);
+        logger.error('Error message:', error.message);
+        logger.error('Error details:', error);
         toast.error(error.message);
       } finally {
         setIsAuthenticating(false);

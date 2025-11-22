@@ -11,7 +11,9 @@ import { useProfileContext } from '../ProfileContext';
 import OrderFlow from '../components/OrderFlow';
 import SendOrderComponent, { generateOrderMessage, openLinkInNewTab, generateEmailLink } from '../components/ui/SendOrderComponent';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import AdditionalProductsInput from '../components/ui/AdditionalProductsInput';
 
+import logger from '../utils/logger';
 const groupOrdersByScheduledAt = (orders) => {
     return orders.reduce((acc, order) => {
         const key = order.scheduled_at;
@@ -57,7 +59,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
     }, []);
 
     const resetForm = useCallback(() => {
-        setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
+        setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additionalItems: [], email_subject: '', searchTerm: '' }]);
         setSelectedDate(new Date().toISOString().split('T')[0]);
         setSelectedTime(getRoundedTime());
         setEditingOrder(null);
@@ -73,7 +75,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                 id: Date.now() + Math.random(), // Ensure unique ID for each order in the array
                 supplier: order.supplier.toString(), // Use order.supplier directly (string ID)
                 items: order.items || {},
-                additional: order.additional || '',
+                additionalItems: order.additionalItems || [],
                 email_subject: order.email_subject || '',
                 searchTerm: ''
             }));
@@ -105,7 +107,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         try {
             const newScheduledOrders = [];
             for (const order of validOrders) {
-                const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject }) };
+                const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additionalItems || [], email_subject: order.email_subject }) };
                 const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
                 newScheduledOrders.push({ ...newScheduledOrder, supplier: suppliers.find(s => s.id.toString() === order.supplier) });
             }
@@ -114,7 +116,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
             resetForm();
             setView('list');
         } catch (error) {
-            console.error('Error saving scheduled order:', error);
+            logger.error('Error saving scheduled order:', error);
             toast.error('Errore durante il salvataggio.');
         } finally {
             setIsSubmitting(false);
@@ -136,7 +138,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
 
             const newScheduledOrders = [];
             for (const order of validOrders) {
-                const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject }) };
+                const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additionalItems || [], email_subject: order.email_subject }) };
                 const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
                 newScheduledOrders.push({ ...newScheduledOrder, supplier: suppliers.find(s => s.id.toString() === order.supplier) });
             }
@@ -146,7 +148,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
             resetForm();
             setView('list');
         } catch (error) {
-            console.error('Error updating scheduled order:', error);
+            logger.error('Error updating scheduled order:', error);
             toast.error('Errore durante l\'aggiornamento.');
         } finally {
             setIsSubmitting(false);
@@ -186,7 +188,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                 id: o.id,
                 supplier: o.supplier_id.toString(),
                 items: data.items || {},
-                additional: data.additional_items || '',
+                additionalItems: Array.isArray(data.additional_items) ? data.additional_items : [],
                 email_subject: data.email_subject || '',
                 searchTerm: ''
             };
@@ -472,12 +474,12 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                 return;
             }
             const order_data = JSON.parse(scheduledOrder.order_data);
-            const message = generateOrderMessage(supplier, order_data.items || {}, order_data.additional_items || '');
+            const message = generateOrderMessage(supplier, order_data.items || {}, Array.isArray(order_data.additional_items) ? order_data.additional_items : []);
             validatedOrders.push({
                 id: scheduledOrder.id, // Keep original scheduled order ID for deletion later
                 supplier,
                 items: order_data.items || {},
-                additional: order_data.additional_items || '',
+                additionalItems: Array.isArray(order_data.additional_items) ? order_data.additional_items : [],
                 email_subject: order_data.email_subject || '',
                 message,
             });
@@ -500,7 +502,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
 
         try {
             // Re-create the order in the main order history
-            const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additional || null, status: 'sent' };
+            const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additionalItems && order.additionalItems.length > 0 ? order.additionalItems : null, status: 'sent' };
             const orderItemsToInsert = Object.entries(order.items).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
             const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
 
@@ -512,7 +514,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
             await supabaseHelpers.deleteScheduledOrder(order.id);
 
         } catch (error) {
-            console.error('Error processing order:', error);
+            logger.error('Error processing order:', error);
             toast.error('Errore durante il processamento dell\'ordine.');
         } finally {
             setIsSubmitting(false);
@@ -648,7 +650,7 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
             return;
         }
         if (supplierId) {
-            const newOrder = { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' };
+            const newOrder = { id: Date.now(), supplier: supplierId, items: {}, additionalItems: [], email_subject: '', searchTerm: '' };
             if (multiOrders.length === 1 && !multiOrders[0].supplier) {
                 setMultiOrders([newOrder]);
             } else {
@@ -714,10 +716,12 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
                                             </>
                                         )}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
-                                        <textarea value={order.additional} onChange={e => updateOrder(order.id, 'additional', e.target.value)} className="input" rows="3" disabled={isSubmitting} />
-                                    </div>
+                                    <AdditionalProductsInput
+                                        items={order.additionalItems || []}
+                                        onChange={(items) => updateOrder(order.id, 'additionalItems', items)}
+                                        disabled={isSubmitting}
+                                        orderId={order.id}
+                                    />
                                 </>
                             )}
                         </div>
