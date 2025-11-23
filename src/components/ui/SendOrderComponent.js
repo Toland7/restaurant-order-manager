@@ -27,26 +27,10 @@ export const generateEmailLink = (to, subject, body, preferredClient) => {
 export const generateOrderMessage = (supplier, items, additional) => {
     if (!supplier) return '';
     let message = supplier.message_template + `\n\n`;
-    
-    // Prodotti standard dal catalogo
     Object.entries(items).forEach(([product, quantity]) => {
       if (quantity && quantity !== '0') message += `• ${product}: ${quantity}\n`;
     });
-    
-    // Prodotti aggiuntivi - supporta sia array che stringa (retrocompatibilità)
-    if (Array.isArray(additional)) {
-      // Nuovo formato: array di oggetti {name, qty}
-      additional.forEach(item => {
-        if (item.name && item.name.trim()) {
-          const qty = item.qty && item.qty.trim() ? `: ${item.qty}` : '';
-          message += `• ${item.name}${qty}\n`;
-        }
-      });
-    } else if (typeof additional === 'string' && additional.trim()) {
-      // Vecchio formato: stringa libera (retrocompatibilità)
-      message += additional + '\n';
-    }
-    
+    if (additional && additional.trim()) message += additional + '\n';
     message += '\nGrazie!';
     return message;
 };

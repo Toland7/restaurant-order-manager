@@ -10,7 +10,7 @@ import { supabaseHelpers } from '../supabase';
 import logger from '../utils/logger';
 
 import ExitConfirmationModal from '../components/modals/ExitConfirmationModal';
-import AdditionalProductsInput from '../components/ui/AdditionalProductsInput';
+
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import SendOrderComponent, { openLinkInNewTab, generateEmailLink, generateOrderMessage } from '../components/ui/SendOrderComponent';
@@ -63,7 +63,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         invalidOrders.push(`Ordine ${index + 1} (${supplier.name}): Inserire quantità per ${itemsWithMissingQuantity.join(', ')}`);
         return;
       }
-      const message = generateOrderMessage(supplier, order.items, order.additionalItems || []);
+      const message = generateOrderMessage(supplier, order.items, order.additional);
       messages.push({ supplier: supplier.name, message });
       validWizardOrders.push({ ...order, supplier, message, email_subject: order.email_subject });
     });
@@ -122,7 +122,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 id: order.id,
                 supplier: order.supplier_id.toString(),
                 items: orderData.items || {},
-                additionalItems: Array.isArray(orderData.additional_items) ? orderData.additional_items : [],
+                additional: orderData.additional_items || '',
                 email_subject: orderData.email_subject || supplierObj?.email_subject || '',
                 searchTerm: ''
               };
@@ -155,7 +155,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 id: order.id,
                 supplier: order.supplier_id.toString(),
                 items: orderData.items || {},
-                additionalItems: Array.isArray(orderData.additional_items) ? orderData.additional_items : [],
+                additional: orderData.additional_items || '',
                 email_subject: orderData.email_subject || supplierObj?.email_subject || '',
                 searchTerm: ''
               };
@@ -207,7 +207,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
           id: Date.now(),
           supplier: scheduledOrder.supplier_id.toString(),
           items: orderData.items || {},
-          additionalItems: Array.isArray(orderData.additional_items) ? orderData.additional_items : [],
+          additional: orderData.additional_items || '',
           email_subject: orderData.email_subject || supplierObj.email_subject || '',
           searchTerm: ''
         }
@@ -256,7 +256,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
   // This effect runs only once when prefilledData is null and initialMultiOrdersSet is false
   useEffect(() => {
     if (!prefilledData && !initialMultiOrdersSet) {
-      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additionalItems: [], email_subject: '', searchTerm: '' }]);
+      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
       setIsPrefilledOrder(false);
       setInitialMultiOrdersSet(true); // Mark as set
     }
@@ -280,17 +280,17 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       if (multiOrders.length === 1 && !multiOrders[0].supplier) {
         updateSupplierOrder(multiOrders[0].id, 'supplier', supplierId);
       } else {
-        setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additionalItems: [], email_subject: '', searchTerm: '' }]);
+        setMultiOrders(prev => [...prev, { id: Date.now(), supplier: supplierId, items: {}, additional: '', email_subject: '', searchTerm: '' }]);
       }
     }
   };
 
 
 
-  const hasUnsavedChanges = () => multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || (order.additionalItems && order.additionalItems.length > 0) || order.email_subject?.trim()));
+  const hasUnsavedChanges = () => multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim() || order.email_subject?.trim()));
 
   const onConfirmExit = () => {
-    setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additionalItems: [], email_subject: '', searchTerm: '' }]);
+    setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
     setShowExitConfirm(false);
     navigate(-1);
   };
@@ -300,7 +300,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     const order = wizardOrders[wizardStep];
 
     try {
-      const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additionalItems && order.additionalItems.length > 0 ? order.additionalItems : null, status: 'sent' };
+      const orderData = { user_id: user.id, supplier_id: order.supplier.id, order_message: order.message, additional_items: order.additional || null, status: 'sent' };
       const orderItemsToInsert = Object.entries(order.items).filter(([_, quantity]) => quantity && quantity !== '0').map(([productName, quantity]) => ({ product_name: productName, quantity: parseInt(quantity, 10) || 0 }));
       const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
       setNewlyCreatedOrders(prev => [...prev, { ...newOrder, supplier: order.supplier, message: order.message }]);
@@ -352,7 +352,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     setNewlyCreatedOrders([]);
     setWizardOrders([]);
     setWizardStep(0);
-    setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additionalItems: [], email_subject: '', searchTerm: '' }]);
+    setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
 
     toast.success("Tutti gli Ordini inviati!");
     // Always navigate to home
@@ -383,7 +383,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
           user_id: targetScheduledOrder.user_id,
           supplier_id: order.supplier,
           scheduled_at: scheduledDateTime.toISOString(),
-          order_data: JSON.stringify({ items: order.items, additional_items: order.additionalItems || [], email_subject: order.email_subject })
+          order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject })
         };
 
         const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
@@ -397,7 +397,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         toast.warn("Nessun nuovo ordine valido da aggiungere.");
       }
 
-      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additionalItems: [], email_subject: '', searchTerm: '' }]);
+      setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
       navigate('/');
     } catch (error) {
       logger.error('Error linking to scheduled order:', error);
@@ -413,11 +413,11 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       return;
     }
     // Filter out invalid orders and format them for SchedulePage
-    const ordersToSchedule = multiOrders.filter(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || (order.additionalItems && order.additionalItems.length > 0))) // Basic validation for non-empty orders
+    const ordersToSchedule = multiOrders.filter(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim())) // Basic validation for non-empty orders
       .map(order => ({
         supplier: order.supplier,
         items: order.items,
-        additionalItems: order.additionalItems || [],
+        additional: order.additional,
         email_subject: order.email_subject
       }));
 
@@ -496,12 +496,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                             )}
                           </div>
                           <div>
-                            <AdditionalProductsInput
-                              items={order.additionalItems || []}
-                              onChange={(items) => updateSupplierOrder(order.id, 'additionalItems', items)}
-                              disabled={isSubmitting}
-                              orderId={order.id}
-                            />
+                            <label htmlFor={`additional-items-${order.id}`} className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
+                            <textarea id={`additional-items-${order.id}`} value={order.additional} onChange={(e) => updateSupplierOrder(order.id, 'additional', e.target.value)} placeholder="Inserisci prodotti non in lista..." className="input" rows="3" disabled={isSubmitting} />
                           </div>
                         </>
                       )}
@@ -532,7 +528,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
               </div>
             </div>
 
-            {multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || (order.additionalItems && order.additionalItems.length > 0))) && (
+            {multiOrders.some(order => order.supplier && (Object.keys(order.items).some(key => order.items[key] && order.items[key] !== '0') || order.additional.trim())) && (
               <div className="flex space-x-3">
                 <OrderFlow.GoToStepButton stepName="review" onClick={() => prepareAndValidateOrders('send')} className="btn btn-primary w-full" disabled={!canSendOrders || isSubmitting}>
                   {isSubmitting ? 'Preparazione...' : 'Anteprima e Invia'}
