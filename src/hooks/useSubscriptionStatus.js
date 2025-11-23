@@ -5,9 +5,10 @@ import { useProfile } from './useProfile';
 const SubscriptionContext = createContext({
   tier: 'base',
   isPro: false,
-  isDemo: false, // New
-  isTrialActive: false, // New
-  daysRemainingInTrial: 0, // New
+  isDemo: false,
+  isTrialActive: false,
+  isTrialExpired: false,
+  daysRemainingInTrial: 0,
   loading: true,
 });
 
@@ -19,6 +20,7 @@ export const SubscriptionProvider = ({ children }) => {
     isPro: false,
     isDemo: false,
     isTrialActive: false,
+    isTrialExpired: false,
     daysRemainingInTrial: 0,
     loading: true,
   });
@@ -30,14 +32,18 @@ export const SubscriptionProvider = ({ children }) => {
       const trialEndDate = profile.companies?.trial_end_date ? new Date(profile.companies.trial_end_date) : null;
 
       let isTrialActive = false;
+      let isTrialExpired = false;
       let daysRemainingInTrial = 0;
 
       if (tier === 'demo' && trialStartDate && trialEndDate) {
         const now = new Date();
+        
         if (now >= trialStartDate && now <= trialEndDate) {
           isTrialActive = true;
           const diffTime = Math.abs(trialEndDate.getTime() - now.getTime());
           daysRemainingInTrial = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        } else if (now > trialEndDate) {
+          isTrialExpired = true;
         }
       }
 
@@ -46,6 +52,7 @@ export const SubscriptionProvider = ({ children }) => {
         isPro: tier === 'pro',
         isDemo: tier === 'demo',
         isTrialActive: isTrialActive,
+        isTrialExpired: isTrialExpired,
         daysRemainingInTrial: daysRemainingInTrial,
         loading: false,
       });
@@ -55,6 +62,7 @@ export const SubscriptionProvider = ({ children }) => {
         isPro: false,
         isDemo: false,
         isTrialActive: false,
+        isTrialExpired: false,
         daysRemainingInTrial: 0,
         loading: false,
       });
@@ -79,9 +87,10 @@ const useSubscriptionStatus = () => {
     isProUser: context.isPro,
     subscriptionTier: context.tier,
     loadingSubscription: context.loading,
-    isDemoUser: context.isDemo, // New
-    isTrialActive: context.isTrialActive, // New
-    daysRemainingInTrial: context.daysRemainingInTrial, // New
+    isDemoUser: context.isDemo,
+    isTrialActive: context.isTrialActive,
+    isTrialExpired: context.isTrialExpired,
+    daysRemainingInTrial: context.daysRemainingInTrial,
   };
 };
 

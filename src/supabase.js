@@ -353,7 +353,7 @@ export const supabaseHelpers = {
   },
 
   async getUserProfile(userId) {
-    const { data, error } = await supabase
+    const { data: profileData, error } = await supabase
       .from('profiles')
       .select(`
         id,
@@ -362,19 +362,31 @@ export const supabaseHelpers = {
         role,
         company_id
       `)
-      .eq('id', userId);
+      .eq('id', userId)
+      .maybeSingle(); // Use maybeSingle() to handle 0 or 1 rows
 
-    if (error) throw error;
-    const profileData = data[0] || null;
+    if (error) {
+      logger.error('Error fetching profile:', error);
+      throw error;
+    }
+
+    if (!profileData) {
+      logger.warn('No profile found for user:', userId);
+      return null;
+    }
 
     if (profileData && profileData.company_id) {
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
         .eq('id', profileData.company_id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() here too
 
-      if (companyError) throw companyError;
+      if (companyError) {
+        logger.error('Error fetching company:', companyError);
+        throw companyError;
+      }
+
       return { ...profileData, companies: companyData };
     }
 

@@ -40,9 +40,10 @@ export const ProfileProvider = ({ children }) => {
     setIsPinModalOpen(false);
   };
 
-  // Fetch permissions when selectedProfile changes
+  // Fetch permissions when selectedProfile changes OR for current user (demo/base)
   useEffect(() => {
     const fetchPermissions = async () => {
+      // For Pro users: use selectedProfile
       if (selectedProfile?.id) {
         const { data, error } = await supabase
           .from('profile_permissions')
@@ -57,7 +58,39 @@ export const ProfileProvider = ({ children }) => {
           setProfilePermissions(fetchedPermissions);
         }
       } else {
-        setProfilePermissions([]);
+        // For demo/base users: load from current user's in_app_profile
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Get user's in_app_profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('in_app_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (profileError || !profileData) {
+            logger.error('Error fetching in_app_profile:', profileError);
+            setProfilePermissions([]);
+            return;
+          }
+          
+          // Get permissions for this profile
+          const { data: permData, error: permError } = await supabase
+            .from('profile_permissions')
+            .select('permissions(name)')
+            .eq('profile_id', profileData.id);
+          
+          if (permError) {
+            logger.error('Error fetching permissions:', permError);
+            setProfilePermissions([]);
+          } else {
+            const fetchedPermissions = permData.map(pp => pp.permissions.name);
+            setProfilePermissions(fetchedPermissions);
+          }
+        } else {
+          setProfilePermissions([]);
+        }
       }
     };
 

@@ -25,7 +25,7 @@ export const useInAppProfiles = () => {
           .from('profiles')
           .select('company_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 or 1 rows
 
         // Handle PGRST116 (no rows found) gracefully
         if (profileError && profileError.code === 'PGRST116') {

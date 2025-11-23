@@ -30,12 +30,13 @@ import { useProfileContext } from './ProfileContext';
 import PinVerificationModal from './components/modals/PinVerificationModal';
 import UpgradeToProBanner from './components/ui/UpgradeToProBanner.js';
 import DemoTrialBanner from './components/ui/DemoTrialBanner';
+import TrialExpiredBanner from './components/ui/TrialExpiredBanner';
 
 import logger from './utils/logger';
 const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
-    const { isProUser, loadingSubscription } = useSubscriptionStatus();
+    const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
     const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
@@ -169,7 +170,7 @@ const MainApp = () => {
         profile={profileToVerify}
         onSuccess={handlePinSuccessFromDropdown}
       />
-      <div className="animate-fade-in">
+      <div className={`animate-fade-in ${isTrialExpired ? 'pointer-events-none opacity-50' : ''}`}>
         <Routes>
           <Route path="/" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
           <Route path="/create-order" element={<CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => loadData(user.id)} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
@@ -186,6 +187,7 @@ const MainApp = () => {
         </Routes>
       </div>
       {!isLoggingOut && location.pathname === '/' && <DemoTrialBanner />} {/* Render only on homepage */}
+      <TrialExpiredBanner /> {/* Render trial expired modal when trial is expired */}
       
     </>
   );

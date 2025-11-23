@@ -38,8 +38,11 @@ const ProfileSwitcherDropdown = () => {
     navigate('/profile-selection');
   }
 
+  // For demo/base users: show their own profile name
+  const displayName = selectedProfile?.profile_name || profiles[0]?.profile_name || 'Utente';
+
   if (!isSwitchable) {
-    return <span className="font-medium">{selectedProfile?.profile_name}</span>;
+    return <span className="font-medium">{displayName}</span>;
   }
 
   return (
@@ -48,7 +51,7 @@ const ProfileSwitcherDropdown = () => {
         onClick={() => setIsOpen(!isOpen)} 
         className="inline-flex items-center font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md px-2 py-1 transition-colors"
       >
-        {selectedProfile?.profile_name}
+        {displayName}
         <ChevronDown size={16} className={`ml-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
