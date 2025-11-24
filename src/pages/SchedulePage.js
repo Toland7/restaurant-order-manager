@@ -269,7 +269,9 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                                             {orders.map(order => {
                                                                 const supplier = suppliers.find(s => s.id === order.supplier_id);
                                                                 const orderData = JSON.parse(order.order_data || '{}');
-                                                                const itemsCount = Object.keys(orderData.items || {}).length;
+                                                                const itemsCount = orderData.items && typeof orderData.items === 'object' 
+                                                                    ? Object.keys(orderData.items).length 
+                                                                    : 0;
                                                                 return (
                                                                     <div key={order.id} className="flex items-center space-x-2">
                                                                         <span className="font-medium">{supplier?.name || 'Sconosciuto'}</span>
