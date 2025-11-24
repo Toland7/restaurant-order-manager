@@ -692,7 +692,20 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                 <h4 className="font-medium">Ordini</h4>
                                 {multiOrders.filter(o => o.supplier).map(order => {
                                     const supplier = suppliers.find(s => s.id.toString() === order.supplier);
-                                    return <div key={order.id} className="mt-2"><p className="font-semibold">{supplier?.name || 'Sconosciuto'}</p><ul className="list-disc list-inside text-sm">{Object.entries(order.items).map(([name, qty]) => qty ? <li key={name}>{name}: {qty}</li> : null)}</ul></div>
+                                    return (
+                                        <div key={order.id} className="mt-2">
+                                            <p className="font-semibold">{supplier?.name || 'Sconosciuto'}</p>
+                                            <ul className="list-disc list-inside text-sm">
+                                                {Object.entries(order.items).map(([name, qty]) => qty ? <li key={name}>{name}: {qty}</li> : null)}
+                                            </ul>
+                                            {order.additional && order.additional.trim() && (
+                                                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                                                    <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">Note / Prodotti Extra:</p>
+                                                    <p className="text-sm text-blue-900 dark:text-blue-200 whitespace-pre-wrap">{order.additional}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
                                 })}
                             </div>
                         </div>

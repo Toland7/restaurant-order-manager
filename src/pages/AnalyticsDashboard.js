@@ -199,7 +199,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                 </div>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalOrders}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Ordini Totali</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1">Ordini Totali</p>
             </div>
 
             <div className="glass-card p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30">
@@ -209,7 +209,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                 </div>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalSuppliers}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Fornitori Attivi</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1">Fornitori Attivi</p>
             </div>
 
             <div className="glass-card p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30">
@@ -219,7 +219,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                 </div>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{recentOrdersCount}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Ultimi 7 Giorni</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1">Ultimi 7 Giorni</p>
             </div>
 
             <div className="glass-card p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30">
@@ -229,7 +229,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
                 </div>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalProducts}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Prodotti Unici</p>
+              <p className="text-xs text-gray-700 dark:text-gray-300 font-medium mt-1">Prodotti Unici</p>
             </div>
           </div>
 
