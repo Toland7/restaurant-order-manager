@@ -567,3 +567,91 @@ input[type="checkbox"]:active {
     margin: 0 auto !important;
   }
 }
+
+/* ============================ */
+/* Onboarding Tour Styles       */
+/* ============================ */
+
+/* Overlay - dark semi-transparent background */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Spotlight effect - highlights the target element */
+.onboarding-spotlight {
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5),
+              0 0 0 9999px rgba(0, 0, 0, 0.7);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5),
+                0 0 0 9999px rgba(0, 0, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3),
+                0 0 0 9999px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Tooltip container */
+.onboarding-tooltip {
+  position: relative;
+  max-width: 400px;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2),
+              0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.dark .onboarding-tooltip {
+  background: rgba(17, 24, 39, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5),
+              0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Arrow for tooltip */
+.onboarding-arrow {
+  width: 0;
+  height: 0;
+}
+
+.dark .onboarding-arrow {
+  filter: brightness(0.3);
+}
+
+/* Scale-in animation for tooltip */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .onboarding-tooltip {
+    max-width: calc(100vw - 2rem);
+    padding: 1.25rem;
+  }
+}
+

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { User, Download, ChevronRight, Users } from 'lucide-react';
+import { User, Download, ChevronRight, Users, Compass } from 'lucide-react';
 import Header from '../components/ui/Header';
 import { useAuth } from '../AuthContext';
 import { useProfileContext } from '../ProfileContext';
 import { supabaseHelpers } from '../supabase';
 import useIsDesktop from '../hooks/useIsDesktop';
+import { useOnboarding } from '../OnboardingContext';
 
 import logger from '../utils/logger';
 const SettingsPage = ({ theme, setTheme, profile, user }) => {
@@ -14,6 +15,7 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const isDesktop = useIsDesktop();
     const { signOut } = useAuth();
     const { selectedProfile, setSelectedProfile, hasPermission } = useProfileContext();
+    const { startTour } = useOnboarding();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -194,6 +196,24 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
             </div>
           </button>
 
+          <button 
+            onClick={() => {
+              startTour();
+              navigate('/');
+              toast.success('Guida interattiva riavviata!');
+            }} 
+            className="w-full glass-card p-4 text-left hover:shadow-md transition-all"
+            disabled={isSubmitting}
+          >
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center"><Compass size={24} className="text-white" /></div>
+              <div>
+                <p className="font-medium text-gray-900 dark:text-gray-100">Ripeti guida interattiva</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Rivedi il tour delle funzionalità principali</p>
+              </div>
+              <ChevronRight size={20} className="text-gray-300 ml-auto" />
+            </div>
+          </button>
 
 
           <div className="glass-card p-4 flex items-center justify-between">

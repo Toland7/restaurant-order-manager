@@ -455,4 +455,28 @@ export const supabaseHelpers = {
     }
   },
 
+  // Onboarding
+  async getOnboardingStatus(userId) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    return data?.onboarding_completed ?? false;
+  },
+
+  async updateOnboardingStatus(userId, completed) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ onboarding_completed: completed })
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
 };

@@ -19,14 +19,14 @@ const DesktopSidebar = ({ unreadCount }) => {
   const { logout } = useAuth();
 
   const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/' },
-    { icon: ShoppingCart, label: 'Crea Ordine', path: '/create-order' },
-    { icon: Users, label: 'Fornitori', path: '/suppliers' },
-    { icon: Calendar, label: 'Programma', path: '/schedule' },
-    { icon: History, label: 'Cronologia', path: '/history' },
-    { icon: BarChart3, label: 'Analisi', path: '/analytics' },
-    { icon: Bell, label: 'Notifiche', path: '/notifications', badge: unreadCount },
-    { icon: Settings, label: 'Impostazioni', path: '/settings' },
+    { icon: Home, label: 'Dashboard', path: '/', tourId: 'dashboard' },
+    { icon: ShoppingCart, label: 'Crea Ordine', path: '/create-order', tourId: 'create-order' },
+    { icon: Users, label: 'Fornitori', path: '/suppliers', tourId: 'suppliers' },
+    { icon: Calendar, label: 'Programma', path: '/schedule', tourId: 'schedule' },
+    { icon: History, label: 'Cronologia', path: '/history', tourId: 'history' },
+    { icon: BarChart3, label: 'Analisi', path: '/analytics', tourId: 'analytics' },
+    { icon: Bell, label: 'Notifiche', path: '/notifications', badge: unreadCount, tourId: 'notifications' },
+    { icon: Settings, label: 'Impostazioni', path: '/settings', tourId: 'settings' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -45,6 +45,7 @@ const DesktopSidebar = ({ unreadCount }) => {
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
+            data-tour={item.tourId}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
               isActive(item.path)
                 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium shadow-sm'
