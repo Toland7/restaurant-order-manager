@@ -174,8 +174,8 @@ const HomePage = ({ profile, user, unreadCount, analytics, orders = [], schedule
             </div>
           </div>
             <div className="flex space-x-2">
-              <button onClick={() => navigate('/analytics')} className="icon-btn" aria-label="Visualizza analytics"><BarChart3 size={20} /></button>
-              <button onClick={() => navigate('/notifications')} className="relative icon-btn" aria-label={`Notifiche${unreadCount > 0 ? `, ${unreadCount} non lette` : ''}`}>
+              <button onClick={() => navigate('/analytics')} data-tour="analytics-mobile" className="icon-btn" aria-label="Visualizza analytics"><BarChart3 size={20} /></button>
+              <button onClick={() => navigate('/notifications')} data-tour="notifications-mobile" className="relative icon-btn" aria-label={`Notifiche${unreadCount > 0 ? `, ${unreadCount} non lette` : ''}`}>
                 <Bell size={20} />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white" aria-hidden="true">
@@ -194,10 +194,10 @@ const HomePage = ({ profile, user, unreadCount, analytics, orders = [], schedule
         </div>
       </div>
       <div id="main-content" className="max-w-sm mx-auto px-6 py-6 space-y-4">
-        <MenuButton icon={<ShoppingCart size={24} />} title="CREA IL TUO ORDINE" subtitle="Nuovo ordine ai fornitori" onClick={() => navigate('/create-order')} color="from-blue-500 to-indigo-600" />
-        <MenuButton icon={<Users size={24} />} title="GESTIONE FORNITORI" subtitle="Aggiungi e modifica fornitori" onClick={() => navigate('/suppliers')} color="from-emerald-500 to-green-600" />
-        <MenuButton icon={<Calendar size={24} />} title="PROGRAMMA ORDINI" subtitle="Pianifica ordini futuri" onClick={() => navigate('/schedule')} color="from-purple-500 to-violet-600" />
-        <MenuButton icon={<History size={24} />} title="CRONOLOGIA ORDINI" subtitle="Storico degli ordini" onClick={() => navigate('/history')} color="from-orange-500 to-amber-600" />
+        <MenuButton icon={<ShoppingCart size={24} />} title="CREA IL TUO ORDINE" subtitle="Nuovo ordine ai fornitori" onClick={() => navigate('/create-order')} color="from-blue-500 to-indigo-600" tourId="create-order-mobile" />
+        <MenuButton icon={<Users size={24} />} title="GESTIONE FORNITORI" subtitle="Aggiungi e modifica fornitori" onClick={() => navigate('/suppliers')} color="from-emerald-500 to-green-600" tourId="suppliers-mobile" />
+        <MenuButton icon={<Calendar size={24} />} title="PROGRAMMA ORDINI" subtitle="Pianifica ordini futuri" onClick={() => navigate('/schedule')} color="from-purple-500 to-violet-600" tourId="schedule-mobile" />
+        <MenuButton icon={<History size={24} />} title="CRONOLOGIA ORDINI" subtitle="Storico degli ordini" onClick={() => navigate('/history')} color="from-orange-500 to-amber-600" tourId="history-mobile" />
       </div>
     </div>
     )

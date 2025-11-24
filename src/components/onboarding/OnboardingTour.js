@@ -4,19 +4,21 @@ import { useOnboarding } from '../../OnboardingContext';
 import OnboardingTooltip from './OnboardingTooltip';
 import { getTourSteps } from './tourSteps';
 import useSubscriptionStatus from '../../hooks/useSubscriptionStatus';
+import useIsDesktop from '../../hooks/useIsDesktop';
 
 const OnboardingTour = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isActive, currentStep, nextStep, previousStep, skipTour, completeTour } = useOnboarding();
   const { isProUser } = useSubscriptionStatus();
+  const isDesktop = useIsDesktop();
   const [targetRect, setTargetRect] = useState(null);
   const [steps, setSteps] = useState([]);
 
-  // Initialize steps based on user subscription
+  // Initialize steps based on user subscription and device type
   useEffect(() => {
-    setSteps(getTourSteps(isProUser));
-  }, [isProUser]);
+    setSteps(getTourSteps(isProUser, !isDesktop));
+  }, [isProUser, isDesktop]);
 
   const currentStepData = steps[currentStep];
 
