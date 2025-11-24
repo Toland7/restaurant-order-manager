@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, ChevronDown, Edit3, Trash2, Lock, PlusCircle, Send, CheckCircle } from 'lucide-react';
+import { Calendar, ChevronDown, Edit3, Trash2, Lock, PlusCircle, Send, CheckCircle, Users, Search, Check, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 
@@ -535,7 +535,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                             isProUser={isProUser}
                             isSubmitting={isSubmitting}
                         />
-                        <div className="mt-6 flex justify-end">
+                        <div className="mt-10 flex justify-end">
                             <OrderFlow.NextButton className="btn btn-primary" disabled={isSubmitting}>Avanti</OrderFlow.NextButton>
                         </div>
                     </OrderFlow.Step>
@@ -782,61 +782,139 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
             {multiOrders.map((order, index) => {
                 const supplierData = suppliers.find(s => s.id.toString() === order.supplier);
                 return (
-                    <div key={order.id} className="glass-card p-4 h-full flex flex-col">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-medium text-gray-900 dark:text-gray-100">Ordine {index + 1}: {supplierData ? supplierData.name : 'Seleziona Fornitore'}</h3>
-                            {isProUser && multiOrders.length > 1 && <button onClick={() => removeOrder(order.id)} className="p-1 text-red-500 hover:bg-red-50 rounded" disabled={isSubmitting}><Trash2 size={16} /></button>}
-                        </div>
-                        <div className="space-y-4 flex-1">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Fornitore</label>
-                                <select value={order.supplier} onChange={(e) => updateOrder(order.id, 'supplier', e.target.value)} className="select" disabled={isSubmitting}>
-                                    <option value="">Scegli...</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
+                    <div key={order.id} className="glass-card p-0 h-full flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div className="bg-gray-50 dark:bg-gray-800/50 p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-lg">
+                                    <span className="font-bold text-sm">#{index + 1}</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {supplierData ? supplierData.name : 'Nuovo Ordine'}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {supplierData ? `${supplierData.products.length} prodotti disponibili` : 'Seleziona un fornitore'}
+                                    </p>
+                                </div>
                             </div>
+                            {isProUser && multiOrders.length > 1 && (
+                                <button onClick={() => removeOrder(order.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1" title="Rimuovi ordine" disabled={isSubmitting}>
+                                    <Trash2 size={18} />
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div className="p-5 space-y-5 flex-1">
+                            <div>
+                                <label htmlFor={`supplier-select-${order.id}`} className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Fornitore</label>
+                                <div className="relative">
+                                    <select 
+                                        id={`supplier-select-${order.id}`}
+                                        value={order.supplier} 
+                                        onChange={(e) => updateOrder(order.id, 'supplier', e.target.value)} 
+                                        className="select w-full !pl-12 appearance-none" 
+                                        disabled={isSubmitting}
+                                    >
+                                        <option value="">Seleziona...</option>
+                                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                                        <Users size={18} />
+                                    </div>
+                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                                        <ChevronDown size={16} />
+                                    </div>
+                                </div>
+                            </div>
+
                             {supplierData && (
                                 <>
                                     <div>
-                                        <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Prodotti</h4>
-                                        {supplierData.products.length === 0 ? <p className="text-gray-500 text-sm">Nessun prodotto.</p> : (
-                                            <>
-                                                {isProUser && (
-                                                    <div className="mb-4">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Cerca prodotto..."
-                                                            value={order.searchTerm || ''}
-                                                            onChange={(e) => updateOrder(order.id, 'searchTerm', e.target.value)}
-                                                            className="input"
-                                                            disabled={isSubmitting}
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                                    {supplierData.products
-                                                        .filter(p => !isProUser || p.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
-                                                        .map(p => {
-                                                            const productId = `schedule-product-${order.id}-${p.replace(/\s+/g, '-')}`;
-                                                            const quantityId = `schedule-quantity-${order.id}-${p.replace(/\s+/g, '-')}`;
-                                                            return (
-                                                                <div key={p} className="flex items-center justify-between p-2 border rounded-lg">
-                                                                    <label htmlFor={productId} className="flex items-center space-x-3 flex-1">
-                                                                        <input id={productId} type="checkbox" checked={order.items.hasOwnProperty(p)} onChange={e => { const newItems = { ...order.items }; if (e.target.checked) { newItems[p] = '' } else { delete newItems[p] } updateOrder(order.id, 'items', newItems) }} className="rounded accent-blue-600" disabled={isSubmitting} />
-                                                                        <span>{p}</span>
-                                                                    </label>
-                                                                    <label htmlFor={quantityId} className="sr-only">Quantity for {p}</label>
-                                                                    <input id={quantityId} type="text" placeholder="Qt." defaultValue={order.items[p] || ''} onBlur={e => updateOrder(order.id, 'items', { ...order.items, [p]: e.target.value })} className="input-sm w-16 text-center" disabled={isSubmitting} />
-                                                                </div>
-                                                            );
-                                                        })}
+                                        <div className="flex justify-between items-end mb-3">
+                                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Prodotti</label>
+                                            {isProUser && (
+                                                <div className="relative w-1/2">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Cerca..." 
+                                                        value={order.searchTerm || ''} 
+                                                        onChange={(e) => updateOrder(order.id, 'searchTerm', e.target.value)} 
+                                                        className="input input-sm w-full !pl-10" 
+                                                        disabled={isSubmitting} 
+                                                    />
+                                                    <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                                 </div>
-                                            </>
+                                            )}
+                                        </div>
+                                        
+                                        {supplierData.products.length === 0 ? (
+                                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 text-center border border-dashed border-gray-200 dark:border-gray-700">
+                                                <p className="text-gray-500 text-sm">Nessun prodotto configurato per questo fornitore.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                                <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                                                    {supplierData.products
+                                                        .filter(product => !isProUser || product.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
+                                                        .map(product => {
+                                                            const productId = `schedule-product-${order.id}-${product.replace(/\s+/g, '-')}`;
+                                                            const isSelected = order.items.hasOwnProperty(product);
+                                                            return (
+                                                                <div 
+                                                                    key={product} 
+                                                                    className={`group flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 ${isSelected ? 'bg-white dark:bg-gray-800 shadow-sm border border-blue-100 dark:border-blue-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'}`}
+                                                                >
+                                                                    <label htmlFor={productId} className="flex items-center space-x-3 flex-1 cursor-pointer">
+                                                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 group-hover:border-blue-400'}`}>
+                                                                            {isSelected && <Check size={12} className="text-white" />}
+                                                                        </div>
+                                                                        <input 
+                                                                            id={productId} 
+                                                                            type="checkbox" 
+                                                                            className="sr-only" 
+                                                                            checked={isSelected} 
+                                                                            onChange={(e) => {
+                                                                                const newItems = { ...order.items };
+                                                                                if (e.target.checked) { newItems[product] = ''; } else { delete newItems[product]; }
+                                                                                updateOrder(order.id, 'items', newItems);
+                                                                            }} 
+                                                                            disabled={isSubmitting} 
+                                                                        />
+                                                                        <span className={`text-sm font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>{product}</span>
+                                                                    </label>
+                                                                    
+                                                                    {isSelected && (
+                                                                        <div className="flex items-center animate-fadeIn">
+                                                                            <input 
+                                                                                type="text" 
+                                                                                placeholder="Qt." 
+                                                                                defaultValue={order.items[product] || ''} 
+                                                                                onBlur={(e) => updateOrder(order.id, 'items', { ...order.items, [product]: e.target.value })} 
+                                                                                className="input-sm w-20 text-center font-medium bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                                                                                autoFocus
+                                                                                disabled={isSubmitting} 
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })
+                                                    }
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
+                                    
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Prodotti Aggiuntivi</label>
-                                        <textarea value={order.additional} onChange={e => updateOrder(order.id, 'additional', e.target.value)} className="input" rows="3" disabled={isSubmitting} />
+                                        <label htmlFor={`additional-items-${order.id}`} className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Note / Prodotti Extra</label>
+                                        <textarea 
+                                            id={`additional-items-${order.id}`}
+                                            value={order.additional} 
+                                            onChange={(e) => updateOrder(order.id, 'additional', e.target.value)} 
+                                            placeholder="Scrivi qui eventuali prodotti non in lista o note per il fornitore..." 
+                                            className="input min-h-[80px] text-sm resize-none" 
+                                            disabled={isSubmitting} 
+                                        />
                                     </div>
                                 </>
                             )}
@@ -844,13 +922,39 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
                     </div>
                 );
             })}
-            <div className="relative h-full">
-                <div className="glass-card p-4 h-full flex flex-col justify-center">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
-                    <select onChange={e => { addOrder(e.target.value); e.target.value = ''; }} disabled={((!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) || isSubmitting)} className="select mb-4 disabled:bg-gray-200">
-                        <option value="">Aggiungi...</option>
-                        {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+            
+            <div className="h-full min-h-[200px]">
+                <div className="glass-card h-full flex flex-col justify-center items-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors group bg-gray-50/50 dark:bg-gray-800/30">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform duration-200">
+                        <Plus size={32} className="text-blue-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Aggiungi un altro ordine</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-xs">
+                        Crea ordini per più fornitori contemporaneamente e inviali in un colpo solo.
+                    </p>
+                    
+                    <div className="relative w-full max-w-xs">
+                        <select
+                            onChange={(e) => {
+                                addOrder(e.target.value);
+                                e.target.value = '';
+                            }}
+                            disabled={(!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) || isSubmitting}
+                            className="select w-full text-center cursor-pointer hover:border-blue-400 transition-colors"
+                        >
+                            <option value="">Seleziona Fornitore...</option>
+                            {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        
+                        {!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier) && (
+                            <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-[1px] flex items-center justify-center rounded-lg cursor-not-allowed border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1.5 rounded-full shadow-sm">
+                                    <Lock size={14} />
+                                    <span className="text-xs font-bold uppercase tracking-wide">Funzionalità PRO</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
