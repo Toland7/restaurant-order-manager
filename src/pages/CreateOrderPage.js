@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, ArrowLeft, Send, Lock, Users, Search, Check, Plus, CheckCircle, ChevronDown } from 'lucide-react';
+import { Trash2, ArrowLeft, Send, Lock, Users, Search, Check, Plus, CheckCircle, ChevronDown, Calendar } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Header from '../components/ui/Header';
 import { usePrefill } from '../PrefillContext';
@@ -377,26 +377,140 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       }
       const scheduledDateTime = new Date(targetScheduledOrder.scheduled_at);
 
-      const newScheduledOrders = [];
-      for (const order of multiOrders) {
-        if (!order.supplier) continue;
+      // Find ALL existing orders scheduled at the same time
+      const existingOrdersAtSameTime = scheduledOrders.filter(o => 
+        new Date(o.scheduled_at).getTime() === scheduledDateTime.getTime()
+      );
 
-        const orderData = {
-          user_id: targetScheduledOrder.user_id,
-          supplier_id: order.supplier,
-          scheduled_at: scheduledDateTime.toISOString(),
-          order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject })
+      // Group NEW orders by supplier (merge multiple new orders for same supplier first)
+      const newOrdersBySupplier = {};
+      multiOrders.forEach(order => {
+        if (!order.supplier) return;
+        
+        const supplierId = order.supplier;
+        if (!newOrdersBySupplier[supplierId]) {
+          newOrdersBySupplier[supplierId] = {
+            supplier_id: supplierId,
+            items: {},
+            additional: '',
+            email_subject: order.email_subject || ''
+          };
+        }
+        
+        // Merge items from multiple new orders for same supplier
+        newOrdersBySupplier[supplierId].items = {
+          ...newOrdersBySupplier[supplierId].items,
+          ...order.items
         };
+        
+        // Concatenate additional notes
+        if (order.additional) {
+          if (newOrdersBySupplier[supplierId].additional) {
+            newOrdersBySupplier[supplierId].additional += `\n${order.additional}`;
+          } else {
+            newOrdersBySupplier[supplierId].additional = order.additional;
+          }
+        }
+        
+        // Use latest email subject if provided
+        if (order.email_subject) {
+          newOrdersBySupplier[supplierId].email_subject = order.email_subject;
+        }
+      });
 
-        const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
-        newScheduledOrders.push({ ...newScheduledOrder, suppliers: suppliers.find(s => s.id.toString() === order.supplier) });
+      // Group EXISTING orders by supplier
+      const existingOrdersBySupplier = {};
+      existingOrdersAtSameTime.forEach(order => {
+        const supplierId = order.supplier_id.toString();
+        existingOrdersBySupplier[supplierId] = order;
+      });
+
+      const newScheduledOrders = [];
+      const updatedOrderIds = new Set();
+      let mergedCount = 0;
+      let createdCount = 0;
+
+      // Process each supplier from the new orders
+      for (const [supplierId, newOrderData] of Object.entries(newOrdersBySupplier)) {
+        const existingOrder = existingOrdersBySupplier[supplierId];
+
+        if (existingOrder) {
+          // MERGE: Combine with existing order for this supplier
+          const existingData = JSON.parse(existingOrder.order_data || '{}');
+          
+          // Merge items (new values override existing)
+          const mergedItems = { 
+            ...(existingData.items || {}), 
+            ...newOrderData.items 
+          };
+          
+          // Merge additional notes
+          let mergedAdditional = existingData.additional_items || '';
+          if (newOrderData.additional) {
+            mergedAdditional = mergedAdditional 
+              ? `${mergedAdditional}\n${newOrderData.additional}` 
+              : newOrderData.additional;
+          }
+
+          // Use new email subject if provided, otherwise keep existing
+          const mergedEmailSubject = newOrderData.email_subject || existingData.email_subject || '';
+
+          // Update the existing order
+          const updatedOrderData = {
+            order_data: JSON.stringify({
+              items: mergedItems,
+              additional_items: mergedAdditional,
+              email_subject: mergedEmailSubject
+            })
+          };
+
+          const updatedOrder = await supabaseHelpers.updateScheduledOrder(
+            existingOrder.id, 
+            updatedOrderData
+          );
+
+          newScheduledOrders.push({ 
+            ...updatedOrder, 
+            supplier: suppliers.find(s => s.id.toString() === supplierId) 
+          });
+          updatedOrderIds.add(existingOrder.id);
+          mergedCount++;
+        } else {
+          // CREATE: No existing order for this supplier at this time
+          const orderData = {
+            user_id: targetScheduledOrder.user_id,
+            supplier_id: supplierId,
+            scheduled_at: scheduledDateTime.toISOString(),
+            order_data: JSON.stringify({ 
+              items: newOrderData.items, 
+              additional_items: newOrderData.additional, 
+              email_subject: newOrderData.email_subject 
+            })
+          };
+
+          const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+          newScheduledOrders.push({ 
+            ...newScheduledOrder, 
+            supplier: suppliers.find(s => s.id.toString() === supplierId) 
+          });
+          createdCount++;
+        }
       }
 
-      if (newScheduledOrders.length > 0) {
-        setScheduledOrders(prev => [...prev, ...newScheduledOrders]);
-        toast.success(`${newScheduledOrders.length} nuovi ordini aggiunti alla programmazione.`);
+      // Update state: remove old versions of updated orders and add new/updated ones
+      setScheduledOrders(prev => [
+        ...prev.filter(o => !updatedOrderIds.has(o.id)),
+        ...newScheduledOrders
+      ]);
+
+      // Build informative toast message
+      const totalProcessed = mergedCount + createdCount;
+      if (mergedCount > 0 && createdCount > 0) {
+        toast.success(`${totalProcessed} ordini processati (${mergedCount} uniti, ${createdCount} nuovi)!`);
+      } else if (mergedCount > 0) {
+        toast.success(`${totalProcessed} ordini uniti con ordini esistenti!`);
       } else {
-        toast.warn("Nessun nuovo ordine valido da aggiungere.");
+        toast.success(`${totalProcessed} nuovi ordini aggiunti alla programmazione.`);
       }
 
       setMultiOrders([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
@@ -659,24 +773,72 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
           {/* STEP 3: SCHEDULE */}
           <OrderFlow.Step name="schedule">
-            <div className="glass-card p-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Associa a un ordine programmato</h3>
-              <div className="overflow-y-auto space-y-3 max-h-64">
-                {futureScheduledOrders.length > 0 ? (
-                  futureScheduledOrders.map(order => (
-                    <button
-                      key={order.id}
-                      onClick={() => linkToScheduledOrder(order.id)}
-                      disabled={isSubmitting}
-                      className="w-full text-left p-3 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
-                    >
-                      <p className="font-medium text-sm text-blue-600 dark:text-blue-400">{isSubmitting ? 'Associazione...' : suppliers.find(s => s.id === order.supplier_id)?.name || 'Fornitore eliminato'}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">{new Date(order.scheduled_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                    </button>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">Nessun ordine futuro programmato.</p>
+            <div className="glass-card p-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">Associa a un ordine programmato</h3>
+              <div className="overflow-y-auto space-y-3 max-h-96 pr-2">
+                {futureScheduledOrders.length > 0 ? (() => {
+                  // Group orders by scheduled_at
+                  const groupedByTime = futureScheduledOrders.reduce((acc, order) => {
+                    const timeKey = order.scheduled_at;
+                    if (!acc[timeKey]) {
+                      acc[timeKey] = [];
+                    }
+                    acc[timeKey].push(order);
+                    return acc;
+                  }, {});
+
+                  return Object.entries(groupedByTime)
+                    .sort(([timeA], [timeB]) => new Date(timeA) - new Date(timeB))
+                    .map(([scheduledAt, orders]) => {
+                      const firstOrder = orders[0];
+                      const orderCount = orders.length;
+                      const scheduledDate = new Date(scheduledAt);
+                      
+                      return (
+                        <button
+                          key={scheduledAt}
+                          onClick={() => linkToScheduledOrder(firstOrder.id)}
+                          disabled={isSubmitting}
+                          className="w-full text-left p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900/30 dark:hover:to-purple-900/30 disabled:opacity-50 transition-all duration-200 border border-blue-100 dark:border-blue-800/30 shadow-sm hover:shadow-md group"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
+                              <Calendar size={24} className="text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-base text-gray-900 dark:text-gray-100 mb-1">
+                                {scheduledDate.toLocaleDateString('it-IT', { 
+                                  weekday: 'short', 
+                                  day: 'numeric', 
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                              <div className="flex items-center space-x-3">
+                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                  {scheduledDate.toLocaleTimeString('it-IT', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </span>
+                                <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full font-medium">
+                                  {orderCount} {orderCount === 1 ? 'ordine' : 'ordini'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <ArrowLeft size={20} className="text-gray-400 dark:text-gray-500 transform rotate-180 group-hover:translate-x-1 transition-transform duration-200" />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    });
+                })() : (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center">
+                      <Calendar size={40} className="text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">Nessun ordine futuro programmato.</p>
                     <button
                       onClick={handleCreateNewScheduledOrder}
                       className="btn btn-primary w-full"
@@ -687,7 +849,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                   </div>
                 )}
               </div>
-              <div className="flex space-x-3 mt-6">
+              <div className="flex space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <OrderFlow.PrevButton className="btn btn-secondary w-full" disabled={isSubmitting}><ArrowLeft size={16} className="inline-block mr-2" /> Annulla</OrderFlow.PrevButton>
               </div>
             </div>

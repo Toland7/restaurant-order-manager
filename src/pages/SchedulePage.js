@@ -106,14 +106,139 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
 
         setIsSubmitting(true);
         try {
+            // Find existing orders scheduled at the same time
+            const existingOrdersAtSameTime = scheduledOrders.filter(o => 
+                new Date(o.scheduled_at).getTime() === scheduledDateTime.getTime()
+            );
+
+            // Group NEW orders by supplier (merge multiple new orders for same supplier first)
+            const newOrdersBySupplier = {};
+            validOrders.forEach(order => {
+                const supplierId = order.supplier;
+                if (!newOrdersBySupplier[supplierId]) {
+                    newOrdersBySupplier[supplierId] = {
+                        supplier_id: supplierId,
+                        items: {},
+                        additional: '',
+                        email_subject: order.email_subject || ''
+                    };
+                }
+                
+                // Merge items from multiple new orders for same supplier
+                newOrdersBySupplier[supplierId].items = {
+                    ...newOrdersBySupplier[supplierId].items,
+                    ...order.items
+                };
+                
+                // Concatenate additional notes
+                if (order.additional) {
+                    if (newOrdersBySupplier[supplierId].additional) {
+                        newOrdersBySupplier[supplierId].additional += `\n${order.additional}`;
+                    } else {
+                        newOrdersBySupplier[supplierId].additional = order.additional;
+                    }
+                }
+                
+                // Use latest email subject if provided
+                if (order.email_subject) {
+                    newOrdersBySupplier[supplierId].email_subject = order.email_subject;
+                }
+            });
+
+            // Group EXISTING orders by supplier
+            const existingOrdersBySupplier = {};
+            existingOrdersAtSameTime.forEach(order => {
+                const supplierId = order.supplier_id.toString();
+                existingOrdersBySupplier[supplierId] = order;
+            });
+
             const newScheduledOrders = [];
-            for (const order of validOrders) {
-                const orderData = { user_id: user.id, supplier_id: order.supplier, scheduled_at: scheduledDateTime.toISOString(), order_data: JSON.stringify({ items: order.items, additional_items: order.additional, email_subject: order.email_subject }) };
-                const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
-                newScheduledOrders.push({ ...newScheduledOrder, supplier: suppliers.find(s => s.id.toString() === order.supplier) });
+            const updatedOrderIds = new Set();
+            let mergedCount = 0;
+            let createdCount = 0;
+
+            // Process each supplier from the new orders
+            for (const [supplierId, newOrderData] of Object.entries(newOrdersBySupplier)) {
+                const existingOrder = existingOrdersBySupplier[supplierId];
+
+                if (existingOrder) {
+                    // MERGE: Combine with existing order for this supplier
+                    const existingData = JSON.parse(existingOrder.order_data || '{}');
+                    
+                    // Merge items (new values override existing)
+                    const mergedItems = { 
+                        ...(existingData.items || {}), 
+                        ...newOrderData.items 
+                    };
+                    
+                    // Merge additional notes
+                    let mergedAdditional = existingData.additional_items || '';
+                    if (newOrderData.additional) {
+                        mergedAdditional = mergedAdditional 
+                            ? `${mergedAdditional}\n${newOrderData.additional}` 
+                            : newOrderData.additional;
+                    }
+
+                    // Use new email subject if provided, otherwise keep existing
+                    const mergedEmailSubject = newOrderData.email_subject || existingData.email_subject || '';
+
+                    // Update the existing order
+                    const updatedOrderData = {
+                        order_data: JSON.stringify({
+                            items: mergedItems,
+                            additional_items: mergedAdditional,
+                            email_subject: mergedEmailSubject
+                        })
+                    };
+
+                    const updatedOrder = await supabaseHelpers.updateScheduledOrder(
+                        existingOrder.id, 
+                        updatedOrderData
+                    );
+
+                    newScheduledOrders.push({ 
+                        ...updatedOrder, 
+                        supplier: suppliers.find(s => s.id.toString() === supplierId) 
+                    });
+                    updatedOrderIds.add(existingOrder.id);
+                    mergedCount++;
+                } else {
+                    // CREATE: No existing order for this supplier at this time
+                    const orderData = { 
+                        user_id: user.id, 
+                        supplier_id: supplierId, 
+                        scheduled_at: scheduledDateTime.toISOString(), 
+                        order_data: JSON.stringify({ 
+                            items: newOrderData.items, 
+                            additional_items: newOrderData.additional, 
+                            email_subject: newOrderData.email_subject 
+                        }) 
+                    };
+                    const newScheduledOrder = await supabaseHelpers.createScheduledOrder(orderData);
+                    newScheduledOrders.push({ 
+                        ...newScheduledOrder, 
+                        supplier: suppliers.find(s => s.id.toString() === supplierId) 
+                    });
+                    createdCount++;
+                }
             }
-            setScheduledOrders(prev => [...prev, ...newScheduledOrders]);
-            toast.success(`${validOrders.length} ordini programmati!`);
+
+            // Update state: remove old versions of updated orders and add new/updated ones
+            setScheduledOrders(prev => [
+                ...prev.filter(o => !updatedOrderIds.has(o.id)),
+                ...newScheduledOrders
+            ]);
+
+            // Build informative toast message
+            const totalProcessed = mergedCount + createdCount;
+            if (mergedCount > 0 && createdCount > 0) {
+                toast.success(`${totalProcessed} ordini processati (${mergedCount} uniti, ${createdCount} nuovi)!`);
+            } else if (mergedCount > 0) {
+                toast.success(`${totalProcessed} ordini uniti con ordini esistenti!`);
+            } else {
+                toast.success(`${totalProcessed} ordini programmati!`);
+            }
+            
             resetForm();
             setView('list');
         } catch (error) {
