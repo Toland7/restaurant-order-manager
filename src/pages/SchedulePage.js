@@ -11,6 +11,7 @@ import { useProfileContext } from '../ProfileContext';
 import OrderFlow from '../components/OrderFlow';
 import SendOrderComponent, { generateOrderMessage, openLinkInNewTab, generateEmailLink } from '../components/ui/SendOrderComponent';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 
 import logger from '../utils/logger';
@@ -196,6 +197,8 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         setView('edit');
     };
 
+    const isDesktop = useIsDesktop();
+
     const renderListView = () => {
         const now = new Date();
         const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
@@ -211,6 +214,117 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
         const groupedFutureOrders = groupOrdersByScheduledAt(futureOrders);
 
         const isLimitReached = !isProUser && scheduledOrders.length >= 3;
+
+        if (isDesktop) {
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Programma Ordini</h1>
+                        <button
+                            onClick={() => {
+                                if (isLimitReached) { toast.error('Limite raggiunto per il piano Base.'); return; }
+                                resetForm();
+                                setView('create');
+                            }}
+                            disabled={isLimitReached || !canScheduleOrders || isSubmitting}
+                            className="btn btn-primary"
+                        >
+                            <PlusCircle size={20} className="mr-2" />
+                            Programma Nuovo
+                        </button>
+                    </div>
+
+                    {isLimitReached && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+                            <span>Limite di 3 ordini programmati raggiunto.</span>
+                            <button className="font-bold underline text-sm">Upgrade a PRO</button>
+                        </div>
+                    )}
+
+                    <div className="glass-card overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Data e Ora</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ordini</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Stato</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {Object.keys({ ...groupedReadyToSendOrders, ...groupedFutureOrders }).length > 0 ? (
+                                    Object.entries({ ...groupedReadyToSendOrders, ...groupedFutureOrders })
+                                        .sort(([a], [b]) => new Date(a) - new Date(b))
+                                        .map(([scheduledAt, orders]) => {
+                                            const scheduledDate = new Date(scheduledAt);
+                                            const isReady = scheduledDate <= now;
+                                            
+                                            return (
+                                                <tr key={scheduledAt} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                        {scheduledDate.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                                        <div className="space-y-1">
+                                                            {orders.map(order => {
+                                                                const supplier = suppliers.find(s => s.id === order.supplier_id);
+                                                                const orderData = JSON.parse(order.order_data || '{}');
+                                                                const itemsCount = Object.keys(orderData.items || {}).length;
+                                                                return (
+                                                                    <div key={order.id} className="flex items-center space-x-2">
+                                                                        <span className="font-medium">{supplier?.name || 'Sconosciuto'}</span>
+                                                                        <span className="text-gray-500 dark:text-gray-400">({itemsCount} prodotti{orderData.additional_items ? ' + note' : ''})</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isReady ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'}`}>
+                                                            {isReady ? 'Pronto per invio' : 'Programmato'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                        {isReady && (
+                                                            <button 
+                                                                onClick={() => startSendNowWizard(orders)} 
+                                                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300" 
+                                                                title="Invia tutti gli ordini"
+                                                            >
+                                                                <Send size={18} />
+                                                            </button>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => handleEditClick(orders[0])} 
+                                                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300" 
+                                                            title="Modifica batch"
+                                                        >
+                                                            <Edit3 size={18} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteBatch(orders)} 
+                                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300" 
+                                                            title="Elimina batch"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-10 text-center text-gray-500">
+                                            Nessun ordine programmato
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <>
@@ -235,7 +349,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                         {Object.keys(groupedReadyToSendOrders).length > 0 && (
                             <details className="glass-card group" open>
                                 <summary className="font-medium text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-900/30 rounded-md p-4 cursor-pointer flex justify-between items-center list-none">
-                                    <span>Pronti per l\'invio ({readyToSendOrders.length})</span>
+                                    <span>Pronti per l'invio ({readyToSendOrders.length})</span>
                                     <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                                 </summary>
                                 <div className="p-4 space-y-3 border-t border-gray-100">
@@ -569,7 +683,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
 
     return (
         <div className="min-h-screen app-background">
-            <Header title="Programma Ordini" onBack={() => {
+            {!isDesktop && <Header title="Programma Ordini" onBack={() => {
                 if (showSendWizard) {
                     setShowSendWizard(false);
                 } else if (view !== 'list') {
@@ -577,7 +691,7 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                 } else {
                     navigate('/');
                 }
-            }} />
+            }} />}
             <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
                 {showSendWizard ? (
                     <OrderFlow initialStep="send">
@@ -634,6 +748,8 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
 };
 
 const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, isSubmitting }) => {
+    const isDesktop = useIsDesktop();
+
     const updateOrder = (id, field, value) => {
         setMultiOrders(prev => prev.map(order => order.id === id ? { ...order, [field]: value } : order));
     };
@@ -660,16 +776,16 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
     };
 
     return (
-        <div className="space-y-6">
+        <div className={`space-y-6 ${isDesktop ? 'grid grid-cols-2 gap-6 space-y-0 items-start' : ''}`}>
             {multiOrders.map((order, index) => {
                 const supplierData = suppliers.find(s => s.id.toString() === order.supplier);
                 return (
-                    <div key={order.id} className="glass-card p-4">
+                    <div key={order.id} className="glass-card p-4 h-full flex flex-col">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-medium text-gray-900 dark:text-gray-100">Ordine {index + 1}: {supplierData ? supplierData.name : 'Seleziona Fornitore'}</h3>
                             {isProUser && multiOrders.length > 1 && <button onClick={() => removeOrder(order.id)} className="p-1 text-red-500 hover:bg-red-50 rounded" disabled={isSubmitting}><Trash2 size={16} /></button>}
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-4 flex-1">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Fornitore</label>
                                 <select value={order.supplier} onChange={(e) => updateOrder(order.id, 'supplier', e.target.value)} className="select" disabled={isSubmitting}>
@@ -695,7 +811,7 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
                                                         />
                                                     </div>
                                                 )}
-                                                <div className="space-y-3">
+                                                <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                                     {supplierData.products
                                                         .filter(p => !isProUser || p.toLowerCase().includes((order.searchTerm || '').toLowerCase()))
                                                         .map(p => {
@@ -726,12 +842,14 @@ const OrderSelectionUI = ({ multiOrders, setMultiOrders, suppliers, isProUser, i
                     </div>
                 );
             })}
-            <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
-                <select onChange={e => { addOrder(e.target.value); e.target.value = ''; }} disabled={((!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) || isSubmitting)} className="select mb-4 disabled:bg-gray-200">
-                    <option value="">Aggiungi...</option>
-                    {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+            <div className="relative h-full">
+                <div className="glass-card p-4 h-full flex flex-col justify-center">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Aggiungi Fornitore</label>
+                    <select onChange={e => { addOrder(e.target.value); e.target.value = ''; }} disabled={((!isProUser && multiOrders.length >= 1 && multiOrders.some(o => o.supplier)) || isSubmitting)} className="select mb-4 disabled:bg-gray-200">
+                        <option value="">Aggiungi...</option>
+                        {suppliers.filter(s => !multiOrders.some(o => o.supplier === s.id.toString())).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                </div>
             </div>
         </div>
     );

@@ -11,6 +11,8 @@ export const ProfileProvider = ({ children }) => {
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [profileToVerify, setProfileToVerify] = useState(null);
 
+  const [requiresProfileSelection, setRequiresProfileSelection] = useState(false);
+
   // Attempt to load selected profile from localStorage on initial render
   useEffect(() => {
     const storedProfile = localStorage.getItem('selectedProfile');
@@ -25,6 +27,7 @@ export const ProfileProvider = ({ children }) => {
     setSelectedProfile(profile);
     if (profile) {
       localStorage.setItem('selectedProfile', JSON.stringify(profile));
+      setRequiresProfileSelection(false); // Reset flag when profile is selected
     } else {
       localStorage.removeItem('selectedProfile');
     }
@@ -69,8 +72,21 @@ export const ProfileProvider = ({ children }) => {
             .eq('user_id', user.id)
             .maybeSingle();
           
-          if (profileError || !profileData) {
+          if (profileError) {
+            if (profileError.code === 'PGRST116') {
+              // Multiple profiles found, require selection
+              logger.info('Multiple profiles found, requiring selection.');
+              setRequiresProfileSelection(true);
+              setProfilePermissions([]);
+              return;
+            }
             logger.error('Error fetching in_app_profile:', profileError);
+            setProfilePermissions([]);
+            return;
+          }
+
+          if (!profileData) {
+            // No profile found
             setProfilePermissions([]);
             return;
           }
@@ -112,7 +128,8 @@ export const ProfileProvider = ({ children }) => {
       isPinModalOpen,
       profileToVerify,
       openPinModal,
-      closePinModal
+      closePinModal,
+      requiresProfileSelection
     }}>
       {children}
     </ProfileContext.Provider>

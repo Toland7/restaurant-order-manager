@@ -11,6 +11,7 @@ import useSubscriptionStatus from '../hooks/useSubscriptionStatus'; // Import th
 import { useProfileContext } from '../ProfileContext'; // Import the profile context
 import { useAutoAnimate } from '@formkit/auto-animate/react'; // Import useAutoAnimate
 import logger from '../utils/logger';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
     const navigate = useNavigate();
@@ -207,6 +208,95 @@ const SuppliersPage = ({ suppliers, setSuppliers, user }) => {
         setIsSubmitting(false);
       }
     };
+
+    const isDesktop = useIsDesktop();
+
+    if (isDesktop && !isAdding) {
+      return (
+        <div className="min-h-screen p-8 space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Fornitori</h1>
+            {canManageSuppliers && (
+              <button 
+                onClick={handleAddSupplierClick} 
+                className="btn btn-primary"
+                disabled={isLimitReached || loadingSubscription || isSubmitting}
+              >
+                <Plus size={20} className="mr-2" />
+                Aggiungi Fornitore
+              </button>
+            )}
+          </div>
+
+          {isLimitReached && (
+             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+               <span>Limite di 10 fornitori raggiunto.</span>
+               <button className="font-bold underline text-sm">Upgrade a PRO</button>
+             </div>
+          )}
+
+          <div ref={parent} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {suppliers.map(supplier => (
+              <div key={supplier.id} className="glass-card p-6 flex flex-col justify-between group hover:border-blue-500/50 transition-all duration-200">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
+                      <Users size={24} />
+                    </div>
+                    {canManageSuppliers && (
+                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleExportSupplierCSV(supplier.id, supplier.name)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-green-600" title="Esporta prodotti"><Download size={18} /></button>
+                        <button onClick={() => editSupplier(supplier)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-blue-600" title="Modifica"><Edit3 size={18} /></button>
+                        <button onClick={() => deleteSupplier(supplier.id)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-red-600" title="Elimina"><Trash2 size={18} /></button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{supplier.name}</h3>
+                  
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium w-20">Contatto:</span>
+                      <span className="truncate">{supplier.contact}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium w-20">Metodo:</span>
+                      <span className="capitalize">{supplier.contact_method}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium w-20">Prodotti:</span>
+                      <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full text-xs font-medium">{supplier.products?.length || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+                   <button onClick={() => {
+                     // Navigate to create order with this supplier pre-selected? 
+                     // Or just edit? For now let's just edit.
+                     editSupplier(supplier);
+                   }} className="w-full btn btn-outline text-sm">
+                     Dettagli
+                   </button>
+                </div>
+              </div>
+            ))}
+            {suppliers.length === 0 && !loadingSubscription && (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
+                <Users size={48} className="mb-4 opacity-50" />
+                <p className="text-lg font-medium">Nessun fornitore trovato</p>
+                <p className="text-sm mb-6">Inizia aggiungendo il tuo primo fornitore.</p>
+                {canManageSuppliers && (
+                  <button onClick={handleAddSupplierClick} className="btn btn-primary">
+                    Aggiungi Fornitore
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen app-background">

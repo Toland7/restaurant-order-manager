@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import EmptyState from '../components/ui/EmptyState';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 const HistoryPage = ({ orders, suppliers }) => {
     const navigate = useNavigate();
@@ -65,6 +66,97 @@ const HistoryPage = ({ orders, suppliers }) => {
         linkElement.click();
         toast.success('Cronologia esportata con successo');
       };
+
+    const isDesktop = useIsDesktop(); // Import this hook at the top
+
+    if (isDesktop) {
+      return (
+        <div className="min-h-screen p-8 space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Cronologia Ordini</h1>
+            <div className="flex space-x-3">
+              <button onClick={() => setShowFilters(!showFilters)} className={`btn ${showFilters ? 'btn-primary' : 'btn-outline'}`}>
+                <Filter size={18} /> <span>Filtri</span>
+              </button>
+              <button onClick={exportFilteredData} className="btn btn-success">
+                <Download size={18} /> <span>Esporta</span>
+              </button>
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="glass-card p-6 grid grid-cols-4 gap-4">
+              <div>
+                <label className="label">Da Data</label>
+                <input type="date" value={filters.dateFrom} onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))} className="input" />
+              </div>
+              <div>
+                <label className="label">A Data</label>
+                <input type="date" value={filters.dateTo} onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))} className="input" />
+              </div>
+              <div>
+                <label className="label">Fornitore</label>
+                <select value={filters.supplier} onChange={(e) => setFilters(prev => ({ ...prev, supplier: e.target.value }))} className="select">
+                  <option value="">Tutti</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button onClick={clearFilters} className="btn btn-outline w-full">Reset Filtri</button>
+              </div>
+            </div>
+          )}
+
+          <div className="glass-card overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fornitore</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Messaggio</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Stato</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Metodo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => {
+                    const supplier = suppliers.find(s => s.id === order.supplier_id) || order.suppliers;
+                    return (
+                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {new Date(order.sent_at || order.created_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {supplier?.name || 'Sconosciuto'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title={order.order_message}>
+                          {order.order_message}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'sent' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {order.status === 'sent' ? 'Inviato' : order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {supplier?.contact_method}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                      Nessun ordine trovato
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
 
     return (
         <div className="min-h-screen app-background">

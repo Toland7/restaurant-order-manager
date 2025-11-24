@@ -4,9 +4,11 @@ import { Filter, ChevronDown, Lock } from 'lucide-react';
 import { useProfileContext } from '../ProfileContext';
 import Header from '../components/ui/Header';
 import { useNavigate } from 'react-router-dom';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory }) => {
     const navigate = useNavigate();
+    const isDesktop = useIsDesktop();
     const { hasPermission } = useProfileContext();
     const canViewAnalytics = hasPermission('analytics:view');
 
@@ -158,7 +160,7 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
     if (!canViewAnalytics) {
       return (
         <div className="min-h-screen app-background">
-          <Header title="Dashboard Analytics" onBack={() => navigate('/')} />
+          {!isDesktop && <Header title="Dashboard Analytics" onBack={() => navigate('/')} />}
           <div className="max-w-sm mx-auto px-6 py-6 text-center">
             <Lock size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
             <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">Accesso Negato</p>
@@ -170,8 +172,13 @@ const AnalyticsDashboard = ({ orders, suppliers, setSelectedProductForHistory })
 
     return (
       <div className="min-h-screen app-background">
-        <Header title="Dashboard Analytics" onBack={() => navigate('/')} />
+        {!isDesktop && <Header title="Dashboard Analytics" onBack={() => navigate('/')} />}
         <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
+          {isDesktop && (
+            <div className="flex justify-between items-center mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analisi</h1>
+            </div>
+          )}
           <div className="flex justify-between items-center mb-4">
             <button onClick={() => setShowFilters(!showFilters)} className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800">
               <Filter size={16} className="text-gray-700 dark:text-gray-200" />

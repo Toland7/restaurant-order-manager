@@ -31,13 +31,14 @@ import PinVerificationModal from './components/modals/PinVerificationModal';
 import UpgradeToProBanner from './components/ui/UpgradeToProBanner.js';
 import DemoTrialBanner from './components/ui/DemoTrialBanner';
 import TrialExpiredBanner from './components/ui/TrialExpiredBanner';
+import ResponsiveLayout from './components/layout/ResponsiveLayout';
 
 import logger from './utils/logger';
 const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -144,7 +145,7 @@ const MainApp = () => {
   
     if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
   
-    if (isProUser && (showPinVerification || (!selectedProfile && !loadingProfile))) {
+    if ((isProUser && (showPinVerification || (!selectedProfile && !loadingProfile))) || requiresProfileSelection) {
       return (
         <>
           <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
@@ -171,20 +172,22 @@ const MainApp = () => {
         onSuccess={handlePinSuccessFromDropdown}
       />
       <div className={`animate-fade-in ${isTrialExpired ? 'pointer-events-none opacity-50' : ''}`}>
-        <Routes>
-          <Route path="/" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
-          <Route path="/create-order" element={<CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => loadData(user.id)} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
-          <Route path="/suppliers" element={<SuppliersPage suppliers={suppliers} setSuppliers={setSuppliers} user={user} />} />
-          <Route path="/schedule" element={<SchedulePage multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
-          <Route path="/history" element={<HistoryPage orders={orders} suppliers={suppliers} />} />
-          <Route path="/analytics" element={<ProRoute element={<AnalyticsDashboard orders={orders} suppliers={suppliers} setSelectedProductForHistory={setSelectedProductForHistory} />} featureName="Analisi" />} />
-          <Route path="/product-history" element={<ProductHistoryPage orders={orders} suppliers={suppliers} selectedProductForHistory={selectedProductForHistory} />} />
-          <Route path="/notifications" element={<NotificationsPage user={user} onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />} />
-          <Route path="/settings" element={<SettingsPage theme={theme} setTheme={setTheme} profile={profile} user={user} />} />
-          <Route path="/user-profile" element={<UserProfilePage user={user} profile={profile} setProfile={setProfile} />} />
-          <Route path="/profile-manager" element={<ProRoute element={<ProfileManagerPage />} featureName="Gestione Profili" />} />
-          <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
-        </Routes>
+        <ResponsiveLayout unreadCount={unreadCount}>
+          <Routes>
+            <Route path="/" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} orders={orders} scheduledOrders={scheduledOrders} />} />
+            <Route path="/create-order" element={<CreateOrderPage scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} onOrderSent={() => loadData(user.id)} multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} setOrders={setOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} setWizardOrders={setWizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
+            <Route path="/suppliers" element={<SuppliersPage suppliers={suppliers} setSuppliers={setSuppliers} user={user} />} />
+            <Route path="/schedule" element={<SchedulePage multiOrders={multiOrders} setMultiOrders={setMultiOrders} suppliers={suppliers} scheduledOrders={scheduledOrders} setScheduledOrders={setScheduledOrders} setWizardOrders={setWizardOrders} showWizard={showWizard} setShowWizard={setShowWizard} wizardOrders={wizardOrders} wizardStep={wizardStep} setWizardStep={setWizardStep} user={user} />} />
+            <Route path="/history" element={<HistoryPage orders={orders} suppliers={suppliers} />} />
+            <Route path="/analytics" element={<ProRoute element={<AnalyticsDashboard orders={orders} suppliers={suppliers} setSelectedProductForHistory={setSelectedProductForHistory} />} featureName="Analisi" />} />
+            <Route path="/product-history" element={<ProductHistoryPage orders={orders} suppliers={suppliers} selectedProductForHistory={selectedProductForHistory} />} />
+            <Route path="/notifications" element={<NotificationsPage user={user} onNotificationClick={handleNotificationClick} unreadCount={unreadCount} setUnreadCount={setUnreadCount} />} />
+            <Route path="/settings" element={<SettingsPage theme={theme} setTheme={setTheme} profile={profile} user={user} />} />
+            <Route path="/user-profile" element={<UserProfilePage user={user} profile={profile} setProfile={setProfile} />} />
+            <Route path="/profile-manager" element={<ProRoute element={<ProfileManagerPage />} featureName="Gestione Profili" />} />
+            <Route path="*" element={<HomePage profile={profile} user={user} unreadCount={unreadCount} analytics={analytics} />} />
+          </Routes>
+        </ResponsiveLayout>
       </div>
       {!isLoggingOut && location.pathname === '/' && <DemoTrialBanner />} {/* Render only on homepage */}
       <TrialExpiredBanner /> {/* Render trial expired modal when trial is expired */}

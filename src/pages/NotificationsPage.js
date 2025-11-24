@@ -7,10 +7,12 @@ import { useNotifications } from '../hooks/useNotifications';
 import { usePrefill } from '../PrefillContext';
 import { useNavigate } from 'react-router-dom';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 import logger from '../utils/logger';
 const NotificationsPage = ({ user }) => {
     const navigate = useNavigate();
+    const isDesktop = useIsDesktop();
     const { setPrefilledData } = usePrefill();
     const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
     const [notifications, setNotifications] = useState([]);
@@ -92,8 +94,13 @@ const NotificationsPage = ({ user }) => {
 
     return (
         <div className="min-h-screen app-background">
-            <Header title="Notifiche" onBack={() => navigate('/')} />
+            {!isDesktop && <Header title="Notifiche" onBack={() => navigate('/')} />}
             <div className="max-w-sm mx-auto px-6 py-6">
+                {isDesktop && (
+                    <div className="flex justify-between items-center mb-2">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Notifiche</h1>
+                    </div>
+                )}
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Centro Notifiche</h2>
                     {unreadCount > 0 && (

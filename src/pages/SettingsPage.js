@@ -6,10 +6,12 @@ import Header from '../components/ui/Header';
 import { useAuth } from '../AuthContext';
 import { useProfileContext } from '../ProfileContext';
 import { supabaseHelpers } from '../supabase';
+import useIsDesktop from '../hooks/useIsDesktop';
 
 import logger from '../utils/logger';
 const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const navigate = useNavigate();
+    const isDesktop = useIsDesktop();
     const { signOut } = useAuth();
     const { selectedProfile, setSelectedProfile, hasPermission } = useProfileContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,8 +124,13 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
 
     return (
       <div className="min-h-screen app-background">
-        <Header title="Impostazioni" onBack={() => navigate('/')} />
+        {!isDesktop && <Header title="Impostazioni" onBack={() => navigate('/')} />}
         <div className="max-w-sm mx-auto px-6 py-6 space-y-4">
+          {isDesktop && (
+            <div className="flex justify-between items-center mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Impostazioni</h1>
+            </div>
+          )}
           <button onClick={() => navigate('/user-profile')} className="w-full glass-card p-4 text-left hover:shadow-md transition-all" disabled={isSubmitting}>
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center"><User size={24} className="text-gray-500" /></div>
