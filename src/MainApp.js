@@ -77,8 +77,6 @@ const MainApp = () => {
     const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
     const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
     const [theme, setTheme] = useState('light');
-    // New: get fatal error state from ProfileContext
-    const { profileFatalError, resetFatalError } = useProfileContext();
   
     const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
     const [showWizard, setShowWizard] = useState(false);
@@ -91,12 +89,6 @@ const MainApp = () => {
         if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
           const notificationData = event.data.data;
           logger.info('Received notification click from service worker:', notificationData);
-          
-          // If the app is currently in a fatal error state, ignore the notification
-          if (profileFatalError) {
-            logger.warn('Notification received while profile fatal error present – ignoring.');
-            return;
-          }
           
           // Build target URL from notification data
           let targetUrl = '/';
@@ -273,20 +265,6 @@ const MainApp = () => {
       }
       return isProUser ? element : <UpgradeToProBanner featureName={featureName} />;
     };
-  
-    // ------------------------------------------------------------
-    // 1️⃣ Loading state & Fatal error handling
-    // ------------------------------------------------------------
-    if (loadingProfile || profileFatalError) {
-      return (
-        <>
-          <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
-          <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
-          </div>
-        </>
-      );
-    }
   
     if (!user) return <><Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} /><AuthPage /></>;
   
