@@ -108,6 +108,12 @@ const MainApp = () => {
             targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
           }
 
+          // If we didn't get a meaningful URL, ignore the message
+          if (targetUrl === '/') {
+            logger.info('Service worker notification click has no target URL, ignoring.');
+            return;
+          }
+
           // If user is PRO but not authenticated yet, store pending navigation (only if we have a real target)
           if (isProUser && !selectedProfile && targetUrl !== '/') {
             logger.info('User is PRO without profile, saving pending navigation from service worker:', targetUrl);
