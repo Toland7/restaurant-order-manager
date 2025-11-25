@@ -41,7 +41,7 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       // Always navigate to home page
-      const homeUrl = new URL('/', self.location.origin).href;
+      const homeUrl = new URL('/', self.location.origin);
       
       if (clientList.length > 0) {
         let client = clientList.find(c => c.focused);
@@ -53,12 +53,19 @@ self.addEventListener('notificationclick', event => {
           data: notificationData
         });
         
-        return client.navigate(homeUrl).then(c => c.focus());
+        return client.navigate(homeUrl.href).then(c => c.focus());
       }
       
-      // If no client exists, open home page
-      // The notification data will be lost in this case, but this is rare
-      return clients.openWindow(homeUrl);
+      // If no client exists, encode notification data in URL
+      if (notificationData.url) {
+        homeUrl.searchParams.set('notification_url', notificationData.url);
+      } else if (notificationData.reminder_id) {
+        homeUrl.searchParams.set('notification_reminder_id', notificationData.reminder_id);
+      } else if (notificationData.reminder_ids) {
+        homeUrl.searchParams.set('notification_reminder_ids', JSON.stringify(notificationData.reminder_ids));
+      }
+      
+      return clients.openWindow(homeUrl.href);
     })
   );
 });

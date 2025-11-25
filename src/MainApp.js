@@ -122,6 +122,43 @@ const MainApp = () => {
       };
     }, [isProUser, selectedProfile, setPendingNavigation, navigate]);
   
+    // Detect notification data from URL parameters (when app opens from scratch)
+    useEffect(() => {
+      const params = new URLSearchParams(location.search);
+      const notificationUrl = params.get('notification_url');
+      const notificationReminderId = params.get('notification_reminder_id');
+      const notificationReminderIds = params.get('notification_reminder_ids');
+      
+      if (notificationUrl || notificationReminderId || notificationReminderIds) {
+        logger.info('Detected notification data from URL parameters');
+        
+        // Build target URL
+        let targetUrl = '/';
+        if (notificationUrl) {
+          targetUrl = notificationUrl;
+        } else if (notificationReminderId) {
+          targetUrl = `/reminders/${notificationReminderId}`;
+        }
+        
+        // Clean up URL parameters
+        params.delete('notification_url');
+        params.delete('notification_reminder_id');
+        params.delete('notification_reminder_ids');
+        const cleanUrl = params.toString() ? `/?${params.toString()}` : '/';
+        window.history.replaceState({}, '', cleanUrl);
+        
+        // If user is PRO and not logged in, save as pending navigation
+        if (isProUser && !selectedProfile) {
+          logger.info('User is PRO without profile, saving as pending navigation from URL:', targetUrl);
+          setPendingNavigation(targetUrl);
+        } else {
+          // Otherwise navigate immediately
+          logger.info('Navigating immediately to:', targetUrl);
+          navigate(targetUrl);
+        }
+      }
+    }, [isProUser, selectedProfile, setPendingNavigation, navigate, location.search]);
+  
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');
       if (savedWizardState) {
