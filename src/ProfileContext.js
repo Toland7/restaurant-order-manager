@@ -47,6 +47,10 @@ export const ProfileProvider = ({ children }) => {
 
   // Pending navigation management for push notifications
   const setPendingNavigation = useCallback((url) => {
+    if (!url || url === '/') {
+      logger.info('Attempted to set pending navigation with empty or root URL, ignoring:', url);
+      return;
+    }
     logger.info('Setting pending navigation:', url);
     setPendingNavigationState(url);
   }, []);
@@ -57,7 +61,7 @@ export const ProfileProvider = ({ children }) => {
   }, []);
 
   const executePendingNavigation = useCallback((navigate) => {
-    if (pendingNavigation) {
+    if (pendingNavigation && pendingNavigation !== '/') {
       logger.info('Executing pending navigation:', pendingNavigation);
       const urlToNavigate = pendingNavigation;
       setPendingNavigationState(null);
