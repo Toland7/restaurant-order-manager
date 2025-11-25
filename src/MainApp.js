@@ -143,7 +143,7 @@ const MainApp = () => {
         }
 
         // If user is PRO but not authenticated yet, store pending navigation and exit.
-        if (isProUser && !selectedProfile) {
+        if (isProUser && !selectedProfile && targetUrl !== '/') {
           logger.info('User is PRO without profile, saving pending navigation from URL params:', targetUrl);
           setPendingNavigation(targetUrl);
           // Do not navigate now; URL params will stay until next render.
