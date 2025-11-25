@@ -56,18 +56,6 @@ const MainApp = () => {
       }
     }, [isProUser, loadingProfile, selectedProfile, setSelectedProfile]);
   
-    // Detect if app was opened from a push notification and save pending navigation
-    useEffect(() => {
-      if (isProUser && !selectedProfile && !loadingProfile) {
-        const currentPath = location.pathname + location.search;
-        // Check if the URL contains notification-related parameters (reminder_ids or reminder_id)
-        if (currentPath.includes('reminder_id') && currentPath !== '/') {
-          logger.info('Detected push notification URL, saving as pending navigation:', currentPath);
-          setPendingNavigation(currentPath);
-        }
-      }
-    }, [isProUser, selectedProfile, loadingProfile, location.pathname, location.search, setPendingNavigation]);
-  
     const handlePinVerificationSuccess = () => {
       setShowPinVerification(false);
       // Execute pending navigation if exists, otherwise go to home
@@ -98,6 +86,41 @@ const MainApp = () => {
     const [showWizard, setShowWizard] = useState(false);
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
+  
+    // Listen for service worker messages (push notifications)
+    useEffect(() => {
+      const handleServiceWorkerMessage = (event) => {
+        if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+          const notificationData = event.data.data;
+          logger.info('Received notification click from service worker:', notificationData);
+          
+          // Build the URL from notification data
+          let targetUrl = '/';
+          if (notificationData.url) {
+            targetUrl = notificationData.url;
+          } else if (notificationData.reminder_id) {
+            // Fallback for old notifications
+            targetUrl = `/reminders/${notificationData.reminder_id}`;
+          }
+          
+          // If user is PRO and not logged in, save as pending navigation
+          if (isProUser && !selectedProfile) {
+            logger.info('User is PRO without profile, saving as pending navigation:', targetUrl);
+            setPendingNavigation(targetUrl);
+          } else {
+            // Otherwise navigate immediately
+            logger.info('Navigating immediately to:', targetUrl);
+            navigate(targetUrl);
+          }
+        }
+      };
+      
+      navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+      
+      return () => {
+        navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+      };
+    }, [isProUser, selectedProfile, setPendingNavigation, navigate]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');

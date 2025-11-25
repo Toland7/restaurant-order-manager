@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-globals */
+/* eslint-disable no-undef */
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -34,25 +35,30 @@ self.addEventListener('notificationclick', event => {
 
   event.notification.close();
 
-  let urlToOpen = '/'; // Default URL
-
-  if (event.notification.data) {
-    if (event.notification.data.url) {
-      urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
-    } else if (event.notification.data.reminder_id) {
-      // Fallback for old notifications
-      urlToOpen = new URL(`/reminders/${event.notification.data.reminder_id}`, self.location.origin).href;
-    }
-  }
+  // Extract notification data
+  const notificationData = event.notification.data || {};
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Always navigate to home page
+      const homeUrl = new URL('/', self.location.origin).href;
+      
       if (clientList.length > 0) {
         let client = clientList.find(c => c.focused);
         if (!client) client = clientList[0];
-        return client.navigate(urlToOpen).then(c => c.focus());
+        
+        // Send notification data to the client via postMessage
+        client.postMessage({
+          type: 'NOTIFICATION_CLICKED',
+          data: notificationData
+        });
+        
+        return client.navigate(homeUrl).then(c => c.focus());
       }
-      return clients.openWindow(urlToOpen);
+      
+      // If no client exists, open home page
+      // The notification data will be lost in this case, but this is rare
+      return clients.openWindow(homeUrl);
     })
   );
 });
