@@ -43,18 +43,15 @@ const MainApp = () => {
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
     const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation, profilePermissions } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
+    const pinVerificationTriggered = React.useRef(false);
   
+    // Trigger PIN verification once when profile is loaded from localStorage
     useEffect(() => {
-      if (isProUser && !loadingProfile && !selectedProfile) {
-        const storedProfile = localStorage.getItem('selectedProfile');
-        if (storedProfile) {
-          const parsedProfile = JSON.parse(storedProfile);
-          // Temporarily set the profile to trigger PIN verification
-          setSelectedProfile(parsedProfile);
-          setShowPinVerification(true);
-        }
+      if (isProUser && selectedProfile && !loadingProfile && !pinVerificationTriggered.current) {
+        setShowPinVerification(true);
+        pinVerificationTriggered.current = true;
       }
-    }, [isProUser, loadingProfile, selectedProfile, setSelectedProfile]);
+    }, [isProUser, selectedProfile, loadingProfile]);
   
     const handlePinVerificationSuccess = () => {
       setShowPinVerification(false);
