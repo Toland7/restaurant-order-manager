@@ -41,7 +41,7 @@ const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation, profilePermissions } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -161,22 +161,24 @@ const MainApp = () => {
       // 1. User is PRO
       // 2. Profile is selected (authenticated)
       // 3. Profile is not loading
-      // 4. There is a pending navigation
+      // 4. Permissions are loaded (array has items or is empty but fetch completed)
+      // 5. There is a pending navigation
       if (isProUser && selectedProfile && !loadingProfile && pendingNavigation) {
-        logger.info('Profile authenticated, executing pending navigation:', pendingNavigation);
+        logger.info('Profile authenticated, waiting for permissions before executing pending navigation');
         
-        // Small delay to ensure permissions are fully loaded
+        // Wait longer to ensure permissions and all state is fully loaded
         const timer = setTimeout(() => {
+          logger.info('Executing pending navigation after delay:', pendingNavigation);
           const hasNavigated = executePendingNavigation(navigate);
           if (!hasNavigated) {
             // This shouldn't happen, but fallback to home just in case
             navigate('/');
           }
-        }, 200); // 200ms delay to ensure state is stable
+        }, 500); // 500ms delay to ensure permissions and state are stable
         
         return () => clearTimeout(timer);
       }
-    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, executePendingNavigation, navigate]);
+    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, profilePermissions, executePendingNavigation, navigate]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');
