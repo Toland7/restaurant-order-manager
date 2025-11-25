@@ -53,7 +53,18 @@ self.addEventListener('notificationclick', event => {
           data: notificationData
         });
         
-        return client.navigate(homeUrl.href).then(c => c.focus());
+        // Try to navigate, but handle error if service worker is not active
+        return client.navigate(homeUrl.href).then(c => c.focus()).catch(error => {
+          // If navigation fails, open a new window with notification data in URL
+          if (notificationData.url) {
+            homeUrl.searchParams.set('notification_url', notificationData.url);
+          } else if (notificationData.reminder_id) {
+            homeUrl.searchParams.set('notification_reminder_id', notificationData.reminder_id);
+          } else if (notificationData.reminder_ids) {
+            homeUrl.searchParams.set('notification_reminder_ids', JSON.stringify(notificationData.reminder_ids));
+          }
+          return clients.openWindow(homeUrl.href);
+        });
       }
       
       // If no client exists, encode notification data in URL

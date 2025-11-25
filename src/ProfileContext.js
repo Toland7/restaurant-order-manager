@@ -13,6 +13,7 @@ export const ProfileProvider = ({ children }) => {
 
   const [requiresProfileSelection, setRequiresProfileSelection] = useState(false);
   const [pendingNavigation, setPendingNavigationState] = useState(null);
+  const [lastAuthenticationTime, setLastAuthenticationTime] = useState(null);
 
   // Attempt to load selected profile from localStorage on initial render
   useEffect(() => {
@@ -23,17 +24,6 @@ export const ProfileProvider = ({ children }) => {
     setLoadingProfile(false);
   }, []);
 
-  // New function to update profile and sync with localStorage
-  const updateSelectedProfile = (profile) => {
-    setSelectedProfile(profile);
-    if (profile) {
-      localStorage.setItem('selectedProfile', JSON.stringify(profile));
-      setRequiresProfileSelection(false); // Reset flag when profile is selected
-    } else {
-      localStorage.removeItem('selectedProfile');
-    }
-  };
-
   const openPinModal = (profile) => {
     setProfileToVerify(profile);
     setIsPinModalOpen(true);
@@ -43,6 +33,17 @@ export const ProfileProvider = ({ children }) => {
     setProfileToVerify(null);
     setIsPinModalOpen(false);
   };
+
+  const setSelectedProfileWithTimestamp = useCallback((profile) => {
+    setSelectedProfile(profile);
+    if (profile) {
+      setLastAuthenticationTime(Date.now());
+      localStorage.setItem('selectedProfile', JSON.stringify(profile));
+      setRequiresProfileSelection(false); // Reset flag when profile is selected
+    } else {
+      localStorage.removeItem('selectedProfile');
+    }
+  }, []);
 
   // Pending navigation management for push notifications
   const setPendingNavigation = useCallback((url) => {
@@ -153,7 +154,7 @@ export const ProfileProvider = ({ children }) => {
   return (
     <ProfileContext.Provider value={{ 
       selectedProfile, 
-      setSelectedProfile: updateSelectedProfile, 
+      setSelectedProfile: setSelectedProfileWithTimestamp, 
       loadingProfile, 
       profilePermissions, 
       hasPermission,
@@ -162,10 +163,11 @@ export const ProfileProvider = ({ children }) => {
       openPinModal,
       closePinModal,
       requiresProfileSelection,
-      pendingNavigation,
       setPendingNavigation,
       clearPendingNavigation,
-      executePendingNavigation
+      executePendingNavigation,
+      pendingNavigation,
+      lastAuthenticationTime
     }}>
       {children}
     </ProfileContext.Provider>

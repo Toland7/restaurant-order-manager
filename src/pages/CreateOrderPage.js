@@ -24,7 +24,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
 
   const { isProUser } = useSubscriptionStatus();
-  const { hasPermission } = useProfileContext();
+  const { hasPermission, lastAuthenticationTime } = useProfileContext();
   const canSendOrders = hasPermission('orders:send');
   const canScheduleOrders = hasPermission('orders:schedule');
   const { prefilledData, setPrefilledData } = usePrefill();
@@ -41,13 +41,22 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
   const [initialMultiOrdersSet, setInitialMultiOrdersSet] = useState(false);
 
   const prepareAndValidateOrders = useCallback((checkType, suppressPermissionErrors = false) => {
+    // Check if authentication happened recently (within 10 seconds)
+    // This gives users enough time to enter their PIN without seeing permission errors
+    const recentlyAuthenticated = lastAuthenticationTime && (Date.now() - lastAuthenticationTime < 10000);
+    const shouldSuppressErrors = suppressPermissionErrors || recentlyAuthenticated;
+    
     if (checkType === 'send' && !canSendOrders) {
-      if (!suppressPermissionErrors) toast.error("Non hai i permessi per inviare ordini.");
-      return suppressPermissionErrors ? 'ok' : null;
+      if (!shouldSuppressErrors) {
+        toast.error("Non hai i permessi per inviare ordini.");
+      }
+      return shouldSuppressErrors ? 'ok' : null;
     }
     if (checkType === 'schedule' && !canScheduleOrders) {
-      if (!suppressPermissionErrors) toast.error("Non hai i permessi per programmare ordini.");
-      return suppressPermissionErrors ? 'ok' : null;
+      if (!shouldSuppressErrors) {
+        toast.error("Non hai i permessi per programmare ordini.");
+      }
+      return shouldSuppressErrors ? 'ok' : null;
     }
     const invalidOrders = [];
     const messages = [];
