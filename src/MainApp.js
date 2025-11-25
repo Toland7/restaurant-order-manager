@@ -41,7 +41,7 @@ const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -56,14 +56,31 @@ const MainApp = () => {
       }
     }, [isProUser, loadingProfile, selectedProfile, setSelectedProfile]);
   
+    // Detect if app was opened from a push notification and save pending navigation
+    useEffect(() => {
+      if (isProUser && !selectedProfile && !loadingProfile) {
+        const currentPath = location.pathname + location.search;
+        // Check if the URL contains notification-related parameters (reminder_ids or reminder_id)
+        if (currentPath.includes('reminder_id') && currentPath !== '/') {
+          logger.info('Detected push notification URL, saving as pending navigation:', currentPath);
+          setPendingNavigation(currentPath);
+        }
+      }
+    }, [isProUser, selectedProfile, loadingProfile, location.pathname, location.search, setPendingNavigation]);
+  
     const handlePinVerificationSuccess = () => {
       setShowPinVerification(false);
-      navigate('/'); // Navigate to main app after successful PIN verification
+      // Execute pending navigation if exists, otherwise go to home
+      executePendingNavigation(navigate);
+      if (!executePendingNavigation(navigate)) {
+        navigate('/');
+      }
     };
   
     const handlePinVerificationFailure = () => {
       setSelectedProfile(null);
       setShowPinVerification(false);
+      clearPendingNavigation(); // Clear pending navigation on failure
       // ProfileSelectionPage will be rendered automatically due to !selectedProfile
     };
   
@@ -135,7 +152,8 @@ const MainApp = () => {
 
     const handlePinSuccessFromDropdown = () => {
       closePinModal();
-      navigate('/');
+      // Execute pending navigation if exists, otherwise stay on current page
+      executePendingNavigation(navigate);
     };
 
     // Helper component for PRO features

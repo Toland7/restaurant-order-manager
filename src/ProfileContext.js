@@ -12,6 +12,7 @@ export const ProfileProvider = ({ children }) => {
   const [profileToVerify, setProfileToVerify] = useState(null);
 
   const [requiresProfileSelection, setRequiresProfileSelection] = useState(false);
+  const [pendingNavigation, setPendingNavigationState] = useState(null);
 
   // Attempt to load selected profile from localStorage on initial render
   useEffect(() => {
@@ -42,6 +43,37 @@ export const ProfileProvider = ({ children }) => {
     setProfileToVerify(null);
     setIsPinModalOpen(false);
   };
+
+  // Pending navigation management for push notifications
+  const setPendingNavigation = useCallback((url) => {
+    logger.info('Setting pending navigation:', url);
+    setPendingNavigationState(url);
+  }, []);
+
+  const clearPendingNavigation = useCallback(() => {
+    logger.info('Clearing pending navigation');
+    setPendingNavigationState(null);
+  }, []);
+
+  const executePendingNavigation = useCallback((navigate) => {
+    if (pendingNavigation) {
+      logger.info('Executing pending navigation:', pendingNavigation);
+      const urlToNavigate = pendingNavigation;
+      setPendingNavigationState(null);
+      
+      // Extract path and search params from the URL
+      try {
+        const url = new URL(urlToNavigate, window.location.origin);
+        const fullPath = url.pathname + url.search;
+        navigate(fullPath);
+      } catch (error) {
+        logger.error('Error parsing pending navigation URL:', error);
+        navigate(pendingNavigation);
+      }
+      return true;
+    }
+    return false;
+  }, [pendingNavigation]);
 
   // Fetch permissions when selectedProfile changes OR for current user (demo/base)
   useEffect(() => {
@@ -129,7 +161,11 @@ export const ProfileProvider = ({ children }) => {
       profileToVerify,
       openPinModal,
       closePinModal,
-      requiresProfileSelection
+      requiresProfileSelection,
+      pendingNavigation,
+      setPendingNavigation,
+      clearPendingNavigation,
+      executePendingNavigation
     }}>
       {children}
     </ProfileContext.Provider>

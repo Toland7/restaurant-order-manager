@@ -10,7 +10,7 @@ import logger from '../utils/logger';
 const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, onPinVerificationFailure }) => {
   const { profiles, loading, error } = useInAppProfiles();
   const navigate = useNavigate();
-  const { setSelectedProfile } = useProfileContext();
+  const { setSelectedProfile, executePendingNavigation, clearPendingNavigation } = useProfileContext();
 
   const [selectedProfileData, setSelectedProfileData] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -57,7 +57,11 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
         if (onPinVerificationSuccess) {
           onPinVerificationSuccess();
         } else {
-          navigate('/'); // Navigate to main app
+          // Execute pending navigation if exists, otherwise go to home
+          const hasNavigated = executePendingNavigation(navigate);
+          if (!hasNavigated) {
+            navigate('/');
+          }
         }
       } else {
         setPinError('PIN errato. Riprova.');
@@ -95,7 +99,11 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
       if (onPinVerificationSuccess) {
         onPinVerificationSuccess();
       } else {
-        navigate('/');
+        // Execute pending navigation if exists, otherwise go to home
+        const hasNavigated = executePendingNavigation(navigate);
+        if (!hasNavigated) {
+          navigate('/');
+        }
       }
 
     } catch (err) {
@@ -143,7 +151,13 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
               onPinChange={() => setPinError('')} 
             />
             <button 
-              onClick={() => setShowPinModal(false)}
+              onClick={() => {
+                setShowPinModal(false);
+                clearPendingNavigation(); // Clear pending navigation when user cancels
+                if (onPinVerificationFailure) {
+                  onPinVerificationFailure();
+                }
+              }}
               className="mt-8 w-full py-3 text-lg font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               Annulla
