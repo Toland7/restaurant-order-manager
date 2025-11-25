@@ -90,24 +90,34 @@ const MainApp = () => {
           const notificationData = event.data.data;
           logger.info('Received notification click from service worker:', notificationData);
           
-          // Build the URL from notification data
+          // Build target URL from notification data
           let targetUrl = '/';
           if (notificationData.url) {
             targetUrl = notificationData.url;
           } else if (notificationData.reminder_id) {
-            // Fallback for old notifications
-            targetUrl = `/reminders/${notificationData.reminder_id}`;
+            targetUrl = `/create-order?reminder_id=${notificationData.reminder_id}&flowInitialStep=review`;
+          } else if (notificationData.reminder_ids) {
+            // Parse possible JSON array
+            let ids = notificationData.reminder_ids;
+            try {
+              const parsed = JSON.parse(notificationData.reminder_ids);
+              if (Array.isArray(parsed)) ids = parsed.join(',');
+            } catch (e) {
+              // keep as is
+            }
+            targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
           }
-          
-          // If user is PRO and not logged in, save as pending navigation
-          if (isProUser && !selectedProfile) {
-            logger.info('User is PRO without profile, saving as pending navigation:', targetUrl);
+
+          // If user is PRO but not authenticated yet, store pending navigation (only if we have a real target)
+          if (isProUser && !selectedProfile && targetUrl !== '/') {
+            logger.info('User is PRO without profile, saving pending navigation from service worker:', targetUrl);
             setPendingNavigation(targetUrl);
-          } else {
-            // Otherwise navigate immediately
-            logger.info('Navigating immediately to:', targetUrl);
-            navigate(targetUrl);
+            return; // defer navigation until after login
           }
+
+          // Otherwise navigate immediately (or if targetUrl is '/', we stay on home)
+          logger.info('Navigating immediately to (service worker):', targetUrl);
+          navigate(targetUrl);
         }
       };
       
