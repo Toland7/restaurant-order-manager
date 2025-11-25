@@ -59,8 +59,8 @@ const MainApp = () => {
     const handlePinVerificationSuccess = () => {
       setShowPinVerification(false);
       // Execute pending navigation if exists, otherwise go to home
-      executePendingNavigation(navigate);
-      if (!executePendingNavigation(navigate)) {
+      const hasNavigated = executePendingNavigation(navigate);
+      if (!hasNavigated) {
         navigate('/');
       }
     };
