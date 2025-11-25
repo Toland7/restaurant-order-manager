@@ -12,6 +12,7 @@ export const ProfileProvider = ({ children }) => {
   const [profileToVerify, setProfileToVerify] = useState(null);
 
   const [requiresProfileSelection, setRequiresProfileSelection] = useState(false);
+  const [profileFatalError, setProfileFatalError] = useState(null);
   const [pendingNavigation, setPendingNavigationState] = useState(null);
   const [lastAuthenticationTime, setLastAuthenticationTime] = useState(null);
 
@@ -118,12 +119,15 @@ export const ProfileProvider = ({ children }) => {
               return;
             }
             logger.error('Error fetching in_app_profile:', profileError);
+            setProfileFatalError('fetchError');
             setProfilePermissions([]);
             return;
           }
 
           if (!profileData) {
             // No profile found
+            logger.info('No profile found for user.');
+            setRequiresProfileSelection(true);
             setProfilePermissions([]);
             return;
           }
@@ -167,11 +171,14 @@ export const ProfileProvider = ({ children }) => {
       openPinModal,
       closePinModal,
       requiresProfileSelection,
+      profileFatalError,
       setPendingNavigation,
       clearPendingNavigation,
       executePendingNavigation,
       pendingNavigation,
-      lastAuthenticationTime
+      lastAuthenticationTime,
+      // Reset fatal error when profile changes or logout
+      resetFatalError: () => setProfileFatalError(null)
     }}>
       {children}
     </ProfileContext.Provider>
