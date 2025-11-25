@@ -10,6 +10,7 @@ import useIsDesktop from '../hooks/useIsDesktop';
 import { useOnboarding } from '../OnboardingContext';
 
 import logger from '../utils/logger';
+import packageInfo from '../../package.json';
 const SettingsPage = ({ theme, setTheme, profile, user }) => {
     const navigate = useNavigate();
     const isDesktop = useIsDesktop();
@@ -245,6 +246,10 @@ const SettingsPage = ({ theme, setTheme, profile, user }) => {
           <button onClick={handleLogout} className="w-full bg-red-500 text-white py-3 rounded-lg font-medium mt-6 hover:bg-red-600 transition-colors" disabled={isSubmitting}>
             {isSubmitting ? 'Logout in corso...' : 'Logout'}
           </button>
+          {/* Build number / version display */}
+          <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            Build: {packageInfo.version} ({new Date().toLocaleString()})
+          </div>
         </div>
       </div>
     );

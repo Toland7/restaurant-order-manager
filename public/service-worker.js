@@ -7,6 +7,11 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// Ensure the new service worker takes control immediately after activation
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener('push', event => {
 
   try {

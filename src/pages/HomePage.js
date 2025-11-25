@@ -148,10 +148,11 @@ const HomePage = ({ profile, user, unreadCount, analytics, orders = [], schedule
               </div>
 
               {/* Quick Actions Widget */}
-              <div className="glass-card p-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none">
-                <h2 className="text-lg font-semibold mb-2">Nuovo Ordine</h2>
-                <p className="text-blue-100 text-sm mb-6">Crea rapidamente un nuovo ordine per i tuoi fornitori.</p>
-                <button onClick={() => navigate('/create-order')} className="w-full bg-white text-blue-600 hover:bg-blue-50 font-medium py-2 px-4 rounded-lg transition-colors shadow-sm">
+              {/* Quick Actions Widget */}
+              <div className="glass-card p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Nuovo Ordine</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Crea rapidamente un nuovo ordine per i tuoi fornitori.</p>
+                <button onClick={() => navigate('/create-order')} className="w-full btn btn-primary font-medium py-2 px-4 rounded-lg shadow-sm">
                   Inizia Ordine
                 </button>
               </div>
