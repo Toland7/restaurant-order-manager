@@ -41,7 +41,7 @@ const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -58,11 +58,7 @@ const MainApp = () => {
   
     const handlePinVerificationSuccess = () => {
       setShowPinVerification(false);
-      // Execute pending navigation if exists, otherwise go to home
-      const hasNavigated = executePendingNavigation(navigate);
-      if (!hasNavigated) {
-        navigate('/');
-      }
+      // Pending navigation will be executed by useEffect after profile is authenticated
     };
   
     const handlePinVerificationFailure = () => {
@@ -158,6 +154,29 @@ const MainApp = () => {
         }
       }
     }, [isProUser, selectedProfile, setPendingNavigation, navigate, location.search]);
+  
+    // Execute pending navigation after profile is authenticated and permissions are loaded
+    useEffect(() => {
+      // Only execute if:
+      // 1. User is PRO
+      // 2. Profile is selected (authenticated)
+      // 3. Profile is not loading
+      // 4. There is a pending navigation
+      if (isProUser && selectedProfile && !loadingProfile && pendingNavigation) {
+        logger.info('Profile authenticated, executing pending navigation:', pendingNavigation);
+        
+        // Small delay to ensure permissions are fully loaded
+        const timer = setTimeout(() => {
+          const hasNavigated = executePendingNavigation(navigate);
+          if (!hasNavigated) {
+            // This shouldn't happen, but fallback to home just in case
+            navigate('/');
+          }
+        }, 200); // 200ms delay to ensure state is stable
+        
+        return () => clearTimeout(timer);
+      }
+    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, executePendingNavigation, navigate]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');

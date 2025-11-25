@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useInAppProfiles } from '../hooks/useInAppProfiles';
 import { supabase } from '../supabase';
 import PinPad from '../components/ui/PinPad';
@@ -9,8 +8,7 @@ import { useProfileContext } from '../ProfileContext';
 import logger from '../utils/logger';
 const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, onPinVerificationFailure }) => {
   const { profiles, loading, error } = useInAppProfiles();
-  const navigate = useNavigate();
-  const { setSelectedProfile, executePendingNavigation, clearPendingNavigation } = useProfileContext();
+  const { setSelectedProfile, clearPendingNavigation } = useProfileContext();
 
   const [selectedProfileData, setSelectedProfileData] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -56,13 +54,8 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
         setSelectedProfile(selectedProfileData); // Store selected profile in context
         if (onPinVerificationSuccess) {
           onPinVerificationSuccess();
-        } else {
-          // Execute pending navigation if exists, otherwise go to home
-          const hasNavigated = executePendingNavigation(navigate);
-          if (!hasNavigated) {
-            navigate('/');
-          }
         }
+        // Pending navigation will be executed by MainApp useEffect after profile is authenticated
       } else {
         setPinError('PIN errato. Riprova.');
         toast.error('PIN errato.');
@@ -98,13 +91,8 @@ const ProfileSelectionPage = ({ preSelectedProfile, onPinVerificationSuccess, on
       setSelectedProfile(updatedProfile);
       if (onPinVerificationSuccess) {
         onPinVerificationSuccess();
-      } else {
-        // Execute pending navigation if exists, otherwise go to home
-        const hasNavigated = executePendingNavigation(navigate);
-        if (!hasNavigated) {
-          navigate('/');
-        }
       }
+      // Pending navigation will be executed by MainApp useEffect after profile is authenticated
 
     } catch (err) {
       logger.error('Error setting PIN:', err);
