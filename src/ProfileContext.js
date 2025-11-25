@@ -97,56 +97,53 @@ export const ProfileProvider = ({ children }) => {
           const fetchedPermissions = data.map(pp => pp.permissions.name);
           setProfilePermissions(fetchedPermissions);
         }
-        // IMPORTANT: Return here to prevent querying for current user profile
-        // This avoids the race condition where a selected profile gets "kicked out"
-        return;
-      }
-      
-      // For demo/base users: load from current user's in_app_profile
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Get user's in_app_profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('in_app_profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      } else {
+        // For demo/base users: load from current user's in_app_profile
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (profileError) {
-          if (profileError.code === 'PGRST116') {
-            // Multiple profiles found, require selection
-            logger.info('Multiple profiles found, requiring selection.');
-            setRequiresProfileSelection(true);
+        if (user) {
+          // Get user's in_app_profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('in_app_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (profileError) {
+            if (profileError.code === 'PGRST116') {
+              // Multiple profiles found, require selection
+              logger.info('Multiple profiles found, requiring selection.');
+              setRequiresProfileSelection(true);
+              setProfilePermissions([]);
+              return;
+            }
+            logger.error('Error fetching in_app_profile:', profileError);
             setProfilePermissions([]);
             return;
           }
-          logger.error('Error fetching in_app_profile:', profileError);
-          setProfilePermissions([]);
-          return;
-        }
 
-        if (!profileData) {
-          // No profile found
-          setProfilePermissions([]);
-          return;
-        }
-        
-        // Get permissions for this profile
-        const { data: permData, error: permError } = await supabase
-          .from('profile_permissions')
-          .select('permissions(name)')
-          .eq('profile_id', profileData.id);
-        
-        if (permError) {
-          logger.error('Error fetching permissions:', permError);
-          setProfilePermissions([]);
+          if (!profileData) {
+            // No profile found
+            setProfilePermissions([]);
+            return;
+          }
+          
+          // Get permissions for this profile
+          const { data: permData, error: permError } = await supabase
+            .from('profile_permissions')
+            .select('permissions(name)')
+            .eq('profile_id', profileData.id);
+          
+          if (permError) {
+            logger.error('Error fetching permissions:', permError);
+            setProfilePermissions([]);
+          } else {
+            const fetchedPermissions = permData.map(pp => pp.permissions.name);
+            setProfilePermissions(fetchedPermissions);
+          }
         } else {
-          const fetchedPermissions = permData.map(pp => pp.permissions.name);
-          setProfilePermissions(fetchedPermissions);
+          setProfilePermissions([]);
         }
-      } else {
-        setProfilePermissions([]);
       }
     };
 
