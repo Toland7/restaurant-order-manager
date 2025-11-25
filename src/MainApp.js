@@ -41,7 +41,7 @@ const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation, profilePermissions } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -77,8 +77,8 @@ const MainApp = () => {
     const { unreadCount, setUnreadCount, handleNotificationClick } = useNotifications(user, setPrefilledData, navigate);
     const [selectedProductForHistory, setSelectedProductForHistory] = useState(null); // New state
     const [theme, setTheme] = useState('light');
-    // New: get fatal error state and stability flag from ProfileContext
-    const { profileFatalError, isProfileStable } = useProfileContext();
+    // New: get fatal error state from ProfileContext
+    const { profileFatalError, resetFatalError } = useProfileContext();
   
     const [multiOrders, setMultiOrders] = useState([{ id: Date.now(), supplier: '', items: {}, additional: '', email_subject: '', searchTerm: '' }]);
     const [showWizard, setShowWizard] = useState(false);
@@ -122,14 +122,14 @@ const MainApp = () => {
             return;
           }
 
-          // If profile is not stable OR not selected (for PRO users), buffer the navigation
-          if (isProUser && (!isProfileStable || !selectedProfile) && targetUrl !== '/') {
-            logger.info('Profile not stable or not selected, buffering navigation:', targetUrl);
+          // If user is PRO but not authenticated yet, store pending navigation (only if we have a real target)
+          if (isProUser && !selectedProfile && targetUrl !== '/') {
+            logger.info('User is PRO without profile, saving pending navigation from service worker:', targetUrl);
             setPendingNavigation(targetUrl);
-            return;
+            return; // defer navigation until after login
           }
 
-          // Otherwise navigate immediately
+          // Otherwise navigate immediately (or if targetUrl is '/', we stay on home)
           logger.info('Navigating immediately to (service worker):', targetUrl);
           navigate(targetUrl);
         }
@@ -140,7 +140,7 @@ const MainApp = () => {
       return () => {
         navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       };
-    }, [isProUser, selectedProfile, isProfileStable, setPendingNavigation, navigate, profileFatalError]);
+    }, [isProUser, selectedProfile, setPendingNavigation, navigate]);
   
     // Detect notification data from URL parameters (when app opens from scratch)
     useEffect(() => {
@@ -189,22 +189,25 @@ const MainApp = () => {
       // Only execute if:
       // 1. User is PRO
       // 2. Profile is selected (authenticated)
-      // 3. Profile is stable (permissions loaded)
-      // 4. There is a pending navigation
-      if (isProUser && selectedProfile && isProfileStable && pendingNavigation) {
-        logger.info('Profile authenticated and stable, executing pending navigation');
+      // 3. Profile is not loading
+      // 4. Permissions are loaded (array has items or is empty but fetch completed)
+      // 5. There is a pending navigation
+      if (isProUser && selectedProfile && !loadingProfile && pendingNavigation) {
+        logger.info('Profile authenticated, waiting for permissions before executing pending navigation');
         
+        // Wait longer to ensure permissions and all state is fully loaded
         const timer = setTimeout(() => {
           logger.info('Executing pending navigation after delay:', pendingNavigation);
           const hasNavigated = executePendingNavigation(navigate);
           if (!hasNavigated) {
+            // This shouldn't happen, but fallback to home just in case
             navigate('/');
           }
-        }, 500); // Reduced delay as stability check is robust
+        }, 1000); // increased to 1000ms for safety
         
         return () => clearTimeout(timer);
       }
-    }, [isProUser, selectedProfile, isProfileStable, pendingNavigation, executePendingNavigation, navigate]);
+    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, profilePermissions, executePendingNavigation, navigate]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');
