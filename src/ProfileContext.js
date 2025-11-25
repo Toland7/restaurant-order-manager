@@ -15,6 +15,7 @@ export const ProfileProvider = ({ children }) => {
   const [profileFatalError, setProfileFatalError] = useState(null);
   const [pendingNavigation, setPendingNavigationState] = useState(null);
   const [lastAuthenticationTime, setLastAuthenticationTime] = useState(null);
+  const [isProfileStable, setIsProfileStable] = useState(false); // New flag for stability
 
   // Attempt to load selected profile from localStorage on initial render
   useEffect(() => {
@@ -84,6 +85,11 @@ export const ProfileProvider = ({ children }) => {
   // Fetch permissions when selectedProfile changes OR for current user (demo/base)
   useEffect(() => {
     const fetchPermissions = async () => {
+      // Reset stability at start of fetch
+      // We don't set it to false here to avoid flickering if it was already true, 
+      // but strictly speaking, during fetch it's not stable. 
+      // However, for this logic, we want to know when the *initial* check is done.
+      
       // For Pro users: use selectedProfile
       if (selectedProfile?.id) {
         const { data, error } = await supabase
@@ -98,6 +104,7 @@ export const ProfileProvider = ({ children }) => {
           const fetchedPermissions = data.map(pp => pp.permissions.name);
           setProfilePermissions(fetchedPermissions);
         }
+        setIsProfileStable(true); // Stable after permissions fetch
       } else {
         // For demo/base users: load from current user's in_app_profile
         const { data: { user } } = await supabase.auth.getUser();
@@ -116,11 +123,13 @@ export const ProfileProvider = ({ children }) => {
               logger.info('Multiple profiles found, requiring selection.');
               setRequiresProfileSelection(true);
               setProfilePermissions([]);
+              setIsProfileStable(true); // Stable (decision made: require selection)
               return;
             }
             logger.error('Error fetching in_app_profile:', profileError);
             setProfileFatalError('fetchError');
             setProfilePermissions([]);
+            setIsProfileStable(true); // Stable (decision made: error)
             return;
           }
 
@@ -129,6 +138,7 @@ export const ProfileProvider = ({ children }) => {
             logger.info('No profile found for user.');
             setRequiresProfileSelection(true);
             setProfilePermissions([]);
+            setIsProfileStable(true); // Stable (decision made: require selection/creation)
             return;
           }
           
@@ -145,8 +155,10 @@ export const ProfileProvider = ({ children }) => {
             const fetchedPermissions = permData.map(pp => pp.permissions.name);
             setProfilePermissions(fetchedPermissions);
           }
+          setIsProfileStable(true); // Stable after permissions fetch
         } else {
           setProfilePermissions([]);
+          setIsProfileStable(true); // Stable (no user)
         }
       }
     };
@@ -177,6 +189,7 @@ export const ProfileProvider = ({ children }) => {
       executePendingNavigation,
       pendingNavigation,
       lastAuthenticationTime,
+      isProfileStable, // Expose stability flag
       // Reset fatal error when profile changes or logout
       resetFatalError: () => setProfileFatalError(null)
     }}>
