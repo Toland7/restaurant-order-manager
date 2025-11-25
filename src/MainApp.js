@@ -128,32 +128,45 @@ const MainApp = () => {
       if (notificationUrl || notificationReminderId || notificationReminderIds) {
         logger.info('Detected notification data from URL parameters');
         
+        // If user is not logged in yet, DO NOTHING. 
+        // Wait for profile selection. The params will stay in the URL.
+        if (isProUser && !selectedProfile) {
+          logger.info('User is PRO without profile, waiting for authentication before processing URL params');
+          return;
+        }
+
         // Build target URL
         let targetUrl = '/';
         if (notificationUrl) {
           targetUrl = notificationUrl;
         } else if (notificationReminderId) {
-          targetUrl = `/reminders/${notificationReminderId}`;
+          targetUrl = `/create-order?reminder_id=${notificationReminderId}&flowInitialStep=review`;
+        } else if (notificationReminderIds) {
+           // Handle the missing case!
+           // We need to parse it if it's a JSON string, or pass it directly if it's a comma-separated string
+           // The service worker sends it as JSON stringified
+           let ids = notificationReminderIds;
+           try {
+             const parsed = JSON.parse(notificationReminderIds);
+             if (Array.isArray(parsed)) ids = parsed.join(',');
+           } catch (e) {
+             // keep as is
+           }
+           targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
         }
         
-        // Clean up URL parameters
+        logger.info('Navigating to target URL from params:', targetUrl);
+        
+        // Clean up notification params from URL *before* navigating to avoid loops, 
+        // but navigate to the new URL which includes the data as query params
         params.delete('notification_url');
         params.delete('notification_reminder_id');
         params.delete('notification_reminder_ids');
-        const cleanUrl = params.toString() ? `/?${params.toString()}` : '/';
-        window.history.replaceState({}, '', cleanUrl);
         
-        // If user is PRO and not logged in, save as pending navigation
-        if (isProUser && !selectedProfile) {
-          logger.info('User is PRO without profile, saving as pending navigation from URL:', targetUrl);
-          setPendingNavigation(targetUrl);
-        } else {
-          // Otherwise navigate immediately
-          logger.info('Navigating immediately to:', targetUrl);
-          navigate(targetUrl);
-        }
+        // We don't need to replaceState here because navigate() will change the URL anyway
+        navigate(targetUrl);
       }
-    }, [isProUser, selectedProfile, setPendingNavigation, navigate, location.search]);
+    }, [isProUser, selectedProfile, navigate, location.search]);
   
     // Execute pending navigation after profile is authenticated and permissions are loaded
     useEffect(() => {
@@ -174,7 +187,7 @@ const MainApp = () => {
             // This shouldn't happen, but fallback to home just in case
             navigate('/');
           }
-        }, 500); // 500ms delay to ensure permissions and state are stable
+        }, 1000); // increased to 1000ms for safety
         
         return () => clearTimeout(timer);
       }
