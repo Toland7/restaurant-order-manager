@@ -193,6 +193,12 @@ const MainApp = () => {
   
     // Detect notification data from URL parameters (when app opens from scratch)
     useEffect(() => {
+      // If a logout/login flow is already in progress (indicated by pendingNavigation),
+      // do not process URL params here. The other effect will handle it.
+      if (pendingNavigation) {
+        return;
+      }
+
       const params = new URLSearchParams(location.search);
       const notificationUrl = params.get('notification_url');
       const notificationReminderId = params.get('notification_reminder_id');
@@ -238,7 +244,7 @@ const MainApp = () => {
       params.delete('notification_reminder_ids');
       navigate(targetUrl);
       
-    }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation]);
+    }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation, pendingNavigation]);
   
     // Execute pending navigation after profile is authenticated and permissions are loaded
     // Execute pending navigation after profile is authenticated, and pre-fill context if needed.
