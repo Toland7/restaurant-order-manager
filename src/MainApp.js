@@ -250,7 +250,8 @@ const MainApp = () => {
     // Execute pending navigation after profile is authenticated, and pre-fill context if needed.
     useEffect(() => {
       const processAndExecuteNavigation = async () => {
-        if (isProUser && selectedProfile && !loadingProfile && pendingNavigation) {
+        // Guard: Wait for suppliers to be loaded before processing
+        if (isProUser && selectedProfile && !loadingProfile && pendingNavigation && suppliers.length > 0) {
           logger.info('Profile authenticated, processing and executing pending navigation:', pendingNavigation);
   
           try {
