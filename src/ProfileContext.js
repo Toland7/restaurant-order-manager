@@ -45,6 +45,16 @@ export const ProfileProvider = ({ children }) => {
     }
   }, []);
 
+  // Force logout for notification re-authentication
+  const forceLogout = useCallback(() => {
+    logger.info('Forcing profile logout for notification re-authentication');
+    localStorage.removeItem('selectedProfile');
+    setSelectedProfile(null);
+    setProfilePermissions([]);
+    setLastAuthenticationTime(null);
+    setRequiresProfileSelection(false);
+  }, []);
+
   // Pending navigation management for push notifications
   const setPendingNavigation = useCallback((url) => {
     if (!url || url === '/') {
@@ -171,7 +181,8 @@ export const ProfileProvider = ({ children }) => {
       clearPendingNavigation,
       executePendingNavigation,
       pendingNavigation,
-      lastAuthenticationTime
+      lastAuthenticationTime,
+      forceLogout
     }}>
       {children}
     </ProfileContext.Provider>

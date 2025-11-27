@@ -41,7 +41,7 @@ const MainApp = () => {
     const location = useLocation();
     const { user, isLoggingOut } = useAuth(); // Get isLoggingOut from AuthContext
     const { isProUser, loadingSubscription, isTrialExpired } = useSubscriptionStatus();
-    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation, profilePermissions } = useProfileContext();
+    const { selectedProfile, loadingProfile, setSelectedProfile, isPinModalOpen, profileToVerify, closePinModal, requiresProfileSelection, setPendingNavigation, clearPendingNavigation, executePendingNavigation, pendingNavigation, profilePermissions, forceLogout } = useProfileContext();
     const [showPinVerification, setShowPinVerification] = useState(false);
   
     useEffect(() => {
@@ -90,14 +90,48 @@ const MainApp = () => {
           const notificationData = event.data.data;
           logger.info('Received notification click from service worker:', notificationData);
           
-          // Build target URL from notification data
+          // 🔥 NUOVO: Se richiede re-autenticazione E utente è PRO, forza logout
+          if (event.data.forceReauth && isProUser) {
+            logger.info('Notification requires re-auth, forcing profile logout');
+            
+            // 1. Costruisci target URL PRIMA del logout
+            let targetUrl = '/';
+            if (notificationData.url) {
+              targetUrl = notificationData.url;
+            } else if (notificationData.reminder_id) {
+              targetUrl = `/create-order?reminder_id=${notificationData.reminder_id}&flowInitialStep=review`;
+            } else if (notificationData.reminder_ids) {
+              let ids = notificationData.reminder_ids;
+              try {
+                const parsed = JSON.parse(notificationData.reminder_ids);
+                if (Array.isArray(parsed)) ids = parsed.join(',');
+              } catch (e) {
+                // keep as is
+              }
+              targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
+            }
+            
+            // 2. Salva pending navigation
+            if (targetUrl !== '/') {
+              logger.info('Saving pending navigation before forced logout:', targetUrl);
+              setPendingNavigation(targetUrl);
+            }
+            
+            // 3. Forza logout del profilo
+            forceLogout();
+            
+            // 4. La ProfileSelectionPage verrà mostrata automaticamente
+            // 5. Dopo l'autenticazione, executePendingNavigation verrà chiamato
+            return;
+          }
+          
+          // Build target URL from notification data (flow esistente per utenti non-PRO o senza forceReauth)
           let targetUrl = '/';
           if (notificationData.url) {
             targetUrl = notificationData.url;
           } else if (notificationData.reminder_id) {
             targetUrl = `/create-order?reminder_id=${notificationData.reminder_id}&flowInitialStep=review`;
           } else if (notificationData.reminder_ids) {
-            // Parse possible JSON array
             let ids = notificationData.reminder_ids;
             try {
               const parsed = JSON.parse(notificationData.reminder_ids);
@@ -132,7 +166,7 @@ const MainApp = () => {
       return () => {
         navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       };
-    }, [isProUser, selectedProfile, setPendingNavigation, navigate]);
+    }, [isProUser, selectedProfile, setPendingNavigation, navigate, forceLogout]);
   
     // Detect notification data from URL parameters (when app opens from scratch)
     useEffect(() => {

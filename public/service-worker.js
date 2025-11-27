@@ -55,7 +55,8 @@ self.addEventListener('notificationclick', event => {
         // Send notification data to the client via postMessage
         client.postMessage({
           type: 'NOTIFICATION_CLICKED',
-          data: notificationData
+          data: notificationData,
+          forceReauth: notificationData.forceReauth || false
         });
         
         // Try to navigate, but handle error if service worker is not active
