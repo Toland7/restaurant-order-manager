@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-undef */
 
-// VERSIONE: 1.2.0 - Migliorata gestione navigationclick per navigazione esplicita
-console.log('[Service Worker] Versione 1.2.0 caricata');
+// VERSIONE: 1.3.0 - Rimosso postMessage, aggiunto forceReauth come parametro URL
+console.log('[Service Worker] Versione 1.3.0 caricata');
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -28,7 +28,7 @@ self.addEventListener('push', event => {
       body: data.body || 'Hai ricevuto una nuova notifica.',
       icon: '/logo192.svg',
       badge: '/logo192.svg',
-      data: data.data // Passa l\'oggetto dati
+      data: data.data // Passa l'oggetto dati
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
@@ -50,88 +50,57 @@ self.addEventListener('notificationclick', event => {
 
   // Estrai i dati della notifica
   const notificationData = event.notification.data || {};
+  const forceReauth = notificationData.forceReauth || false;
   console.log('[Service Worker] Dati notifica:', notificationData);
-  console.log('[Service Worker] Flag forceReauth:', notificationData.forceReauth);
+  console.log('[Service Worker] Flag forceReauth:', forceReauth);
 
   let targetUrl = new URL('/', self.location.origin); // Inizia con l\'URL base
 
   // Costruisci l\'URL target in base ai dati della notifica
   if (notificationData.url) {
-    // Se c\'è un URL specifico nella notifica, usalo
     targetUrl = new URL(notificationData.url, self.location.origin);
   } else if (notificationData.reminder_id) {
     targetUrl.pathname = '/create-order';
-    targetUrl.searchParams.set('notification_reminder_id', notificationData.reminder_id);
-    targetUrl.searchParams.set('flowInitialStep', 'review'); // Logica da MainApp.js
+    targetUrl.searchParams.set('reminder_id', notificationData.reminder_id);
+    targetUrl.searchParams.set('flowInitialStep', 'review');
   } else if (notificationData.reminder_ids) {
     targetUrl.pathname = '/create-order';
-    // notification_reminder_ids in MainApp.js si aspetta una stringa JSON o separata da virgole
     const ids = Array.isArray(notificationData.reminder_ids) ? JSON.stringify(notificationData.reminder_ids) : notificationData.reminder_ids;
-    targetUrl.searchParams.set('notification_reminder_ids', ids);
-    targetUrl.searchParams.set('flowInitialStep', 'review'); // Logica da MainApp.js
+    targetUrl.searchParams.set('reminder_ids', ids);
+    targetUrl.searchParams.set('flowInitialStep', 'review');
   } else if (notificationData.batch_id && notificationData.user_id) {
     targetUrl.pathname = '/create-order';
-    targetUrl.searchParams.set('notification_batch_id', notificationData.batch_id);
-    targetUrl.searchParams.set('notification_user_id', notificationData.user_id);
-    targetUrl.searchParams.set('flowInitialStep', 'review'); // Logica da MainApp.js
+    targetUrl.searchParams.set('batch_id', notificationData.batch_id);
+    targetUrl.searchParams.set('user_id', notificationData.user_id);
+    targetUrl.searchParams.set('flowInitialStep', 'review');
+  }
+
+  // Aggiungi il flag forceReauth all\'URL se necessario
+  if (forceReauth) {
+    targetUrl.searchParams.set('forceReauth', 'true');
   }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Cerca un client esistente da riutilizzare
       let clientToHandle = null;
-
-      // Cerca un client esistente che possiamo navigare o mettere a fuoco
       for (const client of clientList) {
-        // Se troviamo un client che è già nella nostra origine, preferiamo usarlo
         if (client.url.startsWith(self.location.origin)) {
           clientToHandle = client;
           break;
         }
+        // Fallback to first client if no exact match or focused client
+        if (!clientToHandle) clientToHandle = clientList[0];
       }
 
-      const messagePayload = {
-        type: 'NOTIFICATION_CLICKED',
-        data: notificationData,
-        forceReauth: notificationData.forceReauth || false
-      };
-
       if (clientToHandle) {
-        // Client esistente trovato: naviga all\'URL target e poi invia il messaggio
+        // Se un client esiste, naviga a quell\'URL e portalo in primo piano
         console.log('[Service Worker] Navigazione client esistente a URL:', targetUrl.href);
-        return clientToHandle.navigate(targetUrl.href).then(c => {
-          if (c) { // c è il client dopo la navigazione, se ha successo
-            c.focus(); // Porta in primo piano
-            console.log('[Service Worker] Invio postMessage al client con forceReauth:', messagePayload.forceReauth);
-            c.postMessage(messagePayload);
-          } else {
-            console.warn('[Service Worker] Navigazione fallita per client esistente (forse il client si è chiuso?), apro nuova finestra.');
-            // Fallback: se navigate non restituisce un client valido, apri una nuova finestra
-            clients.openWindow(targetUrl.href).then(newWindowClient => {
-              if (newWindowClient) {
-                console.log('[Service Worker] Invio postMessage alla nuova finestra con forceReauth:', messagePayload.forceReauth);
-                newWindowClient.postMessage(messagePayload);
-              }
-            });
-          }
-        }).catch(error => {
-          console.error('[Service Worker] Errore durante la navigazione del client esistente:', error);
-          // Fallback: apri una nuova finestra se la navigazione fallisce
-          clients.openWindow(targetUrl.href).then(newWindowClient => {
-            if (newWindowClient) {
-              console.log('[Service Worker] Invio postMessage alla nuova finestra con forceReauth:', messagePayload.forceReauth);
-              newWindowClient.postMessage(messagePayload);
-            }
-          });
-        });
+        return clientToHandle.navigate(targetUrl.href).then(c => c?.focus());
       } else {
-        // Nessun client esistente trovato: apri una nuova finestra e invia il messaggio
+        // Altrimenti, apri una nuova finestra
         console.log('[Service Worker] Apertura nuova finestra con URL:', targetUrl.href);
-        return clients.openWindow(targetUrl.href).then(newWindowClient => {
-          if (newWindowClient) {
-            console.log('[Service Worker] Invio postMessage alla nuova finestra con forceReauth:', messagePayload.forceReauth);
-            newWindowClient.postMessage(messagePayload);
-          }
-        });
+        return clients.openWindow(targetUrl.href);
       }
     })
   );

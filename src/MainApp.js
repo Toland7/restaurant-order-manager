@@ -83,168 +83,67 @@ const MainApp = () => {
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
   
-    const [pendingServiceWorkerMessage, setPendingServiceWorkerMessage] = useState(null);
 
-    const processServiceWorkerMessage = useCallback((event) => {
-          const notificationData = event.data.data;
-          logger.info('Processing notification click:', notificationData);
-          
-          // 🔥 MODIFIED: Se utente è PRO, forza sempre il logout del profilo al click della notifica per garantire dati freschi
-          if (isProUser) {
-            logger.info('Notification requires re-auth, forcing profile logout');
-            
-            // 1. Costruisci target URL PRIMA del logout
-            let targetUrl = '/';
-            if (notificationData.url) {
-              targetUrl = notificationData.url;
-            } else if (notificationData.reminder_id) {
-              targetUrl = `/create-order?reminder_id=${notificationData.reminder_id}&flowInitialStep=review`;
-            } else if (notificationData.reminder_ids) {
-              let ids = notificationData.reminder_ids;
-              try {
-                const parsed = JSON.parse(notificationData.reminder_ids);
-                if (Array.isArray(parsed)) ids = parsed.join(',');
-              } catch (e) {
-                // keep as is
-              }
-              targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
-            }
-            
-            // 2. Salva pending navigation
-            if (targetUrl !== '/') {
-              logger.info('Saving pending navigation before forced logout:', targetUrl);
-              setPendingNavigation(targetUrl);
-            }
-            
-            // 3. Forza logout del profilo
-            forceLogout();
-            
-            // 4. La ProfileSelectionPage verrà mostrata automaticamente
-            // 5. Dopo l'autenticazione, executePendingNavigation verrà chiamato
-            return;
-          }
-          
-          // Build target URL from notification data (flow esistente per utenti non-PRO o senza forceReauth)
-          let targetUrl = '/';
-          if (notificationData.url) {
-            targetUrl = notificationData.url;
-          } else if (notificationData.reminder_id) {
-            targetUrl = `/create-order?reminder_id=${notificationData.reminder_id}&flowInitialStep=review`;
-          } else if (notificationData.reminder_ids) {
-            let ids = notificationData.reminder_ids;
-            try {
-              const parsed = JSON.parse(notificationData.reminder_ids);
-              if (Array.isArray(parsed)) ids = parsed.join(',');
-            } catch (e) {
-              // keep as is
-            }
-            targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
-          }
 
-          // If we didn't get a meaningful URL, ignore the message
-          if (targetUrl === '/') {
-            logger.info('Service worker notification click has no target URL, ignoring.');
-            return;
-          }
 
-          // If user is PRO but not authenticated yet, store pending navigation (only if we have a real target)
-          if (isProUser && !selectedProfile && targetUrl !== '/') {
-            logger.info('User is PRO without profile, saving pending navigation from service worker:', targetUrl);
-            setPendingNavigation(targetUrl);
-            return; // defer navigation until after login
-          }
 
-          // Otherwise navigate immediately (or if targetUrl is '/', we stay on home)
-          logger.info('Navigating immediately to (service worker):', targetUrl);
-          navigate(targetUrl);
-    }, [isProUser, selectedProfile, setPendingNavigation, navigate, forceLogout]);
 
-    // Listen for service worker messages (push notifications)
-    useEffect(() => {
-      const handleServiceWorkerMessage = (event) => {
-        if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
-          logger.info('Received notification click from service worker. Loading subscription:', loadingSubscription);
-          
-          if (loadingSubscription) {
-            logger.info('Subscription loading, queuing message for later processing');
-            setPendingServiceWorkerMessage(event);
-            return;
-          }
-
-          processServiceWorkerMessage(event);
-        }
-      };
-      
-      navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
-      
-      return () => {
-        navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
-      };
-    }, [loadingSubscription, processServiceWorkerMessage]);
-
-    // Process pending messages once subscription is loaded
-    useEffect(() => {
-      if (!loadingSubscription && pendingServiceWorkerMessage) {
-        logger.info('Subscription loaded, processing queued service worker message');
-        processServiceWorkerMessage(pendingServiceWorkerMessage);
-        setPendingServiceWorkerMessage(null);
-      }
-    }, [loadingSubscription, pendingServiceWorkerMessage, processServiceWorkerMessage]);
   
     // Detect notification data from URL parameters (when app opens from scratch)
     useEffect(() => {
-      // If a logout/login flow is already in progress (indicated by pendingNavigation),
-      // do not process URL params here. The other effect will handle it.
+      const params = new URLSearchParams(location.search);
+      const reminderId = params.get('reminder_id');
+      const reminderIds = params.get('reminder_ids');
+      const batchId = params.get('batch_id');
+      const userId = params.get('user_id');
+      const forceReauthParam = params.get('forceReauth');
+
+      // Construct the *intended* target URL based on available params
+      let initialTargetUrl = '/';
+      if (reminderId) {
+        initialTargetUrl = `/create-order?reminder_id=${reminderId}&flowInitialStep=review`;
+      } else if (reminderIds) {
+        initialTargetUrl = `/create-order?reminder_ids=${reminderIds}&flowInitialStep=review`;
+      } else if (batchId && userId) {
+        initialTargetUrl = `/create-order?batch_id=${batchId}&user_id=${userId}&flowInitialStep=review`;
+      }
+
+      // If there are no relevant notification/reauth parameters, do nothing
+      if (initialTargetUrl === '/' && !forceReauthParam) {
+        return;
+      }
+
+      // *** Main Re-authentication Logic ***
+      // If forceReauth is requested and user is PRO
+      if (isProUser && forceReauthParam === 'true') {
+        logger.info('URL contains forceReauth=true, forcing profile logout and saving pending navigation:', initialTargetUrl);
+        setPendingNavigation(initialTargetUrl); // Save the target URL
+        forceLogout(); // This will clear selectedProfile, show ProfileSelectionPage
+        return; // Stop here, the pendingNavigation will be handled after re-auth
+      }
+
+      // *** Existing Pending Navigation Logic (if a flow is already active) ***
+      // If there's an active pending navigation, it means we're likely coming back from a re-auth flow
+      // initiated by this component itself (from a previous render) or another component.
+      // In this case, we let the 'execute pending navigation' effect handle the actual navigation.
       if (pendingNavigation) {
         return;
       }
 
-      const params = new URLSearchParams(location.search);
-      const notificationUrl = params.get('notification_url');
-      const notificationReminderId = params.get('notification_reminder_id');
-      const notificationReminderIds = params.get('notification_reminder_ids');
-      
-      // ✅ ONLY process if there are actual notification parameters
-      if (!notificationUrl && !notificationReminderId && !notificationReminderIds) {
-        // No notification parameters, do nothing
-        return;
+      // *** Default Navigation Logic (no re-auth needed, no pending flow) ***
+      // If user is PRO but not authenticated yet (e.g., first app load, no stored profile)
+      if (isProUser && !selectedProfile && initialTargetUrl !== '/') {
+        logger.info('User is PRO without profile, saving pending navigation from URL params (no forceReauth):', initialTargetUrl);
+        setPendingNavigation(initialTargetUrl);
+        return; // defer navigation until after login
       }
       
-      // Build target URL first
-      let targetUrl = '/';
-      if (notificationUrl) {
-        targetUrl = notificationUrl;
-      } else if (notificationReminderId) {
-        targetUrl = `/create-order?reminder_id=${notificationReminderId}&flowInitialStep=review`;
-      } else if (notificationReminderIds) {
-        // Parse possible JSON array
-        let ids = notificationReminderIds;
-        try {
-          const parsed = JSON.parse(notificationReminderIds);
-          if (Array.isArray(parsed)) ids = parsed.join(',');
-        } catch (e) {
-          // keep as is
-        }
-        targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
-      }
-
-      // If user is PRO but not authenticated yet, store pending navigation and exit.
-      if (isProUser && !selectedProfile && targetUrl !== '/') {
-        logger.info('User is PRO without profile, saving pending navigation from URL params:', targetUrl);
-        setPendingNavigation(targetUrl);
-        // Do not navigate now; URL params will stay until next render.
-        return;
-      }
-
-      // User is authenticated (or not PRO), navigate immediately.
-      logger.info('Navigating to target URL from params:', targetUrl);
-      // Clean up original notification params (they are not needed any more)
-      params.delete('notification_url');
-      params.delete('notification_reminder_id');
-      params.delete('notification_reminder_ids');
-      navigate(targetUrl);
+      // If no forceReauth, no pendingNavigation, and profile is selected (or not PRO user)
+      // then simply navigate to the initialTargetUrl.
+      logger.info('Navigating directly to target URL from params:', initialTargetUrl);
+      navigate(initialTargetUrl);
       
-    }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation, pendingNavigation]);
+    }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation, forceLogout, pendingNavigation]);
   
     // Execute pending navigation after profile is authenticated and permissions are loaded
     // Execute pending navigation after profile is authenticated, and pre-fill context if needed.
