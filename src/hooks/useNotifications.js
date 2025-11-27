@@ -7,22 +7,35 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     const handleNotificationClick = useCallback(async (notification) => {
+        logger.info('🔔 In-app notification clicked:', notification);
+        logger.info('🔔 Notification data:', notification.data);
+        logger.info('🔔 Notification reminder_id:', notification.reminder_id);
+        
         let reminderIdsToProcess = [];
         if (notification.data && Array.isArray(notification.data.reminder_ids)) {
             reminderIdsToProcess = notification.data.reminder_ids;
+            logger.info('🔔 Found reminder_ids array:', reminderIdsToProcess);
         } else if (notification.data && notification.data.reminder_id) {
             reminderIdsToProcess = [notification.data.reminder_id];
+            logger.info('🔔 Found single reminder_id in data:', reminderIdsToProcess);
         } else if (notification.reminder_id) { // Fallback to existing structure
             reminderIdsToProcess = [notification.reminder_id];
+            logger.info('🔔 Found reminder_id in notification root:', reminderIdsToProcess);
         }
+        
+        logger.info('🔔 Final reminderIdsToProcess:', reminderIdsToProcess);
 
         if (reminderIdsToProcess.length > 0) {
             try {
                 if (reminderIdsToProcess.length === 1) {
                     // Existing logic for single reminder_id
+                    logger.info('🔔 Processing single reminder, ID:', reminderIdsToProcess[0]);
                     const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderIdsToProcess[0]);
+                    logger.info('🔔 Fetched scheduled order:', scheduledOrder);
                     if (scheduledOrder) {
+                        logger.info('🔔 Setting prefill data with type: schedule');
                         setPrefilledData({ type: 'schedule', data: scheduledOrder });
+                        logger.info('🔔 Navigating to: /create-order?flowInitialStep=review');
                         navigate('/create-order?flowInitialStep=review');
                         await supabaseHelpers.markNotificationAsRead(notification.id);
                         setUnreadCount(prev => Math.max(0, prev - 1));

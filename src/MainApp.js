@@ -174,39 +174,46 @@ const MainApp = () => {
       const notificationUrl = params.get('notification_url');
       const notificationReminderId = params.get('notification_reminder_id');
       const notificationReminderIds = params.get('notification_reminder_ids');
-            // Build target URL first
-        let targetUrl = '/';
-        if (notificationUrl) {
-          targetUrl = notificationUrl;
-        } else if (notificationReminderId) {
-          targetUrl = `/create-order?reminder_id=${notificationReminderId}&flowInitialStep=review`;
-        } else if (notificationReminderIds) {
-          // Parse possible JSON array
-          let ids = notificationReminderIds;
-          try {
-            const parsed = JSON.parse(notificationReminderIds);
-            if (Array.isArray(parsed)) ids = parsed.join(',');
-          } catch (e) {
-            // keep as is
-          }
-          targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
+      
+      // ✅ ONLY process if there are actual notification parameters
+      if (!notificationUrl && !notificationReminderId && !notificationReminderIds) {
+        // No notification parameters, do nothing
+        return;
+      }
+      
+      // Build target URL first
+      let targetUrl = '/';
+      if (notificationUrl) {
+        targetUrl = notificationUrl;
+      } else if (notificationReminderId) {
+        targetUrl = `/create-order?reminder_id=${notificationReminderId}&flowInitialStep=review`;
+      } else if (notificationReminderIds) {
+        // Parse possible JSON array
+        let ids = notificationReminderIds;
+        try {
+          const parsed = JSON.parse(notificationReminderIds);
+          if (Array.isArray(parsed)) ids = parsed.join(',');
+        } catch (e) {
+          // keep as is
         }
+        targetUrl = `/create-order?reminder_ids=${ids}&flowInitialStep=review`;
+      }
 
-        // If user is PRO but not authenticated yet, store pending navigation and exit.
-        if (isProUser && !selectedProfile && targetUrl !== '/') {
-          logger.info('User is PRO without profile, saving pending navigation from URL params:', targetUrl);
-          setPendingNavigation(targetUrl);
-          // Do not navigate now; URL params will stay until next render.
-          return;
-        }
+      // If user is PRO but not authenticated yet, store pending navigation and exit.
+      if (isProUser && !selectedProfile && targetUrl !== '/') {
+        logger.info('User is PRO without profile, saving pending navigation from URL params:', targetUrl);
+        setPendingNavigation(targetUrl);
+        // Do not navigate now; URL params will stay until next render.
+        return;
+      }
 
-        // User is authenticated (or not PRO), navigate immediately.
-        logger.info('Navigating to target URL from params:', targetUrl);
-        // Clean up original notification params (they are not needed any more)
-        params.delete('notification_url');
-        params.delete('notification_reminder_id');
-        params.delete('notification_reminder_ids');
-        navigate(targetUrl);
+      // User is authenticated (or not PRO), navigate immediately.
+      logger.info('Navigating to target URL from params:', targetUrl);
+      // Clean up original notification params (they are not needed any more)
+      params.delete('notification_url');
+      params.delete('notification_reminder_id');
+      params.delete('notification_reminder_ids');
+      navigate(targetUrl);
       
     }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation]);
   
