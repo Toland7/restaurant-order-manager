@@ -319,7 +319,7 @@ const MainApp = () => {
         const timer = setTimeout(processAndExecuteNavigation, 500);
         return () => clearTimeout(timer);
       }
-    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, profilePermissions, suppliers, user, executePendingNavigation, navigate, setPrefilledData]);
+    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, suppliers, user, executePendingNavigation, navigate, setPrefilledData]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');
