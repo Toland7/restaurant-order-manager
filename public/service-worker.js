@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-undef */
 
-// VERSIONE: 1.5.0 - Usa postMessage per navigazione PWA-friendly
-console.log('[Service Worker] Versione 1.5.0 caricata');
+// VERSIONE: 1.5.1 - Usa postMessage per navigazione PWA-friendly
+console.log('[Service Worker] Versione 1.5.1 caricata');
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
