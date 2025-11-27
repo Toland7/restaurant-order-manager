@@ -89,8 +89,8 @@ const MainApp = () => {
           const notificationData = event.data.data;
           logger.info('Processing notification click:', notificationData);
           
-          // 🔥 NUOVO: Se richiede re-autenticazione E utente è PRO, forza logout
-          if (event.data.forceReauth && isProUser) {
+          // 🔥 MODIFIED: Se utente è PRO, forza sempre il logout del profilo al click della notifica per garantire dati freschi
+          if (isProUser) {
             logger.info('Notification requires re-auth, forcing profile logout');
             
             // 1. Costruisci target URL PRIMA del logout
