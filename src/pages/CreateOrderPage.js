@@ -92,6 +92,13 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
   }, [canSendOrders, canScheduleOrders, multiOrders, suppliers, setOrderMessages, setWizardOrders, setWizardStep, setNewlyCreatedOrders, lastAuthenticationTime]);
 
   useEffect(() => {
+    // ⚠️ GUARD: If prefilledData is already populated (e.g., by MainApp after re-auth),
+    // skip loading from URL to avoid race conditions and duplicate fetches
+    if (prefilledData) {
+      logger.info('Prefilled data already set, skipping URL parameter loading in CreateOrderPage');
+      return;
+    }
+
     const params = new URLSearchParams(currentLocation.search);
     const reminderId = params.get('reminder_id');
     const batchId = params.get('batch_id');

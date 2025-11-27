@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-undef */
 
-// VERSIONE: 1.3.0 - Rimosso postMessage, aggiunto forceReauth come parametro URL
-console.log('[Service Worker] Versione 1.3.0 caricata');
+// VERSIONE: 1.3.1 - Aggiunto fallback per errori di navigate()
+console.log('[Service Worker] Versione 1.3.1 caricata');
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -96,7 +96,13 @@ self.addEventListener('notificationclick', event => {
       if (clientToHandle) {
         // Se un client esiste, naviga a quell\'URL e portalo in primo piano
         console.log('[Service Worker] Navigazione client esistente a URL:', targetUrl.href);
-        return clientToHandle.navigate(targetUrl.href).then(c => c?.focus());
+        return clientToHandle.navigate(targetUrl.href)
+          .then(c => c?.focus())
+          .catch(error => {
+            console.error('[Service Worker] Errore durante navigate(), apertura nuova finestra:', error);
+            // Fallback: se navigate fallisce, apri una nuova finestra
+            return clients.openWindow(targetUrl.href);
+          });
       } else {
         // Altrimenti, apri una nuova finestra
         console.log('[Service Worker] Apertura nuova finestra con URL:', targetUrl.href);
