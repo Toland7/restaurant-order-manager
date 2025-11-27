@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import ModernCookieBanner from './components/ui/ModernCookieBanner';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 
 function App() {
   const navigate = useNavigate();
@@ -42,6 +42,7 @@ function App() {
 
   return (
     <>
+      <Toaster position="top-center" reverseOrder={false} toastOptions={{ className: 'glass-card !bg-white !text-gray-900 dark:!bg-gray-900 dark:!text-gray-100', duration: 3000 }} />
       <Outlet /> {/* Render child routes here */}
       <ModernCookieBanner />
     </>
