@@ -108,6 +108,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
           const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
           if (scheduledOrder) {
             setPrefilledData({ type: 'schedule', data: scheduledOrder });
+            // Clean up URL only after successful load
+            navigate('/create-order', { replace: true });
           } else {
             toast.error("Ordine programmato non trovato.");
           }
@@ -145,6 +147,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             if (validationResult === 'ok') {
               setFlowInitialStep('review');
             }
+            // Clean up URL only after successful load
+            navigate('/create-order', { replace: true });
           } else {
             toast.error("Nessun ordine trovato.");
           }
@@ -178,6 +182,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
             if (validationResult === 'ok') {
               setFlowInitialStep('review');
             }
+            // Clean up URL only after successful load
+            navigate('/create-order', { replace: true });
           } else {
             toast.error("Batch di ordini non trovato.");
           }
@@ -187,11 +193,6 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         }
       };
       fetchBatch();
-    }
-
-    // Clean up the URL regardless after processing
-    if (reminderId || batchId) {
-      navigate('/create-order', { replace: true });
     }
   }, [currentLocation, setPrefilledData, navigate, user, suppliers, setMultiOrders, setIsPrefilledOrder, setInitialMultiOrdersSet, prepareAndValidateOrders, setFlowInitialStep]);
 
