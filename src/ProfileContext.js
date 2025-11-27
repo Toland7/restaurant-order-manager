@@ -79,11 +79,14 @@ export const ProfileProvider = ({ children }) => {
       // Extract path and search params from the URL
       try {
         const url = new URL(urlToNavigate, window.location.origin);
-        const fullPath = url.pathname + url.search;
-        navigate(fullPath);
+        // Remove forceReauth parameter to prevent re-triggering the useEffect
+        url.searchParams.delete('forceReauth');
+        const cleanPath = url.pathname + url.search;
+        logger.info('Navigating to cleaned URL:', cleanPath);
+        navigate(cleanPath, { replace: true });
       } catch (error) {
         logger.error('Error parsing pending navigation URL:', error);
-        navigate(pendingNavigation);
+        navigate(pendingNavigation, { replace: true });
       }
       return true;
     }

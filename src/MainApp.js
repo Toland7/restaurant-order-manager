@@ -83,6 +83,23 @@ const MainApp = () => {
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
   
+    // Listen for service worker messages for PWA navigation
+    useEffect(() => {
+      const handleServiceWorkerMessage = (event) => {
+        if (event.data && event.data.type === 'NOTIFICATION_NAVIGATE') {
+          logger.info('Received navigation request from service worker:', event.data.targetUrl);
+          navigate(event.data.targetUrl);
+        }
+      };
+      
+      navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+      
+      return () => {
+        navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+      };
+    }, [navigate]);
+  
+  
 
 
 
@@ -117,11 +134,21 @@ const MainApp = () => {
       // If forceReauth is requested and user is PRO
       if (isProUser && forceReauthParam === 'true') {
         logger.info('URL contains forceReauth=true, forcing profile logout and saving pending navigation:', initialTargetUrl);
+        setPrefilledData(null); // Clear any stale data
         setPendingNavigation(initialTargetUrl); // Save the target URL
         forceLogout(); // This will clear selectedProfile, show ProfileSelectionPage
         return; // Stop here, the pendingNavigation will be handled after re-auth
       }
 
+      // *** Always use pending navigation flow to ensure fresh data loading ***
+      // Even without forceReauth, we need to load fresh data from the database
+      if (initialTargetUrl !== '/') {
+        logger.info('Setting pending navigation to load fresh data:', initialTargetUrl);
+        setPrefilledData(null); // Clear any stale data first
+        setPendingNavigation(initialTargetUrl);
+        return; // Let the pending navigation effect handle data loading and navigation
+      }
+      
       // *** Existing Pending Navigation Logic (if a flow is already active) ***
       // If there's an active pending navigation, it means we're likely coming back from a re-auth flow
       // initiated by this component itself (from a previous render) or another component.
@@ -143,7 +170,7 @@ const MainApp = () => {
       logger.info('Navigating directly to target URL from params:', initialTargetUrl);
       navigate(initialTargetUrl);
       
-    }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation, forceLogout, pendingNavigation]);
+    }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation, forceLogout, pendingNavigation, setPrefilledData]);
   
     // Execute pending navigation after profile is authenticated and permissions are loaded
     // Execute pending navigation after profile is authenticated, and pre-fill context if needed.
@@ -212,11 +239,11 @@ const MainApp = () => {
             toast.error("Impossibile preparare l'ordine dalla notifica.");
           }
   
-          // 2. Execute navigation
-          const hasNavigated = executePendingNavigation(navigate);
-          if (!hasNavigated) {
-            navigate('/');
-          }
+          // 2. Navigate to CreateOrderPage with CLEAN URL (data is already in context)
+          // This prevents the useEffect from retriggering
+          logger.info('Data prefilled, navigating to clean /create-order URL');
+          clearPendingNavigation();
+          navigate('/create-order?flowInitialStep=review', { replace: true });
         }
       };
   
@@ -225,7 +252,7 @@ const MainApp = () => {
         const timer = setTimeout(processAndExecuteNavigation, 500);
         return () => clearTimeout(timer);
       }
-    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, suppliers, user, executePendingNavigation, navigate, setPrefilledData]);
+    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, suppliers, user, executePendingNavigation, navigate, setPrefilledData, clearPendingNavigation]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');

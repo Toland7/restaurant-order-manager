@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 /* eslint-disable no-undef */
 
-// VERSIONE: 1.3.1 - Aggiunto fallback per errori di navigate()
-console.log('[Service Worker] Versione 1.3.1 caricata');
+// VERSIONE: 1.5.0 - Usa postMessage per navigazione PWA-friendly
+console.log('[Service Worker] Versione 1.5.0 caricata');
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -75,38 +75,44 @@ self.addEventListener('notificationclick', event => {
     targetUrl.searchParams.set('flowInitialStep', 'review');
   }
 
-  // Aggiungi il flag forceReauth all\'URL se necessario
+  // Aggiungi il flag forceReauth all'URL se necessario
   if (forceReauth) {
     targetUrl.searchParams.set('forceReauth', 'true');
   }
 
+  console.log('[Service Worker] URL finale costruito:', targetUrl.href);
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // Cerca un client esistente da riutilizzare
-      let clientToHandle = null;
-      for (const client of clientList) {
-        if (client.url.startsWith(self.location.origin)) {
-          clientToHandle = client;
-          break;
+      console.log('[Service Worker] Trovati', clientList.length, 'client(s)');
+      
+      // Strategia PWA-friendly: focus sul client esistente e usa postMessage per navigare
+      if (clientList.length > 0) {
+        // Cerca il client focused, altrimenti prendi il primo
+        let targetClient = clientList.find(c => c.focused);
+        if (!targetClient) {
+          targetClient = clientList[0];
         }
-        // Fallback to first client if no exact match or focused client
-        if (!clientToHandle) clientToHandle = clientList[0];
-      }
-
-      if (clientToHandle) {
-        // Se un client esiste, naviga a quell\'URL e portalo in primo piano
-        console.log('[Service Worker] Navigazione client esistente a URL:', targetUrl.href);
-        return clientToHandle.navigate(targetUrl.href)
-          .then(c => c?.focus())
-          .catch(error => {
-            console.error('[Service Worker] Errore durante navigate(), apertura nuova finestra:', error);
-            // Fallback: se navigate fallisce, apri una nuova finestra
-            return clients.openWindow(targetUrl.href);
-          });
+        
+        console.log('[Service Worker] Focus sul client e invio messaggio di navigazione');
+        
+        // Invia messaggio all'app per navigare
+        targetClient.postMessage({
+          type: 'NOTIFICATION_NAVIGATE',
+          targetUrl: targetUrl.pathname + targetUrl.search
+        });
+        
+        // Porta in primo piano
+        return targetClient.focus();
       } else {
-        // Altrimenti, apri una nuova finestra
-        console.log('[Service Worker] Apertura nuova finestra con URL:', targetUrl.href);
-        return clients.openWindow(targetUrl.href);
+        // Nessun client aperto: apri una nuova finestra
+        console.log('[Service Worker] Nessun client aperto, apertura nuova finestra');
+        return clients.openWindow(targetUrl.href).then(newClient => {
+          if (newClient) {
+            console.log('[Service Worker] Nuova finestra aperta con successo');
+          }
+          return newClient;
+        });
       }
     })
   );
