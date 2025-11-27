@@ -83,12 +83,11 @@ const MainApp = () => {
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
   
-    // Listen for service worker messages (push notifications)
-    useEffect(() => {
-      const handleServiceWorkerMessage = (event) => {
-        if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+    const [pendingServiceWorkerMessage, setPendingServiceWorkerMessage] = useState(null);
+
+    const processServiceWorkerMessage = useCallback((event) => {
           const notificationData = event.data.data;
-          logger.info('Received notification click from service worker:', notificationData);
+          logger.info('Processing notification click:', notificationData);
           
           // 🔥 NUOVO: Se richiede re-autenticazione E utente è PRO, forza logout
           if (event.data.forceReauth && isProUser) {
@@ -158,6 +157,21 @@ const MainApp = () => {
           // Otherwise navigate immediately (or if targetUrl is '/', we stay on home)
           logger.info('Navigating immediately to (service worker):', targetUrl);
           navigate(targetUrl);
+    }, [isProUser, selectedProfile, setPendingNavigation, navigate, forceLogout]);
+
+    // Listen for service worker messages (push notifications)
+    useEffect(() => {
+      const handleServiceWorkerMessage = (event) => {
+        if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+          logger.info('Received notification click from service worker. Loading subscription:', loadingSubscription);
+          
+          if (loadingSubscription) {
+            logger.info('Subscription loading, queuing message for later processing');
+            setPendingServiceWorkerMessage(event);
+            return;
+          }
+
+          processServiceWorkerMessage(event);
         }
       };
       
@@ -166,7 +180,16 @@ const MainApp = () => {
       return () => {
         navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       };
-    }, [isProUser, selectedProfile, setPendingNavigation, navigate, forceLogout]);
+    }, [loadingSubscription, processServiceWorkerMessage]);
+
+    // Process pending messages once subscription is loaded
+    useEffect(() => {
+      if (!loadingSubscription && pendingServiceWorkerMessage) {
+        logger.info('Subscription loaded, processing queued service worker message');
+        processServiceWorkerMessage(pendingServiceWorkerMessage);
+        setPendingServiceWorkerMessage(null);
+      }
+    }, [loadingSubscription, pendingServiceWorkerMessage, processServiceWorkerMessage]);
   
     // Detect notification data from URL parameters (when app opens from scratch)
     useEffect(() => {
