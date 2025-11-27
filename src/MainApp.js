@@ -241,29 +241,85 @@ const MainApp = () => {
     }, [isProUser, selectedProfile, navigate, location.search, setPendingNavigation]);
   
     // Execute pending navigation after profile is authenticated and permissions are loaded
+    // Execute pending navigation after profile is authenticated, and pre-fill context if needed.
     useEffect(() => {
-      // Only execute if:
-      // 1. User is PRO
-      // 2. Profile is selected (authenticated)
-      // 3. Profile is not loading
-      // 4. Permissions are loaded (array has items or is empty but fetch completed)
-      // 5. There is a pending navigation
-      if (isProUser && selectedProfile && !loadingProfile && pendingNavigation) {
-        logger.info('Profile authenticated, waiting for permissions before executing pending navigation');
-        
-        // Wait longer to ensure permissions and all state is fully loaded
-        const timer = setTimeout(() => {
-          logger.info('Executing pending navigation after delay:', pendingNavigation);
+      const processAndExecuteNavigation = async () => {
+        if (isProUser && selectedProfile && !loadingProfile && pendingNavigation) {
+          logger.info('Profile authenticated, processing and executing pending navigation:', pendingNavigation);
+  
+          try {
+            // 1. Parse URL and fetch data to pre-fill context
+            const url = new URL(pendingNavigation, window.location.origin);
+            const params = new URLSearchParams(url.search);
+            const reminderId = params.get('reminder_id');
+            const reminderIdsParam = params.get('reminder_ids');
+            const batchId = params.get('batch_id');
+  
+            if (reminderId) {
+              const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
+              if (scheduledOrder) {
+                logger.info('Prefilling context for single reminder from MainApp');
+                setPrefilledData({ type: 'schedule', data: scheduledOrder });
+              }
+            } else if (reminderIdsParam) {
+              const ids = reminderIdsParam.split(',');
+              const orders = await Promise.all(ids.map(id => supabaseHelpers.getScheduledOrderById(id)));
+              const validOrders = orders.filter(o => o !== null);
+  
+              if (validOrders.length > 0) {
+                const formattedOrders = validOrders.map(order => {
+                  const orderData = JSON.parse(order.order_data);
+                  const supplierObj = suppliers.find(s => s.id === order.supplier_id);
+                  return {
+                    id: order.id,
+                    supplier: order.supplier_id.toString(),
+                    items: orderData.items || {},
+                    additional: orderData.additional_items || '',
+                    email_subject: orderData.email_subject || supplierObj?.email_subject || '',
+                    searchTerm: ''
+                  };
+                });
+                logger.info('Prefilling context for multiple reminders from MainApp');
+                setPrefilledData({ type: 'multi-schedule', data: formattedOrders });
+              }
+            } else if (batchId && user?.id) {
+              const batchOrders = await supabaseHelpers.getScheduledOrdersByBatch(user.id, batchId);
+              if (batchOrders && batchOrders.length > 0) {
+                const formattedOrders = batchOrders.map(order => {
+                  const orderData = JSON.parse(order.order_data);
+                  const supplierObj = suppliers.find(s => s.id === order.supplier_id);
+                  return {
+                    id: order.id,
+                    supplier: order.supplier_id.toString(),
+                    items: orderData.items || {},
+                    additional: orderData.additional_items || '',
+                    email_subject: orderData.email_subject || supplierObj?.email_subject || '',
+                    searchTerm: ''
+                  };
+                });
+                logger.info('Prefilling context for batch from MainApp');
+                setPrefilledData({ type: 'multi-schedule', data: formattedOrders });
+              }
+            }
+          } catch (error) {
+            logger.error('Error prefilling context from MainApp:', error);
+            toast.error("Impossibile preparare l'ordine dalla notifica.");
+          }
+  
+          // 2. Execute navigation
           const hasNavigated = executePendingNavigation(navigate);
           if (!hasNavigated) {
-            // This shouldn't happen, but fallback to home just in case
             navigate('/');
           }
-        }, 1000); // increased to 1000ms for safety
-        
+        }
+      };
+  
+      if (pendingNavigation) {
+        // Wait to ensure all state is fully loaded
+        const timer = setTimeout(processAndExecuteNavigation, 500);
         return () => clearTimeout(timer);
       }
-    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, profilePermissions, executePendingNavigation, navigate]);
+    }, [isProUser, selectedProfile, loadingProfile, pendingNavigation, profilePermissions, suppliers, user, executePendingNavigation, navigate, setPrefilledData]);
   
     useEffect(() => {
       const savedWizardState = sessionStorage.getItem('wizardState');
