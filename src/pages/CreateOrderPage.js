@@ -89,7 +89,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     setWizardStep(0);
     setNewlyCreatedOrders([]);
     return 'ok';
-  }, [canSendOrders, canScheduleOrders, multiOrders, suppliers, setOrderMessages, setWizardOrders, setWizardStep, setNewlyCreatedOrders]);
+  }, [canSendOrders, canScheduleOrders, multiOrders, suppliers, setOrderMessages, setWizardOrders, setWizardStep, setNewlyCreatedOrders, lastAuthenticationTime]);
 
   useEffect(() => {
     const params = new URLSearchParams(currentLocation.search);
