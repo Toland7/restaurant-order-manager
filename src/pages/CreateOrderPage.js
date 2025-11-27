@@ -200,6 +200,11 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
 
   // Effect to handle prefilled data (runs only when prefilledData changes to a non-null value)
   useEffect(() => {
+    // Guard: Wait until both prefilledData and suppliers are available.
+    if (!prefilledData || suppliers.length === 0) {
+      return;
+    }
+
     if (prefilledData && prefilledData.type === 'schedule') {
       const scheduledOrder = prefilledData.data;
       const orderData = JSON.parse(scheduledOrder.order_data);
