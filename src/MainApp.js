@@ -83,28 +83,9 @@ const MainApp = () => {
     const [wizardOrders, setWizardOrders] = useState([]);
     const [wizardStep, setWizardStep] = useState(0);
   
-    // Listen for service worker messages for PWA navigation
-    useEffect(() => {
-      const handleServiceWorkerMessage = (event) => {
-        if (event.data && event.data.type === 'NOTIFICATION_NAVIGATE') {
-          logger.info('Received navigation request from service worker:', event.data.targetUrl);
-          navigate(event.data.targetUrl);
-        }
-      };
-      
-      navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
-      
-      return () => {
-        navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
-      };
-    }, [navigate]);
   
   
-
-
-
-
-
+  
   
     // Detect notification data from URL parameters (when app opens from scratch)
     useEffect(() => {

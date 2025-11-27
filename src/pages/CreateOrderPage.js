@@ -562,9 +562,26 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
     navigate('/schedule', { state: { ordersToSchedule: ordersToSchedule } });
   };
 
+  const handleBackNavigation = () => {
+    // Always check for unsaved changes first
+    if (hasUnsavedChanges()) {
+      setShowExitConfirm(true);
+      return;
+    }
+    
+    // No unsaved changes: safe to navigate
+    // Check if there's history to go back to
+    // history.length <= 1 means this is the only page (opened from notification)
+    if (window.history.length <= 1) {
+      navigate('/');
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <div className="min-h-screen app-background">
-      {!isDesktop && <Header title="Crea Ordine" onBack={() => { isPrefilledOrder ? navigate(-1) : (hasUnsavedChanges() ? setShowExitConfirm(true) : navigate(-1)); }} />}
+      {!isDesktop && <Header title="Crea Ordine" onBack={handleBackNavigation} />}
       <div className="max-w-sm mx-auto px-6 py-6 space-y-6">
         {isDesktop && (
           <div className="flex justify-between items-center mb-2">
