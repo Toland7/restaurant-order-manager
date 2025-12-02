@@ -94,6 +94,18 @@ const AuthPage = () => {
         // Salva i dati del profilo nella tabella profiles
         if (data.user && !error) {
           logger.log('Profile data will be populated by trigger.');
+          
+          // Check if user already exists (identities array is empty when user already registered)
+          if (data.user.identities && data.user.identities.length === 0) {
+            toast.error('Questa email è già registrata. Effettua il login invece.', {
+              duration: 5000,
+              icon: '⚠️'
+            });
+            // Automatically switch to login view
+            setTimeout(() => setIsLogin(true), 2000);
+            setIsAuthenticating(false);
+            return;
+          }
         }
         if (error) throw error;
         if (data.user) {
@@ -104,7 +116,21 @@ const AuthPage = () => {
         logger.error('Signup error caught:', error);
         logger.error('Error message:', error.message);
         logger.error('Error details:', error);
-        toast.error(error.message);
+        
+        // Check if email is already registered
+        if (error.message && (
+          error.message.toLowerCase().includes('already registered') ||
+          error.message.toLowerCase().includes('user already registered')
+        )) {
+          toast.error('Questa email è già registrata. Effettua il login invece.', {
+            duration: 5000,
+            icon: '⚠️'
+          });
+          // Automatically switch to login view
+          setTimeout(() => setIsLogin(true), 2000);
+        } else {
+          toast.error(error.message);
+        }
       } finally {
         setIsAuthenticating(false);
       }
