@@ -4,7 +4,7 @@
 --              This prevents infinite recursion in RLS policies.
 
 -- Drop existing function if it exists
-DROP FUNCTION IF EXISTS public.is_admin();
+DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
 
 -- Create function to check if current user is admin
 -- SECURITY DEFINER allows it to bypass RLS

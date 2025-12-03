@@ -107,7 +107,9 @@ export const ProfileProvider = ({ children }) => {
           logger.error('Error fetching profile permissions:', error);
           setProfilePermissions([]);
         } else {
-          const fetchedPermissions = data.map(pp => pp.permissions.name);
+          const fetchedPermissions = data
+            .filter(pp => pp.permissions)
+            .map(pp => pp.permissions.name);
           setProfilePermissions(fetchedPermissions);
         }
       } else {
@@ -151,7 +153,9 @@ export const ProfileProvider = ({ children }) => {
             logger.error('Error fetching permissions:', permError);
             setProfilePermissions([]);
           } else {
-            const fetchedPermissions = permData.map(pp => pp.permissions.name);
+            const fetchedPermissions = permData
+              .filter(pp => pp.permissions)
+              .map(pp => pp.permissions.name);
             setProfilePermissions(fetchedPermissions);
           }
         } else {

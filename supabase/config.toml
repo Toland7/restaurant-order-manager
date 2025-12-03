@@ -1,6 +1,6 @@
 # supabase/config.toml
 
-project_id = "gmpifncmfshvsmkvwjgr"
+project_id = "prfsoqztdanhkzyajjhk"
 
 [api]
 # The port to use for the API proxy.
@@ -15,7 +15,7 @@ max_rows = 1000
 # The port to use for the local database.
 port = 54322
 # The database major version to use.
-major_version = 15
+major_version = 17
 
 [studio]
 # The port to use for Supabase Studio.
