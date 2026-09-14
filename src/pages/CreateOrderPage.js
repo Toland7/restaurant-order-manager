@@ -9,7 +9,7 @@ import OrderFlow from '../components/OrderFlow';
 import { supabaseHelpers } from '../supabase';
 import logger from '../utils/logger';
 
-import ExitConfirmationModal from '../components/modals/ExitConfirmationModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -922,7 +922,16 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
           </OrderFlow.Step>
         </OrderFlow>
       </div>
-      <ExitConfirmationModal isOpen={showExitConfirm} onClose={() => setShowExitConfirm(false)} onConfirmExit={onConfirmExit} />
+      <ConfirmModal
+        isOpen={showExitConfirm}
+        onClose={() => setShowExitConfirm(false)}
+        onConfirm={onConfirmExit}
+        title="Uscire senza salvare?"
+        message="L'ordine in corso verrà perso. Sei sicuro di voler uscire?"
+        confirmText="Esci"
+        cancelText="Annulla"
+        confirmButtonClass="btn-danger"
+      />
     </div>
   );
 };

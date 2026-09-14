@@ -1,12 +1,11 @@
 const { createClient } = require("@supabase/supabase-js");
 const webpush = require("web-push");
-const fetch = require("node-fetch"); // Explicitly import fetch
 
 // Initialize Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { global: { fetch: fetch, timeout: 10000 } } // Pass the imported fetch
+  { global: { timeout: 10000 } }
 );
 
 // Initialize web-push
@@ -31,20 +30,6 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // DIAGNOSTIC: Test direct fetch to Supabase
-    try {
-      const testUrl = process.env.SUPABASE_URL + "/rest/v1/suppliers?limit=1"; // Use a public endpoint if possible, or any endpoint
-      const testResponse = await fetch(testUrl, {
-        headers: {
-          apikey: process.env.SUPABASE_ANON_KEY, // Use anon key for this test
-          Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-        },
-      });
-      const testData = await testResponse.json();
-    } catch (fetchError) {
-      console.error("DIAGNOSTIC: Direct fetch failed:", fetchError);
-    }
-
     const now = new Date();
 
     // 1. Fetch due and unsent reminders

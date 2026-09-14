@@ -58,25 +58,15 @@ export const personNameSchema = z.string()
  * @returns {{ success: boolean, data?: any, error?: string }}
  */
 export const validate = (schema, value) => {
-  try {
-    const result = schema.parse(value);
-    return { success: true, data: result };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { 
-        success: false, 
-        error: error.errors[0]?.message || 'Validazione fallita' 
-      };
-    }
-    return { success: false, error: 'Errore di validazione' };
-  }
+  const result = schema.safeParse(value);
+  if (result.success) return { success: true, data: result.data };
+  return { 
+    success: false, 
+    error: result.error.errors?.[0]?.message || 'Validazione fallita' 
+  };
 };
 
-/**
- * Safe parse that returns the original value if validation fails
- * Useful for non-critical validations
- */
 export const safeParse = (schema, value, defaultValue = '') => {
-  const result = validate(schema, value);
+  const result = schema.safeParse(value);
   return result.success ? result.data : defaultValue;
 };

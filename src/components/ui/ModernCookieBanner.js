@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
 import { Cookie, X, Check } from 'lucide-react';
 
 function ModernCookieBanner() {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    const consent = Cookies.get('restaurantOrderManagerConsent');
+    const consent = localStorage.getItem('restaurantOrderManagerConsent');
     if (!consent) {
       setShowBanner(true);
     }
   }, []);
 
   const handleAccept = () => {
-    Cookies.set('restaurantOrderManagerConsent', 'accepted', { expires: 150 });
+    localStorage.setItem('restaurantOrderManagerConsent', 'accepted');
     setShowBanner(false);
   };
 
   const handleDecline = () => {
-    Cookies.set('restaurantOrderManagerConsent', 'declined', { expires: 150 });
+    localStorage.setItem('restaurantOrderManagerConsent', 'declined');
     setShowBanner(false);
   };
 
