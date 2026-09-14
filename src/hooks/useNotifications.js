@@ -34,7 +34,7 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
                     logger.info('🔔 Fetched scheduled order:', scheduledOrder);
                     if (scheduledOrder) {
                         logger.info('🔔 Setting prefill data with type: schedule');
-                        setPrefilledData({ type: 'schedule', data: scheduledOrder });
+                        setPrefilledData({ type: 'schedule', data: scheduledOrder, scheduledOrderId: scheduledOrder.id });
                         logger.info('🔔 Navigating to: /create-order?flowInitialStep=review');
                         navigate('/create-order?flowInitialStep=review');
                         await supabaseHelpers.markNotificationAsRead(notification.id);
@@ -59,10 +59,15 @@ export const useNotifications = (user, setPrefilledData, navigate) => {
                                 items: orderData.items || {},
                                 additional: orderData.additional_items || '',
                                 email_subject: orderData.email_subject || '',
-                                searchTerm: '' // Assuming searchTerm is not part of scheduled order data
+                                searchTerm: '', // Assuming searchTerm is not part of scheduled order data
+                                scheduledOrderId: so.id, // Track for deletion after send
                             };
                         });
-                        setPrefilledData({ type: 'multi-schedule', data: formattedMultiOrders });
+                        setPrefilledData({
+                            type: 'multi-schedule',
+                            data: formattedMultiOrders,
+                            scheduledOrderIds: validScheduledOrders.map(so => so.id),
+                        });
                         navigate('/create-order?flowInitialStep=review');
                         await supabaseHelpers.markNotificationAsRead(notification.id);
                         setUnreadCount(prev => Math.max(0, prev - 1));

@@ -76,7 +76,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       }
       const message = generateOrderMessage(supplier, order.items, order.additional);
       messages.push({ supplier: supplier.name, message });
-      validWizardOrders.push({ ...order, supplier, message, email_subject: order.email_subject });
+      validWizardOrders.push({ ...order, supplier, message, email_subject: order.email_subject, scheduledOrderId: order.scheduledOrderId || null });
     });
 
     if (invalidOrders.length > 0) {
@@ -114,7 +114,7 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
         try {
           const scheduledOrder = await supabaseHelpers.getScheduledOrderById(reminderId);
           if (scheduledOrder) {
-            setPrefilledData({ type: 'schedule', data: scheduledOrder });
+            setPrefilledData({ type: 'schedule', data: scheduledOrder, scheduledOrderId: scheduledOrder.id });
             // Clean up URL only after successful load
             navigate('/create-order', { replace: true });
           } else {
@@ -144,7 +144,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
                 items: orderData.items || {},
                 additional: orderData.additional_items || '',
                 email_subject: orderData.email_subject || supplierObj?.email_subject || '',
-                searchTerm: ''
+                searchTerm: '',
+                scheduledOrderId: order.id,
               };
             });
             setMultiOrders(formattedOrders);
@@ -228,7 +229,8 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
           items: orderData.items || {},
           additional: orderData.additional_items || '',
           email_subject: orderData.email_subject || supplierObj.email_subject || '',
-          searchTerm: ''
+          searchTerm: '',
+          scheduledOrderId: prefilledData.scheduledOrderId || scheduledOrder.id,
         }
       ]);
       setIsPrefilledOrder(true);
@@ -324,6 +326,17 @@ const CreateOrderPage = ({ scheduledOrders, setScheduledOrders, onOrderSent, mul
       const newOrder = await supabaseHelpers.createOrder(orderData, orderItemsToInsert);
       setNewlyCreatedOrders(prev => [...prev, { ...newOrder, supplier: order.supplier, message: order.message }]);
       toast.success(`Ordine per ${order.supplier.name} salvato.`);
+
+      // If this order came from a scheduled reminder, delete the scheduled order
+      if (order.scheduledOrderId) {
+        try {
+          await supabaseHelpers.deleteScheduledOrder(order.scheduledOrderId);
+          setScheduledOrders(prev => prev.filter(o => o.id !== order.scheduledOrderId));
+        } catch (deleteError) {
+          logger.error('Error deleting scheduled order after send:', deleteError);
+          // Non-blocking: the order was sent, just log the cleanup failure
+        }
+      }
     } catch (error) {
       logger.error('Error saving order:', error);
       toast.error('Errore durante il salvataggio dell\'ordine.');

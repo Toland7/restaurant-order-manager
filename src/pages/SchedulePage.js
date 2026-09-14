@@ -488,9 +488,9 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                             <details key={groupIndex} className="bg-green-50/50 dark:bg-green-900/20 rounded-lg">
                                                 <summary className="font-medium text-sm p-3 cursor-pointer flex justify-between items-center list-none">
                                                     {isBatch ? (
-                                                        <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
+                                                        <span>Lotto di {orders.length} ordini — {scheduledAt.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</span>
                                                     ) : (
-                                                        <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
+                                                        <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} — {scheduledAt.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</span>
                                                     )}
                                                     <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                                                 </summary>
@@ -570,9 +570,9 @@ const SchedulePage = ({ suppliers, scheduledOrders, setScheduledOrders, user }) 
                                             <details key={groupIndex} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg">
                                                 <summary className="font-medium text-sm p-3 cursor-pointer flex justify-between items-center list-none">
                                                     {isBatch ? (
-                                                        <span>Lotto di {orders.length} ordini per le {scheduledAt.toLocaleTimeString()}</span>
+                                                        <span>Lotto di {orders.length} ordini — {scheduledAt.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</span>
                                                     ) : (
-                                                        <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} alle {scheduledAt.toLocaleTimeString()}</span>
+                                                        <span>Ordine per {suppliers.find(s => s.id === firstOrder.supplier_id)?.name || 'sconosciuto'} — {scheduledAt.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</span>
                                                     )}
                                                     <ChevronDown className="transform transition-transform duration-200 group-open:rotate-180" />
                                                 </summary>
