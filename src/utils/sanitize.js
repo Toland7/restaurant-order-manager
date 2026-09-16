@@ -1,8 +1,6 @@
-import DOMPurify from 'dompurify';
-
 /**
- * Sanitization utilities using DOMPurify
- * Prevents XSS attacks by cleaning user input
+ * Sanitization utilities
+ * Cleans user input and removes HTML tags
  */
 
 /**
@@ -13,10 +11,7 @@ import DOMPurify from 'dompurify';
  */
 export const sanitizeHtml = (dirty) => {
   if (typeof dirty !== 'string') return '';
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: [], // No HTML tags allowed
-    ALLOWED_ATTR: []
-  });
+  return dirty.replace(/<[^>]*>/g, '');
 };
 
 /**
@@ -27,11 +22,7 @@ export const sanitizeHtml = (dirty) => {
  */
 export const sanitizeText = (input) => {
   if (typeof input !== 'string') return '';
-  return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-    KEEP_CONTENT: true
-  }).trim();
+  return input.replace(/<[^>]*>/g, '').trim();
 };
 
 /**

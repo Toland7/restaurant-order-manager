@@ -1,13 +1,12 @@
 
 import React from 'react';
-import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 
 function CookiePolicy() {
   const navigate = useNavigate();
   const handleManageConsent = () => {
-    // The name must match the cookieName prop in CookieConsent component in App.js
-    Cookies.remove('restaurantOrderManagerConsent');
+    localStorage.removeItem('restaurantOrderManagerConsent');
+    document.cookie = 'restaurantOrderManagerConsent=; Max-Age=0; path=/;';
     alert('Le tue preferenze sui cookie sono state reimpostate. Il banner dei cookie apparirà di nuovo alla prossima visita.');
     navigate('/');
   };
